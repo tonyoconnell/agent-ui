@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   }
 
   await write(`
-    match $u isa unit, has uid "${id}", has status $s;
+    match $u isa actor, has aid "${id}", has status $s;
     delete $s of $u;
     insert $u has status "${status}";
   `)

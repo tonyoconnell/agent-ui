@@ -119,19 +119,21 @@ function StatsBar({ tasks }: { tasks: Task[] }) {
 
   return (
     <div className="flex items-center gap-5 text-xs">
-      <Chip label="total" value={total} color="text-white/60" />
-      <Chip label="doing" value={doing} color="text-amber-300" />
-      <Chip label="done" value={done} color="text-emerald-400" />
-      <Chip label="listed" value={listed} color="text-purple-400" />
+      <Chip label="total" value={total} color="text-foreground/60" />
+      <Chip label="doing" value={doing} color="text-[hsl(var(--color-gold))]" />
+      <Chip label="done" value={done} color="text-[hsl(var(--color-tertiary-bright))]" />
+      <Chip label="listed" value={listed} color="text-[hsl(var(--color-secondary-bright))]" />
       <div className="flex items-center gap-2 ml-2">
-        <div className="w-20 h-1 rounded-full bg-white/[0.05] overflow-hidden">
+        <div className="w-20 h-1 rounded-full bg-foreground/[0.05] overflow-hidden">
           <motion.div
-            className="h-full rounded-full bg-emerald-400"
+            className="h-full rounded-full bg-[hsl(var(--color-tertiary-bright))]"
             animate={{ width: `${pct}%` }}
             transition={{ duration: 0.5 }}
           />
         </div>
-        <span className="text-[10px] font-mono text-emerald-400/70 tabular-nums w-8">{pct}%</span>
+        <span className="text-[10px] font-mono text-[hsl(var(--color-tertiary-bright)/0.7)] tabular-nums w-8">
+          {pct}%
+        </span>
       </div>
     </div>
   )
@@ -140,7 +142,7 @@ function StatsBar({ tasks }: { tasks: Task[] }) {
 function Chip({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className="text-[10px] uppercase tracking-wider text-white/25">{label}</span>
+      <span className="text-[10px] uppercase tracking-wider text-foreground/25">{label}</span>
       <span className={cn('text-sm font-mono font-bold tabular-nums', color)}>{value}</span>
     </span>
   )
@@ -154,10 +156,19 @@ function LiveIndicator({
   network: Network
 }) {
   const label = ws.connected ? 'live' : ws.polling ? 'polling' : ws.reconnectAttempt > 0 ? 'reconnecting' : 'offline'
-  const color = ws.connected ? 'text-emerald-400' : ws.polling ? 'text-amber-400' : 'text-white/30'
+  const color = ws.connected
+    ? 'text-[hsl(var(--color-tertiary-bright))]'
+    : ws.polling
+      ? 'text-[hsl(var(--color-gold))]'
+      : 'text-foreground/30'
   return (
     <span className={cn('inline-flex items-center gap-1.5 text-[10px] font-mono', color)}>
-      <span className={cn('w-1.5 h-1.5 rounded-full', ws.connected ? 'bg-emerald-400 animate-pulse' : 'bg-white/25')} />
+      <span
+        className={cn(
+          'w-1.5 h-1.5 rounded-full',
+          ws.connected ? 'bg-[hsl(var(--color-tertiary-bright))] animate-pulse' : 'bg-foreground/25',
+        )}
+      />
       {label} · {network}
     </span>
   )
@@ -168,15 +179,15 @@ function LiveIndicator({
 function BoardSkeleton() {
   return (
     <div className="min-h-screen p-6 max-w-[1400px] mx-auto space-y-6">
-      <Skeleton className="h-8 w-40 bg-white/[0.04]" />
-      <Skeleton className="h-20 w-full bg-white/[0.04] rounded-xl" />
-      <Skeleton className="h-24 w-full bg-white/[0.04] rounded-xl" />
+      <Skeleton className="h-8 w-40 bg-muted" />
+      <Skeleton className="h-20 w-full bg-muted rounded-xl" />
+      <Skeleton className="h-24 w-full bg-muted rounded-xl" />
       <div className="grid grid-cols-4 gap-4">
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="space-y-2">
-            <Skeleton className="h-4 w-20 bg-white/[0.04]" />
+            <Skeleton className="h-4 w-20 bg-muted" />
             {[0, 1, 2].map((j) => (
-              <Skeleton key={j} className="h-20 w-full bg-white/[0.04] rounded-lg" />
+              <Skeleton key={j} className="h-20 w-full bg-muted rounded-lg" />
             ))}
           </div>
         ))}
@@ -190,16 +201,16 @@ function BoardSkeleton() {
 function EmptyBoard() {
   return (
     <div className="min-h-screen p-6 max-w-[1400px] mx-auto flex items-center justify-center">
-      <Card className="bg-white/[0.02] border-white/[0.06] max-w-md">
+      <Card className="bg-card border-border max-w-md">
         <CardContent className="p-8 text-center">
-          <div className="w-12 h-12 rounded-full bg-white/[0.04] mx-auto mb-4 flex items-center justify-center text-2xl">
+          <div className="w-12 h-12 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center text-2xl">
             ✨
           </div>
-          <p className="text-white/70 text-sm font-medium">No tasks yet</p>
-          <p className="text-white/40 text-xs mt-2 leading-relaxed">
+          <p className="text-foreground text-sm font-medium">No tasks yet</p>
+          <p className="text-muted-foreground text-xs mt-2 leading-relaxed">
             Sync tasks from a plan with{' '}
-            <code className="text-white/60 bg-white/[0.06] px-1.5 py-0.5 rounded">/sync todos</code> or{' '}
-            <code className="text-white/60 bg-white/[0.06] px-1.5 py-0.5 rounded">bun run scripts/sync-todos.ts</code>.
+            <code className="text-foreground bg-muted px-1.5 py-0.5 rounded">/sync todos</code> or{' '}
+            <code className="text-foreground bg-muted px-1.5 py-0.5 rounded">bun run scripts/sync-todos.ts</code>.
           </p>
         </CardContent>
       </Card>
@@ -357,8 +368,8 @@ export function TaskBoard() {
       {/* Header */}
       <header className="flex items-center justify-between gap-4 flex-wrap mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white/90 tracking-tight">Tasks</h1>
-          <p className="text-xs text-white/35 mt-0.5">
+          <h1 className="text-2xl font-bold text-font tracking-tight">Tasks</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Work flows left to right. Done tasks become sellable skills. Sales settle on-chain.
           </p>
         </div>
@@ -372,7 +383,7 @@ export function TaskBoard() {
             mainnetDisabled={!MAINNET_LIVE}
           />
           <LiveIndicator ws={ws} network={network} />
-          <div className="flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.03] p-0.5 text-[10px] font-mono">
+          <div className="flex items-center gap-1 rounded-md border border-border bg-muted/20 p-0.5 text-[10px] font-mono">
             {(['none', 'wave', 'grid', 'graph'] as const).map((mode) => (
               <button
                 key={mode}
@@ -380,7 +391,7 @@ export function TaskBoard() {
                 onClick={() => setGroupBy(mode)}
                 className={cn(
                   'rounded px-2 py-0.5 transition-colors',
-                  groupBy === mode ? 'bg-white/[0.10] text-white/80' : 'text-white/35 hover:text-white/55',
+                  groupBy === mode ? 'bg-muted text-font' : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 {mode === 'none' ? 'flat' : mode}
@@ -420,10 +431,10 @@ export function TaskBoard() {
       {groupBy === 'graph' && <TaskGraph tasks={deferredTasks} highways={highways} />}
 
       {/* Footer hint */}
-      <p className="mt-6 text-center text-[10px] text-white/25">
+      <p className="mt-6 text-center text-[10px] text-muted-foreground">
         Tip: drag tasks between columns · press{' '}
-        <kbd className="px-1.5 py-0.5 rounded bg-white/[0.06] font-mono text-[10px] text-white/60">Space</kbd> to pick
-        up a focused card with the keyboard · listed tasks show on the marketplace.
+        <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono text-[10px] text-foreground">Space</kbd> to pick up a
+        focused card with the keyboard · listed tasks show on the marketplace.
       </p>
     </div>
   )

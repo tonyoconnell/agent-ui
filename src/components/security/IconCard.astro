@@ -1,0 +1,52 @@
+---
+import { SecurityIcons } from '@/components/icons/security'
+
+interface Props {
+  family: 'primary' | 'secondary' | 'tertiary'
+  iconName: string
+  eyebrow?: string
+  title?: string
+  body?: string
+  step?: string
+  class?: string
+}
+
+const {
+  family,
+  iconName,
+  eyebrow,
+  title,
+  body,
+  step,
+  class: className = '',
+} = Astro.props
+
+const Icon = SecurityIcons[iconName as keyof typeof SecurityIcons]
+---
+
+<div
+  class:list={[
+    'border',
+    `tint-${family}`,
+    `brand-${family}`,
+    'rounded-xl',
+    'p-6',
+    'flex',
+    'gap-5',
+    className,
+  ]}
+>
+  <div class="shrink-0 mt-0.5">
+    {Icon && <Icon size={44} />}
+  </div>
+  <div>
+    {eyebrow && (
+      <p class="eyebrow eyebrow-brand mb-1">
+        {step ? `${step} · ` : ''}{eyebrow}
+      </p>
+    )}
+    {title && <p class="text-foreground font-semibold mb-1.5">{title}</p>}
+    {body && <p class="text-muted-foreground text-sm leading-relaxed">{body}</p>}
+    <slot />
+  </div>
+</div>

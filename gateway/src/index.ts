@@ -484,6 +484,43 @@ export default {
       }
     }
 
+    // POST /typedb/admin/recreate — drop + create the configured database. Destructive.
+    // Auth: Bearer GATEWAY_API_KEY. Used for clean schema reloads.
+    if (url.pathname === '/typedb/admin/recreate' && request.method === 'POST') {
+      const gwKey = request.headers.get('Authorization')?.replace('Bearer ', '')
+      if (!gwKey || gwKey !== env.GATEWAY_API_KEY) {
+        return Response.json({ error: 'Unauthorized' }, { status: 401, headers })
+      }
+      try {
+        const dbUrl = getTypeDbUrl(env, request)
+        const dbName = env.TYPEDB_DATABASE
+        const token = await getToken(env, request)
+        const auth = { Authorization: `Bearer ${token}` }
+
+        const delRes = await fetch(`${dbUrl}/v1/databases/${dbName}`, { method: 'DELETE', headers: auth })
+        const delOk = delRes.ok || delRes.status === 404
+        if (!delOk) {
+          return Response.json(
+            { error: 'delete failed', status: delRes.status, detail: await delRes.text() },
+            { status: delRes.status, headers },
+          )
+        }
+
+        const createRes = await fetch(`${dbUrl}/v1/databases/${dbName}`, { method: 'POST', headers: auth })
+        if (!createRes.ok) {
+          return Response.json(
+            { error: 'create failed', status: createRes.status, detail: await createRes.text() },
+            { status: createRes.status, headers },
+          )
+        }
+
+        return Response.json({ ok: true, database: dbName, deleted: delRes.ok, created: true }, { headers })
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Unknown error'
+        return Response.json({ error: msg }, { status: 500, headers })
+      }
+    }
+
     // POST /typedb/query — proxy TypeQL queries to TypeDB Cloud /v1/query
     if (url.pathname === '/typedb/query' && request.method === 'POST') {
       const gwKey = request.headers.get('Authorization')?.replace('Bearer ', '')

@@ -51,19 +51,19 @@ export function CloudRestorePanel({ onRestored, onSkip }: Props) {
   return (
     <div className="w-full max-w-md">
       <div className="mb-8">
-        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-300">
-          <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-[hsl(var(--color-tertiary-bright)/0.3)] bg-[hsl(var(--color-tertiary-bright)/0.1)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[hsl(var(--color-tertiary-bright))]">
+          <span className="size-1.5 rounded-full bg-[hsl(var(--color-tertiary-bright))] animate-pulse" />
           Cloud backup found
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Restore your wallets</h1>
-        <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+        <h1 className="text-2xl font-semibold tracking-tight text-font sm:text-3xl">Restore your wallets</h1>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           Enter your 24-word recovery phrase to decrypt and restore your vault on this device.
         </p>
       </div>
 
       <form onSubmit={handleRestore} className="space-y-4" noValidate>
         <div className="space-y-1.5">
-          <Label htmlFor="phrase" className="text-zinc-300">
+          <Label htmlFor="phrase" className="text-font">
             Recovery phrase
           </Label>
           <Textarea
@@ -78,9 +78,9 @@ export function CloudRestorePanel({ onRestored, onSkip }: Props) {
             spellCheck={false}
             autoCapitalize="none"
             autoCorrect="off"
-            className="border-zinc-800 bg-zinc-950/60 font-mono text-sm text-white placeholder:text-zinc-600 focus-visible:border-emerald-500/60 focus-visible:ring-emerald-500/20"
+            className="border-border bg-card font-mono text-sm text-font placeholder:text-muted-foreground focus-visible:border-[hsl(var(--color-tertiary-bright)/0.6)] focus-visible:ring-[hsl(var(--color-tertiary-bright)/0.2)]"
           />
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-muted-foreground">
             The phrase stays on this device — the server holds only encrypted ciphertext.
           </p>
         </div>
@@ -88,7 +88,7 @@ export function CloudRestorePanel({ onRestored, onSkip }: Props) {
         {error && (
           <div
             role="alert"
-            className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-300"
+            className="rounded-lg border border-[hsl(var(--color-destructive)/0.3)] bg-[hsl(var(--color-destructive)/0.1)] px-3 py-2.5 text-sm text-[hsl(var(--color-destructive))]"
           >
             {error}
           </div>
@@ -97,11 +97,11 @@ export function CloudRestorePanel({ onRestored, onSkip }: Props) {
         <Button
           type="submit"
           disabled={isPending || phrase.trim().length === 0}
-          className="h-11 w-full bg-white text-sm font-semibold text-black hover:bg-zinc-200 disabled:opacity-60"
+          className="h-11 w-full bg-font text-sm font-semibold text-background hover:bg-foreground disabled:opacity-60"
         >
           {isPending ? (
             <span className="inline-flex items-center gap-2">
-              <span className="size-3.5 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+              <span className="size-3.5 animate-spin rounded-full border-2 border-background/20 border-t-background" />
               Restoring…
             </span>
           ) : (
@@ -116,7 +116,7 @@ export function CloudRestorePanel({ onRestored, onSkip }: Props) {
           type="button"
           onClick={handleSkip}
           disabled={isPending}
-          className="w-full text-center text-xs text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-300 hover:underline disabled:opacity-60"
+          className="w-full text-center text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:opacity-60"
         >
           Skip for now
         </button>

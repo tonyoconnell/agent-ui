@@ -157,15 +157,15 @@ export const GET: APIRoute = async ({ url }) => {
     blockedByMap[bid].push(aid)
   }
 
-  // Get pheromone from paths (skill-id → capability → unit → inbound paths)
+  // Get pheromone from paths (skill-id → capability → actor → inbound paths)
   const edges = (await readParsed(`
     match $e (source: $from, target: $to) isa path,
       has strength $s, has resistance $rs, has traversals $tr;
-    $to has uid $tid;
+    $to has aid $tid;
     select $tid, $s, $rs, $tr;
   `).catch(() => [])) as Row[]
 
-  // Aggregate pheromone per unit
+  // Aggregate pheromone per actor
   const pheromone: Record<string, { strength: number; resistance: number; traversals: number }> = {}
   for (const e of edges) {
     const tid = e.tid as string
@@ -175,10 +175,10 @@ export const GET: APIRoute = async ({ url }) => {
     pheromone[tid].traversals += e.tr as number
   }
 
-  // Map task-id → unit-id via capability
+  // Map task-id → actor-id via capability
   const capRows = (await readParsed(`
     match (provider: $u, offered: $sk) isa capability;
-    $u has uid $uid; $sk has skill-id $sid;
+    $u has aid $uid; $sk has skill-id $sid;
     select $uid, $sid;
   `).catch(() => [])) as Row[]
 
@@ -190,8 +190,8 @@ export const GET: APIRoute = async ({ url }) => {
   // Build response
   const result = tasks.map((t) => {
     const id = t.id as string
-    const unitId = taskUnit[id] || 'builder'
-    const ph = pheromone[unitId] || { strength: 0, resistance: 0, traversals: 0 }
+    const actorId = taskUnit[id] || 'builder'
+    const ph = pheromone[actorId] || { strength: 0, resistance: 0, traversals: 0 }
     const priority = t.priority as number
     const effective = effectivePriority(priority, ph.strength, ph.resistance, sensitivity)
 
@@ -218,7 +218,7 @@ export const GET: APIRoute = async ({ url }) => {
       strength: ph.strength,
       resistance: ph.resistance,
       traversals: ph.traversals,
-      unit: unitId,
+      actor: actorId,
       source: t.source as string,
       status: normalizeStatus(t.status as string | null | undefined),
       wave: (t.wave as string | undefined) || 'W3',
@@ -256,7 +256,7 @@ export const POST: APIRoute = async ({ request }) => {
     blocks?: string[]
     exit?: string
     price?: number
-    unit?: string
+    actor?: string
   }
 
   if (!body.id || !body.name) {
@@ -269,7 +269,7 @@ export const POST: APIRoute = async ({ request }) => {
   const persona = body.persona || 'agent'
   const blocks = body.blocks || []
   const price = body.price || 0
-  const unitId = body.unit || 'builder'
+  const actorId = body.actor || 'builder'
 
   const { score, formula } = computePriority(value, phase, persona, blocks.length)
 
@@ -331,9 +331,9 @@ export const POST: APIRoute = async ({ request }) => {
       ${tagInserts ? `${tagInserts},` : ''} has price ${price}, has currency "SUI";
   `)
 
-  // Link to unit via capability
+  // Link to actor via capability
   await writeSilent(`
-    match $u isa unit, has uid "${unitId}"; $s isa skill, has skill-id "${esc(body.id)}";
+    match $u isa actor, has aid "${actorId}"; $s isa skill, has skill-id "${esc(body.id)}";
     insert (provider: $u, offered: $s) isa capability, has price ${price};
   `)
 
@@ -353,7 +353,7 @@ export const POST: APIRoute = async ({ request }) => {
       priorityScore: score,
       formula,
       tags,
-      unit: unitId,
+      actor: actorId,
     }),
     { headers: { 'Content-Type': 'application/json' } },
   )

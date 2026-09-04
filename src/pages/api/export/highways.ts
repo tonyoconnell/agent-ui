@@ -29,8 +29,8 @@ export const GET: APIRoute = async ({ url }) => {
         $p (source: $s, target: $t) isa path, has strength $str, has resistance $r;
         $p has traversals $tv;
         $p has revenue $rev;
-        $s has uid $sid;
-        $t has uid $tid;
+        $s has aid $sid;
+        $t has aid $tid;
         $str >= 20.0;
       sort $str desc;
       limit ${limit};

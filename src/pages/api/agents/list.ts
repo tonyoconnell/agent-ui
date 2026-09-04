@@ -4,7 +4,7 @@
  * Three-stage query pattern per discover.ts — avoids TypeDB 3.x planner
  * timeout on combined relation-join + attribute-filter + multi-attr projection.
  *
- * Returns all units with their skills, tags, group membership, and sensitivity.
+ * Returns all actors with their skills, tags, group membership, and sensitivity.
  * Shape preserved for AgentList.tsx and DiscoverGrid.tsx consumers.
  */
 
@@ -133,24 +133,24 @@ async function buildList(limit: number): Promise<Record<string, unknown>> {
     // The cap join `(provider:, offered:) isa capability` with BOTH $uid and
     // $sid projected and unbound hangs >30s at the gateway (verified 2026-04-20)
     // — the planner can't handle the double-unbound cross-side projection.
-    // Solution: fetch units first, slice to the visible window, then fan out
-    // per-unit cap queries with a concrete uid literal (which IS fast — see
+    // Solution: fetch actors first, slice to the visible window, then fan out
+    // per-actor cap queries with a concrete uid literal (which IS fast — see
     // /api/agents/detail.ts). See memory: typedb_attr_before_relation.
     const unitPromise = readParsed(`
         match
-          $u isa unit, has uid $uid, has name $n, has model $m, has generation $g;
+          $u isa actor, has aid $uid, has name $n, has model $m, has generation $g;
         select $uid, $n, $m, $g;
       `).catch(() => [])
 
     const othersPromise = Promise.all([
       readParsed(`
         match
-          $u isa unit, has uid $uid, has system-prompt $sp;
+          $u isa actor, has aid $uid, has system-prompt $sp;
         select $uid, $sp;
       `).catch(() => []),
       readParsed(`
         match
-          $u isa unit, has uid $uid, has tag $tag;
+          $u isa actor, has aid $uid, has tag $tag;
         select $uid, $tag;
       `).catch(() => []),
       readParsed(`
@@ -167,12 +167,12 @@ async function buildList(limit: number): Promise<Record<string, unknown>> {
         match
           $g isa group, has gid $gid;
           (group: $g, member: $u) isa membership;
-          $u has uid $uid;
+          $u has aid $uid;
         select $gid, $uid;
       `).catch(() => []),
       readParsed(`
         match
-          $u isa unit, has uid $uid, has data-sensitivity $ds;
+          $u isa actor, has aid $uid, has data-sensitivity $ds;
         select $uid, $ds;
       `).catch(() => []),
     ])
@@ -193,7 +193,7 @@ async function buildList(limit: number): Promise<Record<string, unknown>> {
               match
                 $s isa skill, has skill-id $sid;
                 (provider: $u, offered: $s) isa capability;
-                $u has uid "${uid.replace(/["\\]/g, '')}";
+                $u has aid "${uid.replace(/["\\]/g, '')}";
               select $sid;
             `).catch(() => []),
           ),
@@ -223,7 +223,7 @@ async function buildList(limit: number): Promise<Record<string, unknown>> {
     const capped = unitRows.slice(0, limit)
     const visibleUids = new Set(capped.map((r) => r.uid as string))
 
-    // Skip unit-scoped merges for uids outside the visible slice — this is
+    // Skip actor-scoped merges for uids outside the visible slice — this is
     // where the JS-side speedup comes from when the system has 100s of agents.
     const promptByUid: Record<string, string> = {}
     for (const r of promptRows) {

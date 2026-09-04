@@ -77,8 +77,8 @@ async function loadWorld(): Promise<WorldState> {
     const stateRes = await fetchWithTimeout('/api/state', 3000)
     if (stateRes?.ok) {
       const stateData = (await stateRes.json()) as any
-      if (stateData?.units?.length > 0) {
-        const actors: ActorData[] = (stateData.units as Array<{ id: string; name: string; status: string }>).map(
+      if (stateData?.actors?.length > 0) {
+        const actors: ActorData[] = (stateData.actors as Array<{ id: string; name: string; status: string }>).map(
           (u) => ({
             id: u.id,
             name: u.name,
@@ -156,7 +156,7 @@ function StatsHeader({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) 
         <div className="flex items-center gap-2">
           <a
             href="/"
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-3 py-1.5 bg-card hover:brightness-110 text-font text-sm font-medium rounded-lg transition-colors"
           >
             Agents
           </a>
@@ -169,13 +169,13 @@ function StatsHeader({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) 
           </a>
           <a
             href="/chat"
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-3 py-1.5 bg-card hover:brightness-110 text-font text-sm font-medium rounded-lg transition-colors"
           >
             Chat
           </a>
         </div>
 
-        <div className="h-6 w-px bg-slate-700" />
+        <div className="h-6 w-px bg-muted" />
 
         {/* World name */}
         <div className="flex items-center gap-2">
@@ -183,7 +183,7 @@ function StatsHeader({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) 
           <span className="text-xl font-light text-white">{skin.name}</span>
         </div>
 
-        <div className="h-6 w-px bg-slate-700" />
+        <div className="h-6 w-px bg-muted" />
 
         {/* Stats */}
         <div className="flex items-center gap-4 text-sm">
@@ -207,7 +207,7 @@ function Stat({ icon, label, value, color }: { icon: string; label: string; valu
   return (
     <div className="flex items-center gap-2">
       <span className="text-lg">{icon}</span>
-      <span className="text-slate-500">{label}:</span>
+      <span className="text-muted-foreground">{label}:</span>
       <span className="font-mono font-medium" style={{ color }}>
         {value}
       </span>
@@ -257,7 +257,7 @@ function WorkspaceInner() {
 
   const _handleInject = useCallback(() => {
     if (!world) return
-    // Fire chain-head signals; continuations run via .then() on each unit
+    // Fire chain-head signals; continuations run via .then() on each actor
     world.world.signal({ receiver: 'scout:observe', data: { source: 'manual', chain: 'market' } })
     world.world.signal({ receiver: 'forager:search', data: { source: 'onchain', chain: 'intelligence' } })
     world.world.signal({ receiver: 'soldier:validate', data: { signals: 'all', chain: 'defense' } })
@@ -277,7 +277,7 @@ function WorkspaceInner() {
       <div className="h-screen flex items-center justify-center" style={{ backgroundColor: skin.colors.background }}>
         <div className="flex items-center gap-3">
           <span className="text-3xl animate-pulse">{skin.icons.group}</span>
-          <span className="text-slate-500">Loading {skin.name}...</span>
+          <span className="text-muted-foreground">Loading {skin.name}...</span>
         </div>
       </div>
     )

@@ -5,7 +5,7 @@
  * or an ancestor in a delegated chain (max 3 levels deep).
  *
  * Strategy:
- *   1. Query TypeDB for all units that have `scoped-wallet-id` set
+ *   1. Query TypeDB for all actors that have `scoped-wallet-id` set
  *   2. Enrich each with on-chain ScopedWallet data via Sui RPC
  *   3. Filter to only wallets where `owner === address` (depth 0)
  *      or where the owner is itself an agent whose ScopedWallet owner is `address` (depth 1-2)
@@ -45,11 +45,11 @@ interface UnitRow {
   walletId: string // scoped-wallet-id attribute value
 }
 
-/** Query all units that have a scoped-wallet-id and return their uid + name. */
+/** Query all actors that have a scoped-wallet-id and return their uid + name. */
 async function queryUnitsWithScope(): Promise<UnitRow[]> {
   const rows = await readParsed(`
     match
-      $u isa unit, has uid $uid, has scoped-wallet-id $sid;
+      $u isa actor, has aid $uid, has scoped-wallet-id $sid;
       optional { $u has name $n; }
     select $uid, $sid, $n;
   `).catch(() => [])
@@ -117,7 +117,7 @@ function norm(addr: string): string {
  */
 function buildTree(
   userAddress: string,
-  enriched: Array<{ unit: UnitRow; chain: ScopedWalletChainData }>,
+  enriched: Array<{ actor: UnitRow; chain: ScopedWalletChainData }>,
   maxDepth = 2,
 ): FleetNode[] {
   const normUser = norm(userAddress)
@@ -126,23 +126,23 @@ function buildTree(
     if (depth > maxDepth) return []
 
     const nodes: FleetNode[] = []
-    for (const { unit, chain } of enriched) {
-      if (visited.has(unit.walletId)) continue
+    for (const { actor, chain } of enriched) {
+      if (visited.has(actor.walletId)) continue
       if (!ownerAddresses.has(norm(chain.owner))) continue
 
-      visited.add(unit.walletId)
+      visited.add(actor.walletId)
 
       const isRootOwner = norm(chain.owner) === normUser
       const ownerLabel = isRootOwner ? 'You' : `Cap set by ${chain.owner.slice(0, 8)}…`
 
-      // Gather child agents: units whose ScopedWallet owner === this agent's address
+      // Gather child agents: actors whose ScopedWallet owner === this agent's address
       const agentOwnedAddresses = new Set<string>([norm(chain.agent)])
       const children = depth < maxDepth ? buildLevel(agentOwnedAddresses, depth + 1, visited) : []
 
       nodes.push({
-        walletId: unit.walletId,
+        walletId: actor.walletId,
         ownerLabel,
-        agentLabel: unit.uid,
+        agentLabel: actor.uid,
         dailyCapMist: chain.dailyCapMist.toString(),
         spentTodayMist: chain.spentTodayMist.toString(),
         paused: chain.paused,
@@ -169,20 +169,20 @@ export const GET: APIRoute = async ({ url }) => {
   }
 
   try {
-    // 1. All units with a scoped wallet in TypeDB
-    const units = await queryUnitsWithScope()
+    // 1. All actors with a scoped wallet in TypeDB
+    const actors = await queryUnitsWithScope()
 
     // 2. Enrich with on-chain data in parallel
     const settled = await Promise.allSettled(
-      units.map(async (unit) => {
-        const chain = await fetchScopedWallet(unit.walletId)
-        return chain ? { unit, chain } : null
+      actors.map(async (actor) => {
+        const chain = await fetchScopedWallet(actor.walletId)
+        return chain ? { actor, chain } : null
       }),
     )
 
     const enriched = settled
       .filter(
-        (r): r is PromiseFulfilledResult<{ unit: UnitRow; chain: ScopedWalletChainData }> =>
+        (r): r is PromiseFulfilledResult<{ actor: UnitRow; chain: ScopedWalletChainData }> =>
           r.status === 'fulfilled' && r.value !== null,
       )
       .map((r) => r.value)

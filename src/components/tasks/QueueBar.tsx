@@ -111,17 +111,22 @@ export function QueueBar({ tasks, onRouted }: { tasks: Task[]; onRouted?: (tid: 
     msSinceTick === null ? 'never' : msSinceTick < 30_000 ? 'live' : msSinceTick < 120_000 ? 'recent' : 'stale'
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.015] px-4 py-3 flex items-center gap-5 flex-wrap">
+    <div className="rounded-lg border border-border bg-background px-4 py-3 flex items-center gap-5 flex-wrap">
       <div className="flex items-center gap-2">
-        <Zap className={cn('w-4 h-4', auto ? 'text-amber-300' : 'text-white/30')} />
-        <span className="text-xs font-semibold text-white/70">Routing</span>
+        <Zap className={cn('w-4 h-4', auto ? 'text-[hsl(var(--color-gold))]' : 'text-muted-foreground/30')} />
+        <span className="text-xs font-semibold text-foreground/70">Routing</span>
       </div>
 
       <div className="flex items-center gap-4 text-xs">
-        <Stat label="ready" value={ready} color="text-sky-300" tone="ready" />
-        <Stat label="in flight" value={picked} color="text-amber-300" tone={picked > 0 ? 'active' : 'idle'} />
-        <Stat label="blocked" value={blocked} color="text-red-400/80" />
-        <Stat label="verified" value={verified} color="text-emerald-400" />
+        <Stat label="ready" value={ready} color="text-[hsl(var(--color-primary-bright))]" tone="ready" />
+        <Stat
+          label="in flight"
+          value={picked}
+          color="text-[hsl(var(--color-gold))]"
+          tone={picked > 0 ? 'active' : 'idle'}
+        />
+        <Stat label="blocked" value={blocked} color="text-[hsl(var(--color-destructive))]/80" />
+        <Stat label="verified" value={verified} color="text-[hsl(var(--color-tertiary-bright))]" />
       </div>
 
       <div className="flex-1" />
@@ -130,10 +135,13 @@ export function QueueBar({ tasks, onRouted }: { tasks: Task[]; onRouted?: (tid: 
       <span
         className={cn(
           'text-[10px] font-mono px-2 py-0.5 rounded-full border',
-          freshness === 'live' && 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300',
-          freshness === 'recent' && 'border-amber-400/25 bg-amber-400/5 text-amber-300',
-          freshness === 'stale' && 'border-red-500/25 bg-red-500/5 text-red-300',
-          freshness === 'never' && 'border-white/10 bg-white/[0.02] text-white/30',
+          freshness === 'live' &&
+            'border-[hsl(var(--color-tertiary-bright)/0.3)] bg-[hsl(var(--color-tertiary-bright)/0.05)] text-[hsl(var(--color-tertiary-bright))]',
+          freshness === 'recent' &&
+            'border-[hsl(var(--color-gold)/0.25)] bg-[hsl(var(--color-gold)/0.05)] text-[hsl(var(--color-gold))]',
+          freshness === 'stale' &&
+            'border-[hsl(var(--color-destructive)/0.25)] bg-[hsl(var(--color-destructive)/0.05)] text-[hsl(var(--color-destructive))]',
+          freshness === 'never' && 'border-muted/10 bg-muted/[0.02] text-muted-foreground/30',
         )}
       >
         {freshness === 'never' ? 'no ticks yet' : `last tick ${formatAge(msSinceTick)}`}
@@ -145,7 +153,7 @@ export function QueueBar({ tasks, onRouted }: { tasks: Task[]; onRouted?: (tid: 
           variant="ghost"
           onClick={runTick}
           disabled={inflight}
-          className="text-[11px] h-7 text-white/70 hover:text-white hover:bg-white/[0.06]"
+          className="text-[11px] h-7 text-foreground/70 hover:text-foreground hover:bg-foreground/[0.06]"
         >
           {inflight ? 'Routing…' : 'Route now'}
         </Button>
@@ -154,7 +162,9 @@ export function QueueBar({ tasks, onRouted }: { tasks: Task[]; onRouted?: (tid: 
           onClick={() => setAuto((v) => !v)}
           className={cn(
             'text-[11px] h-7 gap-1.5',
-            auto ? 'bg-amber-400 hover:bg-amber-300 text-black' : 'bg-white/[0.06] hover:bg-white/[0.1] text-white',
+            auto
+              ? 'bg-[hsl(var(--color-gold))] hover:bg-[hsl(var(--color-gold)/0.8)] text-black'
+              : 'bg-foreground/[0.06] hover:bg-foreground/[0.1] text-foreground',
           )}
         >
           {auto ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
@@ -169,11 +179,11 @@ export function QueueBar({ tasks, onRouted }: { tasks: Task[]; onRouted?: (tid: 
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0 }}
-            className="w-full flex items-center gap-2 text-[10px] text-amber-300/80 font-mono"
+            className="w-full flex items-center gap-2 text-[10px] text-[hsl(var(--color-gold))]/80 font-mono"
           >
-            <span className="w-1 h-1 rounded-full bg-amber-300 animate-pulse" />
+            <span className="w-1 h-1 rounded-full bg-[hsl(var(--color-gold))] animate-pulse" />
             routed · {tickPulse.slice(0, 48)}
-            {tickResult && tickResult !== 'routed' && <span className="text-white/40">· {tickResult}</span>}
+            {tickResult && tickResult !== 'routed' && <span className="text-foreground/40">· {tickResult}</span>}
           </motion.div>
         )}
       </AnimatePresence>
@@ -194,7 +204,7 @@ function Stat({
 }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span className="text-[10px] uppercase tracking-wider text-white/25">{label}</span>
+      <span className="text-[10px] uppercase tracking-wider text-foreground/25">{label}</span>
       <motion.span
         key={value}
         initial={{ scale: 1.2 }}
@@ -203,7 +213,9 @@ function Stat({
       >
         {value}
       </motion.span>
-      {tone === 'active' && value > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
+      {tone === 'active' && value > 0 && (
+        <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--color-gold))] animate-pulse" />
+      )}
     </span>
   )
 }

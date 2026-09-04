@@ -41,7 +41,7 @@ export const MIST_DUST_THRESHOLD = 1_000n
  * Reconcile one wallet:
  *   1. Query Sui RPC for current SUI balance (in MIST).
  *   2. Query TypeDB signal log: sum of all "fund" and "spend" signals for
- *      this unit (the ledger of what should have happened).
+ *      this actor (the ledger of what should have happened).
  *   3. Compare: if |onChain − expected| > MIST_DUST_THRESHOLD → mismatch.
  *   4. On mismatch: emit `agent:paused` signal + write security hypothesis.
  */
@@ -67,7 +67,7 @@ export async function reconcileWallet(uid: string, address: string): Promise<Rec
   try {
     const escapedUid = uid.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 
-    // Fund signals: sum of weights for this unit
+    // Fund signals: sum of weights for this actor
     const fundRows = await readParsed(`
       match
         $s isa signal, has receiver "${escapedUid}", has tag "fund";
@@ -110,7 +110,7 @@ export async function reconcileWallet(uid: string, address: string): Promise<Rec
 
 /**
  * Reconcile all active wallets.
- * Queries TypeDB for all units that have a `wallet` attribute, then runs
+ * Queries TypeDB for all actors that have a `wallet` attribute, then runs
  * reconcileWallet() for each in parallel (capped to avoid RPC flooding).
  */
 export async function reconcileAll(): Promise<ReconcileResult[]> {
@@ -118,7 +118,7 @@ export async function reconcileAll(): Promise<ReconcileResult[]> {
 
   try {
     const rows = await readParsed(`
-      match $u isa unit, has uid $uid, has wallet $w;
+      match $u isa actor, has aid $uid, has wallet $w;
       select $uid, $w;
     `)
     wallets = rows.filter((r) => r.uid && r.w).map((r) => ({ uid: String(r.uid), wallet: String(r.w) }))
@@ -182,7 +182,7 @@ async function emitPauseSignal(
 
   // Write paused status + security hypothesis in TypeDB (both fire-and-forget)
   void writeSilent(`
-    match $u isa unit, has uid "${escapedUid}";
+    match $u isa actor, has aid "${escapedUid}";
     insert (member: $u) isa membership,
       has role "paused",
       has created-at ${ts};

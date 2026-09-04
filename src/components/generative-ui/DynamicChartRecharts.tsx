@@ -98,7 +98,7 @@ export function DynamicChartRecharts({ data, layout }: any) {
                       key={i}
                       type="monotone"
                       dataKey={dataset.label}
-                      stroke={dataset.color || '#3b82f6'}
+                      stroke={dataset.color || 'hsl(var(--color-primary-bright))'}
                       strokeWidth={2}
                       dot={{ r: 4 }}
                       activeDot={{ r: 6 }}
@@ -124,7 +124,7 @@ export function DynamicChartRecharts({ data, layout }: any) {
                     <Bar
                       key={i}
                       dataKey={dataset.label}
-                      fill={dataset.color || '#3b82f6'}
+                      fill={dataset.color || 'hsl(var(--color-primary-bright))'}
                       radius={[4, 4, 0, 0]}
                       label={false}
                     />

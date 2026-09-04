@@ -158,16 +158,22 @@ export function CryptoPaymentLink({
   }
 
   return (
-    <div className={cn('rounded-2xl border border-zinc-800 bg-zinc-900/40 overflow-hidden', className)}>
-      <div className="px-5 py-4 border-b border-zinc-800/80 bg-zinc-900/50 flex items-center justify-between">
+    <div className={cn('rounded-2xl border border-border bg-muted/40 overflow-hidden', className)}>
+      <div className="px-5 py-4 border-b border-border bg-muted/50 flex items-center justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-400 mb-0.5">Request</div>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-[hsl(var(--color-tertiary-bright))] mb-0.5">
+            Request
+          </div>
           <h3 className="text-base font-semibold text-white flex items-center gap-2">
-            <Link2 className="w-4 h-4 text-emerald-400" />
+            <Link2 className="w-4 h-4 text-[hsl(var(--color-tertiary-bright))]" />
             Create a payment link
           </h3>
         </div>
-        {activeUrl && <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-800">live</Badge>}
+        {activeUrl && (
+          <Badge className="bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright))] border-[hsl(var(--color-tertiary-bright)/0.5)]">
+            live
+          </Badge>
+        )}
       </div>
 
       {!activeUrl || !longUrl ? (
@@ -175,7 +181,7 @@ export function CryptoPaymentLink({
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-[1fr_1fr] gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="link-amount" className="text-xs text-zinc-500">
+              <Label htmlFor="link-amount" className="text-xs text-muted-foreground">
                 Amount *
               </Label>
               <Input
@@ -187,16 +193,16 @@ export function CryptoPaymentLink({
                 onChange={(e) => setAmount(e.target.value)}
                 step="0.000001"
                 min="0"
-                className="bg-zinc-950 border-zinc-800"
+                className="bg-card border-border"
                 required
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="link-currency" className="text-xs text-zinc-500">
+              <Label htmlFor="link-currency" className="text-xs text-muted-foreground">
                 Currency
               </Label>
               <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger id="link-currency" className="bg-zinc-950 border-zinc-800">
+                <SelectTrigger id="link-currency" className="bg-card border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -210,7 +216,7 @@ export function CryptoPaymentLink({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="link-memo" className="text-xs text-zinc-500">
+            <Label htmlFor="link-memo" className="text-xs text-muted-foreground">
               Description
             </Label>
             <Textarea
@@ -219,13 +225,13 @@ export function CryptoPaymentLink({
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
               rows={2}
-              className="bg-zinc-950 border-zinc-800 resize-none"
+              className="bg-card border-border resize-none"
             />
           </div>
 
           <div className="grid grid-cols-[1fr_1fr] gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="link-sku" className="text-xs text-zinc-500">
+              <Label htmlFor="link-sku" className="text-xs text-muted-foreground">
                 SKU (optional)
               </Label>
               <Input
@@ -234,15 +240,15 @@ export function CryptoPaymentLink({
                 placeholder="sku-123"
                 value={sku}
                 onChange={(e) => setSku(e.target.value)}
-                className="bg-zinc-950 border-zinc-800"
+                className="bg-card border-border"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="link-expiry" className="text-xs text-zinc-500">
+              <Label htmlFor="link-expiry" className="text-xs text-muted-foreground">
                 Expiry
               </Label>
               <Select value={String(expiry)} onValueChange={(v) => setExpiry(parseInt(v, 10))}>
-                <SelectTrigger id="link-expiry" className="bg-zinc-950 border-zinc-800">
+                <SelectTrigger id="link-expiry" className="bg-card border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -259,7 +265,7 @@ export function CryptoPaymentLink({
           <Button
             onClick={handleGenerate}
             disabled={!amount || generating}
-            className="w-full h-11 bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold"
+            className="w-full h-11 bg-gradient-to-br from-[hsl(var(--color-tertiary-bright))] to-[hsl(var(--color-tertiary-bright))/0.8] hover:from-[hsl(var(--color-tertiary-bright)/0.9)] hover:to-[hsl(var(--color-tertiary-bright)/0.7)] text-white font-semibold"
           >
             {generating ? (
               <>Generating…</>
@@ -284,27 +290,31 @@ export function CryptoPaymentLink({
           )}
 
           {/* Link summary */}
-          <div className="rounded-lg bg-zinc-950 border border-zinc-800 divide-y divide-zinc-800/60">
+          <div className="rounded-lg bg-card border border-border divide-y divide-border">
             <Row label="Amount" value={`${amount} ${currency}`} mono />
             {memo && <Row label="Memo" value={memo} />}
             {sku && <Row label="SKU" value={sku} mono />}
             <Row label="Expires" value={formatExpiry(expiry)} />
-            <Row label="Route" value={shortUrl ? 'shortlink' : 'direct'} pill={shortUrl ? 'emerald' : 'zinc'} />
+            <Row label="Route" value={shortUrl ? 'shortlink' : 'direct'} pill={shortUrl ? 'tertiary' : 'muted'} />
           </div>
 
           {/* Link box */}
           <div className="flex gap-2">
-            <div className="flex-1 px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 font-mono text-xs text-zinc-300 break-all">
+            <div className="flex-1 px-3 py-2.5 rounded-lg bg-card border border-border font-mono text-xs text-foreground break-all">
               {activeUrl}
             </div>
             <Button
               variant="outline"
               size="icon"
               onClick={handleCopy}
-              className="shrink-0 border-zinc-800 bg-zinc-950 hover:bg-zinc-900"
+              className="shrink-0 border-border bg-card hover:bg-muted"
               aria-label="Copy link"
             >
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              {copied ? (
+                <Check className="w-4 h-4 text-[hsl(var(--color-tertiary-bright))]" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
             </Button>
           </div>
 
@@ -314,10 +324,12 @@ export function CryptoPaymentLink({
             target="_blank"
             rel="noopener noreferrer"
             onClick={handleOpen}
-            className="group flex items-center justify-between w-full px-5 py-4 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold transition-all shadow-lg shadow-emerald-900/30"
+            className="group flex items-center justify-between w-full px-5 py-4 rounded-xl bg-gradient-to-br from-[hsl(var(--color-tertiary-bright))] to-[hsl(var(--color-tertiary-bright))/0.8] hover:from-[hsl(var(--color-tertiary-bright)/0.9)] hover:to-[hsl(var(--color-tertiary-bright)/0.7)] text-white font-semibold transition-all shadow-lg shadow-[hsl(var(--color-tertiary-bright)/0.2)]"
           >
             <div className="flex flex-col items-start">
-              <span className="text-xs font-normal text-emerald-100/80 uppercase tracking-widest">Open checkout</span>
+              <span className="text-xs font-normal text-[hsl(var(--color-tertiary-bright)/0.8)] uppercase tracking-widest">
+                Open checkout
+              </span>
               <span className="text-lg">pay.one.ie</span>
             </div>
             <div className="flex items-center gap-2">
@@ -333,7 +345,7 @@ export function CryptoPaymentLink({
             <Button
               variant="outline"
               onClick={handleReset}
-              className="flex-1 border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-200"
+              className="flex-1 border-border bg-card hover:bg-muted text-font"
             >
               New link
             </Button>
@@ -341,7 +353,7 @@ export function CryptoPaymentLink({
               <Button
                 variant="outline"
                 onClick={handleShare}
-                className="flex-1 border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-200"
+                className="flex-1 border-border bg-card hover:bg-muted text-font"
               >
                 <Share2 className="w-4 h-4 mr-2" /> Share
               </Button>
@@ -349,7 +361,7 @@ export function CryptoPaymentLink({
           </div>
 
           {copied && (
-            <Alert className="border-emerald-900/60 bg-emerald-950/30 text-emerald-300">
+            <Alert className="border-tertiary/30 bg-tertiary/20 text-tertiary-bright">
               <AlertDescription>Link copied to clipboard.</AlertDescription>
             </Alert>
           )}
@@ -368,23 +380,24 @@ function Row({
   label: string
   value: string
   mono?: boolean
-  pill?: 'emerald' | 'zinc'
+  pill?: 'emerald' | 'muted'
 }) {
   return (
     <div className="flex items-center justify-between px-4 py-2.5 text-sm">
-      <span className="text-zinc-500 text-xs uppercase tracking-wider">{label}</span>
+      <span className="text-muted-foreground text-xs uppercase tracking-wider">{label}</span>
       {pill ? (
         <span
           className={cn(
             'text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-full border',
-            pill === 'emerald' && 'text-emerald-300 bg-emerald-950/40 border-emerald-900/60',
-            pill === 'zinc' && 'text-zinc-400 bg-zinc-900 border-zinc-800',
+            pill === 'tertiary' &&
+              'text-[hsl(var(--color-tertiary-bright))] bg-[hsl(var(--color-tertiary-bright)/0.1)] border-[hsl(var(--color-tertiary-bright)/0.2)]',
+            pill === 'muted' && 'text-muted-foreground bg-muted border-border',
           )}
         >
           {value}
         </span>
       ) : (
-        <span className={cn('text-zinc-200', mono && 'font-mono text-xs')}>{value}</span>
+        <span className={cn('text-font', mono && 'font-mono text-xs')}>{value}</span>
       )}
     </div>
   )

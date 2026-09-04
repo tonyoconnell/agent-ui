@@ -161,9 +161,9 @@ function HeroVisual() {
       <div className="absolute -inset-4 bg-gradient-to-br from-[hsl(var(--color-primary-bright)/0.2)] via-[hsl(var(--color-secondary-bright)/0.2)] to-[hsl(var(--color-tertiary-bright)/0.2)] blur-3xl" />
       <div className="relative rounded-2xl border border-border bg-card/80 p-5 space-y-3 backdrop-blur">
         <div className="flex items-center gap-2 pb-3 border-b border-border">
-          <div className="w-2 h-2 rounded-full bg-rose-500" />
-          <div className="w-2 h-2 rounded-full bg-amber-500" />
-          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+          <div className="w-2 h-2 rounded-full bg-[hsl(var(--color-destructive))]" />
+          <div className="w-2 h-2 rounded-full bg-[hsl(var(--color-gold))]" />
+          <div className="w-2 h-2 rounded-full bg-[hsl(var(--color-tertiary-bright))]" />
           <span className="ml-2 text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
             substrate:pay
           </span>

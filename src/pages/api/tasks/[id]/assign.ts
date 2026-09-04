@@ -1,7 +1,7 @@
 /**
  * /api/tasks/:id/assign — Preview or commit an agent assignment.
  *
- * GET  → returns top-3 unit matches for the task's tag set (no write).
+ * GET  → returns top-3 actor matches for the task's tag set (no write).
  *        Used by TaskDrawer / QueueBar to show "best fit: @donal (0.82)".
  *
  * POST → picks the top match and atomically claims the task

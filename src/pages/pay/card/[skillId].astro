@@ -32,7 +32,7 @@ const items = [{ productId: skillId ?? "skill", quantity: 1 }]
 ---
 
 <Layout title={`Pay card · ${skill.name}`}>
-  <main class="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
+  <main class="min-h-screen bg-background flex items-center justify-center p-4">
     <StripeCheckoutWrapper
       client:only="react"
       amount={Math.round(skill.price * 100)}

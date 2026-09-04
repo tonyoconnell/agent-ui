@@ -3,9 +3,9 @@ import { cn } from '@/lib/utils'
 import { LIFECYCLE_STAGES, type Persona } from './types'
 
 const LANE_COLOR: Record<'onboard' | 'engage' | 'commerce', string> = {
-  onboard: '#67e8f9',
-  engage: '#fbbf24',
-  commerce: '#c084fc',
+  onboard: 'hsl(var(--color-primary-bright))',
+  engage: 'hsl(var(--color-gold))',
+  commerce: 'hsl(var(--color-secondary-bright))',
 }
 
 export function LifecycleStepper({ currentStage, persona }: { currentStage: number; persona: Persona }) {
@@ -31,7 +31,7 @@ export function LifecycleStepper({ currentStage, persona }: { currentStage: numb
         {/* progress rail */}
         <div className="absolute top-3 left-3 right-3 h-px bg-white/[0.06]" />
         <motion.div
-          className="absolute top-3 left-3 h-px bg-gradient-to-r from-sky-400 via-amber-400 to-purple-400"
+          className="absolute top-3 left-3 h-px bg-gradient-to-r from-[hsl(var(--color-primary-bright))] via-[hsl(var(--color-gold))] to-[hsl(var(--color-secondary-bright))]"
           initial={{ width: 0 }}
           animate={{ width: `${(currentStage / 10) * 100}%` }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
@@ -49,11 +49,11 @@ export function LifecycleStepper({ currentStage, persona }: { currentStage: numb
                 className={cn(
                   'w-6 h-6 rounded-full flex items-center justify-center relative z-10 font-mono text-[10px] font-bold border',
                   active && 'shadow-lg',
-                  done ? 'text-white' : active ? 'text-white' : 'text-white/30',
+                  done ? 'text-font' : active ? 'text-font' : 'text-foreground/30',
                 )}
                 style={{
-                  background: done ? color : active ? `${color}30` : '#0a0a0f',
-                  borderColor: done ? color : active ? color : '#ffffff15',
+                  background: done ? color : active ? `${color}30` : 'hsl(var(--color-background))',
+                  borderColor: done ? color : active ? color : 'hsl(var(--color-foreground) / 0.08)',
                   boxShadow: active ? `0 0 16px ${color}60` : undefined,
                 }}
                 animate={active ? { scale: [1, 1.08, 1] } : { scale: 1 }}

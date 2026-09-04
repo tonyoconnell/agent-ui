@@ -1,7 +1,7 @@
 /**
  * POST /api/av/in — Inbound webhook from Agentverse.
  *
- * An AV agent is signalling a local unit. We translate the HTTP POST
+ * An AV agent is signalling a local actor. We translate the HTTP POST
  * into a substrate signal with `av:<from>` as the sender — so pheromone
  * accumulates on the `av:<from>→<to>` edge automatically.
  *

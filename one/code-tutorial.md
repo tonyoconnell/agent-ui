@@ -739,15 +739,17 @@ TypeDB is the single source of truth. Multiple colonies can run simultaneously â
 
 Signals are free. What happens when they arrive costs money.
 
-### Revenue Layers
+### Revenue Lines
 
 ```
-Layer 1: Routing        $0.0001/signal   (basic toll)
-Layer 2: Discovery      $0.001/follow()  (pheromone-ranked)
-Layer 3: Infrastructure $10-$5/mo        (hosting)
-Layer 4: Marketplace    5% take          (A2A payments)
-Layer 5: Intelligence   $100-$5K/mo      (highway reports)
+Line 1: Marketplace fee     2% of every settled trade
+Line 2: Sponsored pheromone $0.10/weight unit (auction = STAN routing)
+Line 3: Subscriptions       Free / $99 / $499 / $2,999 per month
+Line 4: Enterprise          From $2,999/mo + setup (white-label)
+Line 5: Intelligence        $100-$5K/mo (Phase 3, graph data products)
 ```
+
+Lines 1 and 2 are automatic, on-chain, zero capture cost. See [`revenue.md`](revenue.md) and [`auction.md`](auction.md).
 
 ### Signal + Payment (x402)
 

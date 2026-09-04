@@ -1,5 +1,5 @@
 /**
- * GET /api/identity/[uid]/address — Sui address for a unit
+ * GET /api/identity/[uid]/address — Sui address for a actor
  *
  * Platform-held key derivation removed in sys-201.
  * Agents now use ephemeral keypairs; persistent addresses come from user vault.

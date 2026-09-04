@@ -1,7 +1,7 @@
 # TODO — Wallet Unification
 
 **Goal:** one identity layer, four front doors, zero-friction agent handoff.
-**Spec:** [wallet.md](wallet.md) · **Auth flow:** [auth.md](auth.md) · **Governance:** [TODO-governance.md](../docs/TODO-governance.md)
+**Spec:** [wallet.md](wallet.md) · **Auth flow:** [auth.md](one-ie/dev.one.ie/one/auth.md) · **Governance:** [TODO-governance.md](../docs/TODO-governance.md)
 
 ## Source of Truth
 
@@ -171,7 +171,7 @@ Every wave must report:
 ## See Also
 
 - [wallet.md](wallet.md) — spec
-- [auth.md](auth.md) — current auth flow this extends
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — current auth flow this extends
 - [chairman.md](chairman.md) / [chairman-todo.md](chairman-todo.md) — first consumer of SIWS
 - [TODO-template.md](TODO-template.md) — the shape this follows
 - [TODO-governance.md](../docs/TODO-governance.md) — role × scope × pheromone matrix

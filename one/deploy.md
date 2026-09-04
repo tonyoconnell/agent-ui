@@ -267,13 +267,13 @@ fun highways(\$thresh: double, \$min_trav: integer) -> { path }:
           \$s >= \$thresh; \$t >= \$min_trav;
     return { \$e };
 
-fun optimal_route(\$from: unit, \$skill: skill) -> unit:
+fun optimal_route(\$from: unit, \$skill: skill) -> actor:
     match (source: \$from, target: \$to) isa path, has strength \$s;
           (provider: \$to, offered: \$skill) isa capability;
     sort \$s desc; limit 1;
     return first \$to;
 
-fun cheapest_provider(\$skill: skill) -> unit:
+fun cheapest_provider(\$skill: skill) -> actor:
     match (provider: \$u, offered: \$skill) isa capability, has price \$p;
     sort \$p asc; limit 1;
     return first \$u;
@@ -286,19 +286,19 @@ fun suggest_route(\$from: unit, \$skill: skill) -> { uid, strength }:
     sort \$s desc; limit 5;
     return { \$id, \$s };
 
-fun proven_units() -> { unit }:
+fun proven_actors() -> { actor }:
     match \$u isa unit, has status \$st; \$st == \"proven\";
     return { \$u };
 
-fun at_risk_units() -> { unit }:
+fun at_risk_actors() -> { actor }:
     match \$u isa unit, has status \$st; \$st == \"at-risk\";
     return { \$u };
 
-fun units_by_kind(\$k: string) -> { unit }:
+fun actors_by_kind(\$k: string) -> { actor }:
     match \$u isa unit, has unit-kind \$uk, has status \$st; \$uk == \$k; \$st == \"active\";
     return { \$u };
 
-fun group_members(\$gname: string) -> { unit }:
+fun group_members(\$gname: string) -> { actor }:
     match \$grp isa group, has name \$n; \$n == \$gname;
           (group: \$grp, member: \$u) isa membership;
     return { \$u };

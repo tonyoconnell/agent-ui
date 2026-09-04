@@ -126,7 +126,7 @@ describe('Frontier Detection (L7)', () => {
   })
 
   // ───────────────────────────────────────────────────────────────────────
-  // Test 3: Wave-specific frontier: unit touched tag Y at W1 but not W2
+  // Test 3: Wave-specific frontier: actor touched tag Y at W1 but not W2
   // ───────────────────────────────────────────────────────────────────────
   it('wave-specific frontier: tag touched at W1 but not W2 remains frontier', async () => {
     const worldTags = ['compute', 'validate', 'finalize']

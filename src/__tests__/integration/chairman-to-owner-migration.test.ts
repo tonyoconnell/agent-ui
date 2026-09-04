@@ -100,7 +100,7 @@ describe.skipIf(!TYPEDB_AVAILABLE)('chairman → owner migration (live)', () => 
     // take >20s on a large cluster). This mirrors the exact TQL spec in the
     // W2 plan but adds the gid filter directly in TypeQL for performance.
     const rows = await readParsed(`
-      match $u isa unit, has uid "${TONY_UID}";
+      match $u isa actor, has aid "${TONY_UID}";
       $g isa group, has gid "${TONY_GID}";
       (member: $u, group: $g) isa membership, has member-role $r;
       select $r;

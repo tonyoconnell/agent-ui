@@ -17,7 +17,7 @@
  *   You are the Creative Director...
  *
  * Markdown → AgentSpec → TypeDB inserts
- * Markdown → AgentSpec → Runtime unit
+ * Markdown → AgentSpec → Runtime actor
  */
 
 import { JSONSchema, Schema } from 'effect'
@@ -160,7 +160,7 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
   const queries: string[] = []
   const uid = spec.adlUid || (spec.group ? `${spec.group}:${spec.name}` : spec.name)
 
-  // Unit insert
+  // Actor insert
   const tags = [...(spec.tags || []), ...(spec.group ? [spec.group] : [])]
   const tagStr = tags.map((t) => `has tag "${t}"`).join(', ')
   const aliasStr = spec.aliases
@@ -180,9 +180,9 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
 
   // Build clause array for cleaner concatenation
   const clauseArray = [
-    `has uid "${uid}"`,
+    `has aid "${uid}"`,
     `has name "${spec.name}"`,
-    `has unit-kind "agent"`,
+    `has actor-type "agent"`,
     `has model "${spec.model || 'claude-sonnet-4-20250514'}"`,
     `has system-prompt "${escapeString(spec.prompt.slice(0, 10000))}"`,
     `has status "active"`,
@@ -196,7 +196,7 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
 
   // data-sensitivity is gated on schema support. Live TypeDB schemas
   // pre-ADL don't have the attribute defined; writing it aborts the
-  // whole unit insert with [INF2]. Enable via env once the schema
+  // whole actor insert with [INF2]. Enable via env once the schema
   // migration lands: SCHEMA_HAS_DATA_SENSITIVITY=true.
   if (readSchemaFlag('SCHEMA_HAS_DATA_SENSITIVITY')) {
     clauseArray.push(`has data-sensitivity "${sensitivityEnum}"`)
@@ -235,12 +235,12 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
     })
   }
 
-  // Idempotent unit insert: skip if uid already exists.
+  // Idempotent actor insert: skip if uid already exists.
   // Re-sync of the same agent spec is common (edits, redeploys) and
   // must not trip the @unique constraint on uid.
   queries.push(`
-    match not { $existing isa unit, has uid "${uid}"; };
-    insert $u isa unit,
+    match not { $existing isa actor, has aid "${uid}"; };
+    insert $u isa actor,
       ${clauseArray.join(',\n      ')};
   `)
 
@@ -249,7 +249,7 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
     queries.push(`
       match
         $g isa group, has gid "${spec.group}";
-        $u isa unit, has uid "${uid}";
+        $u isa actor, has aid "${uid}";
         not { (group: $g, member: $u) isa membership; };
       insert (group: $g, member: $u) isa membership, has joined-at ${new Date().toISOString().replace('Z', '')};
     `)
@@ -261,7 +261,7 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
   for (const skill of allSkills) {
     // Skill-id MUST be unique per (agent, skill) pair — the `@unique`
     // constraint on skill-id means two agents with the same `hire` skill
-    // collide in a non-group setup. Always prefix with the unit's uid so
+    // collide in a non-group setup. Always prefix with the actor's uid so
     // each agent owns its own skill identity; group-scoped queries can
     // still filter by the group prefix embedded in uid.
     const skillId = `${uid}:${skill.name}`
@@ -278,12 +278,12 @@ export const toTypeDB = (spec: AgentSpec): string[] => {
         has price ${skill.price || 0}${skill.description ? `, has description "${escapeString(skill.description)}"` : ''}${skillTags ? `, ${skillTags}` : ''};
     `)
 
-    // Idempotent capability: only create if this unit doesn't already
+    // Idempotent capability: only create if this actor doesn't already
     // offer this skill. Without this guard, repeated syncs pile up
     // duplicate capability relations, breaking `discover` ranking.
     queries.push(`
       match
-        $u isa unit, has uid "${uid}";
+        $u isa actor, has aid "${uid}";
         $s isa skill, has skill-id "${skillId}";
         not { (provider: $u, offered: $s) isa capability; };
       insert (provider: $u, offered: $s) isa capability, has price ${skill.price || 0};
@@ -317,8 +317,8 @@ export const worldToTypeDB = (spec: WorldSpec): string[] => {
     for (const agent of spec.agents) {
       if (agent.name !== director.name) {
         queries.push(`
-          match $from isa unit, has uid "${spec.name}:${director.name}";
-                $to isa unit, has uid "${spec.name}:${agent.name}";
+          match $from isa actor, has aid "${spec.name}:${director.name}";
+                $to isa actor, has aid "${spec.name}:${agent.name}";
           insert (source: $from, target: $to) isa path,
             has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
         `)
@@ -336,7 +336,7 @@ export const worldToTypeDB = (spec: WorldSpec): string[] => {
 export const syncAgent = async (spec: AgentSpec): Promise<void> => {
   const queries = toTypeDB(spec)
   // Writes must propagate — swallowing here caused silent partial persist
-  // (skill lands, unit missing) that returned ok:true from the sync route.
+  // (skill lands, actor missing) that returned ok:true from the sync route.
   for (const q of queries) {
     await write(q)
   }
@@ -373,7 +373,7 @@ export const syncAgentWithIdentity = async (spec: AgentSpec): Promise<AgentSpec>
   // Step 2: Sync to TypeDB (includes wallet if derived)
   await syncAgent(spec)
 
-  // Step 3: Create on-chain Unit (if Sui is configured)
+  // Step 3: Create on-chain Actor (if Sui is configured)
   if (spec.wallet) {
     try {
       const { objectId, address } = await createUnitOnChain(uid, spec.name, 'agent')
@@ -382,12 +382,12 @@ export const syncAgentWithIdentity = async (spec: AgentSpec): Promise<AgentSpec>
 
       // Store Sui object ID back in TypeDB
       await writeSilent(`
-        match $u isa unit, has uid "${uid}";
+        match $u isa actor, has aid "${uid}";
         delete $u has wallet $old;
         insert $u has wallet "${address}";
       `).catch(() =>
         writeSilent(`
-          match $u isa unit, has uid "${uid}";
+          match $u isa actor, has aid "${uid}";
           insert $u has wallet "${address}";
         `),
       )
@@ -427,7 +427,7 @@ export const syncFromMarkdown = async (md: string): Promise<AgentSpec> => {
 
 export const loadAgent = async (uid: string): Promise<AgentSpec | null> => {
   const rows = await readParsed(`
-    match $u isa unit, has uid "${uid}",
+    match $u isa actor, has aid "${uid}",
           has name $n, has model $m, has system-prompt $p;
     select $n, $m, $p;
   `).catch(() => [])
@@ -436,7 +436,7 @@ export const loadAgent = async (uid: string): Promise<AgentSpec | null> => {
 
   const row = rows[0]
   const skills = await readParsed(`
-    match $u isa unit, has uid "${uid}";
+    match $u isa actor, has aid "${uid}";
           (provider: $u, offered: $s) isa capability, has price $p;
           $s has skill-id $sid, has name $sn;
     select $sid, $sn, $p;
@@ -464,7 +464,7 @@ export const loadWorld = async (gid: string): Promise<WorldSpec | null> => {
   const members = await readParsed(`
     match $g isa group, has gid "${gid}";
           (group: $g, member: $u) isa membership;
-          $u has uid $uid;
+          $u has aid $uid;
     select $uid;
   `).catch(() => [])
 
@@ -492,7 +492,7 @@ export const wireAgent = (
   complete: Complete,
 ): ReturnType<World['add']> => {
   const uid = spec.group ? `${spec.group}:${spec.name}` : spec.name
-  const unit = net.add(uid)
+  const actor = net.add(uid)
 
   // Load context from docs if specified
   const contextDocs = spec.context?.length ? loadContext([...spec.context]) : ''
@@ -502,7 +502,7 @@ export const wireAgent = (
 
   // Wire each skill as a handler
   for (const skill of spec.skills || []) {
-    unit.on(skill.name, async (data, emit, ctx) => {
+    actor.on(skill.name, async (data, emit, ctx) => {
       const input = typeof data === 'string' ? data : JSON.stringify(data)
       const result = await complete(`${fullPrompt}\n\nTask: ${skill.name}\nInput: ${input}`, { system: fullPrompt })
       return { result }
@@ -510,13 +510,13 @@ export const wireAgent = (
   }
 
   // Default handler uses full prompt with context
-  unit.on('default', async (data, emit, ctx) => {
+  actor.on('default', async (data, emit, ctx) => {
     const input = typeof data === 'string' ? data : JSON.stringify(data)
     const result = await complete(`${fullPrompt}\n\nInput: ${input}`)
     return { result }
   })
 
-  return unit
+  return actor
 }
 
 export const wireWorld = (
@@ -524,15 +524,15 @@ export const wireWorld = (
   net: World | PersistentWorld,
   complete: Complete,
 ): Map<string, ReturnType<World['add']>> => {
-  const units = new Map<string, ReturnType<World['add']>>()
+  const actors = new Map<string, ReturnType<World['add']>>()
 
   for (const agent of spec.agents) {
     agent.group = spec.name
-    const unit = wireAgent(agent, net, complete)
-    units.set(agent.name, unit)
+    const actor = wireAgent(agent, net, complete)
+    actors.set(agent.name, actor)
   }
 
-  return units
+  return actors
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

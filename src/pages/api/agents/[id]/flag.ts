@@ -2,7 +2,7 @@
  * POST /api/agents/:id/flag — CEO flag: lower success-rate + warn all paths
  *
  * Lowers the agent's success-rate (floor 0.05) and increases resistance
- * on all outgoing pheromone trails (routing will avoid this unit).
+ * on all outgoing pheromone trails (routing will avoid this actor).
  */
 import type { APIRoute } from 'astro'
 import { write } from '@/lib/typedb'
@@ -13,21 +13,21 @@ export const POST: APIRoute = async ({ params }) => {
 
   // Lower success-rate (floor at 0.05)
   await write(`
-    match $u isa unit, has uid "${id}", has success-rate $sr;
+    match $u isa actor, has aid "${id}", has success-rate $sr;
     let $new = max($sr - 0.15, 0.05);
     delete $sr of $u;
     insert $u has success-rate $new;
   `).catch(() => {
     return write(`
-      match $u isa unit, has uid "${id}";
+      match $u isa actor, has aid "${id}";
       insert $u has success-rate 0.2;
     `)
   })
 
-  // Increase resistance on all outgoing paths (routing avoids this unit)
+  // Increase resistance on all outgoing paths (routing avoids this actor)
   await write(`
     match
-      $u isa unit, has uid "${id}";
+      $u isa actor, has aid "${id}";
       $e (source: $u, target: $t) isa path, has resistance $r;
     delete $r of $e;
     insert $e has resistance ($r + 2.0);

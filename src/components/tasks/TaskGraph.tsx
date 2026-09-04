@@ -41,26 +41,26 @@ function TaskNode({ data }: NodeProps) {
   const status = task.task_status
   const color =
     status === 'verified' || status === 'done'
-      ? '#4ade80'
+      ? 'hsl(var(--color-tertiary-bright))'
       : status === 'picked'
-        ? '#fbbf24'
+        ? 'hsl(var(--color-gold))'
         : status === 'blocked'
-          ? '#ef4444'
+          ? 'hsl(var(--color-destructive))'
           : status === 'failed'
-            ? '#ef4444'
-            : '#94a3b8'
+            ? 'hsl(var(--color-destructive))'
+            : 'hsl(var(--color-muted-foreground))'
   const prio = priorityLabel(task.task_priority)
   return (
     <div
-      className="rounded-md border px-2 py-1.5 min-w-[140px] max-w-[220px] bg-[#0f0f1a]"
+      className="rounded-md border px-2 py-1.5 min-w-[140px] max-w-[220px] bg-card"
       style={{ borderColor: `${color}60` }}
     >
       <div className="flex items-center gap-1.5 mb-0.5">
         <span className="w-1 h-1 rounded-full" style={{ background: color }} />
-        <span className="text-[9px] font-mono text-white/40 truncate">{task.tid.split(':').slice(-2).join(':')}</span>
-        <span className="ml-auto text-[8px] text-white/30">{prio}</span>
+        <span className="text-[9px] font-mono text-font/40 truncate">{task.tid.split(':').slice(-2).join(':')}</span>
+        <span className="ml-auto text-[8px] text-font/30">{prio}</span>
       </div>
-      <p className="text-[10px] leading-tight text-white/80 line-clamp-2">{task.name}</p>
+      <p className="text-[10px] leading-tight text-font/80 line-clamp-2">{task.name}</p>
     </div>
   )
 }
@@ -68,9 +68,9 @@ function TaskNode({ data }: NodeProps) {
 function AgentNode({ data }: NodeProps) {
   const info = data as { uid: string; load: number }
   return (
-    <div className="rounded-full border border-sky-400/40 bg-sky-400/5 px-3 py-1.5 min-w-[80px] text-center">
-      <div className="text-[11px] font-mono font-bold text-sky-200">@{info.uid}</div>
-      <div className="text-[9px] text-white/40">{info.load} open</div>
+    <div className="rounded-full border border-primary-bright/40 bg-primary-bright/5 px-3 py-1.5 min-w-[80px] text-center">
+      <div className="text-[11px] font-mono font-bold text-primary-bright">@{info.uid}</div>
+      <div className="text-[9px] text-font/40">{info.load} open</div>
     </div>
   )
 }
@@ -79,7 +79,13 @@ function HighwayEdge({ id, sourceX, sourceY, targetX, targetY, data }: EdgeProps
   const [path] = getBezierPath({ sourceX, sourceY, targetX, targetY })
   const strength = (data as { strength?: number } | undefined)?.strength ?? 0
   const thickness = Math.max(1, Math.min(5, strength / 20))
-  return <BaseEdge id={id} path={path} style={{ stroke: '#c084fc', strokeWidth: thickness, opacity: 0.5 }} />
+  return (
+    <BaseEdge
+      id={id}
+      path={path}
+      style={{ stroke: 'hsl(var(--color-secondary-bright))', strokeWidth: thickness, opacity: 0.5 }}
+    />
+  )
 }
 
 const NODE_TYPES = { task: TaskNode, agent: AgentNode }
@@ -148,7 +154,7 @@ export function TaskGraph({ tasks, highways }: { tasks: Task[]; highways?: Highw
           id: `assign:${t.tid}→${agent}`,
           source: `task:${t.tid}`,
           target: `agent:${agent}`,
-          style: { stroke: '#38bdf8', strokeWidth: 0.75, opacity: 0.4 },
+          style: { stroke: 'hsl(var(--color-primary-bright))', strokeWidth: 0.75, opacity: 0.4 },
           type: 'default',
         })
       }
@@ -162,7 +168,7 @@ export function TaskGraph({ tasks, highways }: { tasks: Task[]; highways?: Highw
           id: `block:${bid}→${t.tid}`,
           source: `task:${bid}`,
           target: `task:${t.tid}`,
-          style: { stroke: '#ef4444', strokeDasharray: '4 3', strokeWidth: 0.75, opacity: 0.55 },
+          style: { stroke: 'hsl(var(--color-destructive))', strokeDasharray: '4 3', strokeWidth: 0.75, opacity: 0.55 },
           type: 'default',
         })
       }
@@ -196,7 +202,7 @@ export function TaskGraph({ tasks, highways }: { tasks: Task[]; highways?: Highw
   }, [built, setNodes, setEdges])
 
   return (
-    <div className="h-[700px] rounded-lg border border-white/[0.06] bg-[#060612] overflow-hidden">
+    <div className="h-[700px] rounded-lg border border-border bg-background overflow-hidden">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -210,22 +216,25 @@ export function TaskGraph({ tasks, highways }: { tasks: Task[]; highways?: Highw
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#222" gap={24} size={1} />
-        <Controls className="!bg-[#0a0a0f] !border-white/10" />
+        <Background color="hsl(var(--color-border))" gap={24} size={1} />
+        <Controls className="!bg-card !border-border" />
         <Panel
           position="top-right"
-          className="rounded-md border border-white/10 bg-[#0a0a0f]/90 px-3 py-2 text-[10px] text-white/50 space-y-1"
+          className="rounded-md border border-border bg-card/90 px-3 py-2 text-[10px] text-muted-foreground space-y-1"
         >
           <div className="flex items-center gap-2">
-            <span className="w-3 h-0.5 bg-red-500 opacity-55" style={{ borderTop: '1px dashed #ef4444' }} />
+            <span
+              className="w-3 h-0.5 bg-destructive opacity-55"
+              style={{ borderTop: '1px dashed hsl(var(--color-destructive))' }}
+            />
             <span>blocks</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-0.5 bg-sky-400 opacity-40" />
+            <span className="w-3 h-0.5 bg-primary-bright opacity-40" />
             <span>assigned to</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-0.5 bg-purple-400" />
+            <span className="w-3 h-0.5 bg-secondary-bright" />
             <span>pheromone highway</span>
           </div>
         </Panel>

@@ -6,10 +6,10 @@ interface PendingData {
 }
 
 const C = {
-  bg: '#0a0a0f',
-  border: '#4b5563',
-  accent: '#6b7280',
-  text: '#9ca3af',
+  bg: 'hsl(var(--color-background))',
+  border: 'hsl(var(--color-border))',
+  accent: 'hsl(var(--color-muted-foreground))',
+  text: 'hsl(var(--color-foreground))',
 }
 
 export function PendingNode({ data }: NodeProps) {
@@ -18,7 +18,7 @@ export function PendingNode({ data }: NodeProps) {
     <div
       className="rounded-xl select-none px-4 py-3 min-w-[168px] animate-pulse"
       style={{
-        backgroundColor: '#111118',
+        backgroundColor: 'hsl(var(--color-card))',
         border: `1.5px dashed ${C.border}`,
         boxShadow: 'none',
       }}
@@ -39,7 +39,7 @@ export function PendingNode({ data }: NodeProps) {
           hiring…
         </span>
       </div>
-      <div className="text-[10px] font-mono text-slate-600">minting wallet</div>
+      <div className="text-[10px] font-mono text-muted-foreground">minting wallet</div>
     </div>
   )
 }

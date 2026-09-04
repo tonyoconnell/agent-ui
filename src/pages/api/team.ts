@@ -7,7 +7,7 @@
  *   brief?: string
  * }
  *
- * Creates: group + units + membership + paths in TypeDB.
+ * Creates: group + actors + membership + paths in TypeDB.
  * Maps to: w.group() → w.actor() → w.flow() → w.signal()
  */
 import type { APIRoute } from 'astro'
@@ -52,7 +52,7 @@ export const POST: APIRoute = async ({ request }) => {
           has status "active";
     `)
 
-    // 2. Create each agent unit + membership + skill + capability
+    // 2. Create each agent actor + membership + skill + capability
     for (const agent of agents) {
       const safeName = agent.name
         .toLowerCase()
@@ -66,13 +66,13 @@ export const POST: APIRoute = async ({ request }) => {
       const uid = `${safeTeam}-${safeName}`
       const skillId = `${uid}:${safeTask}`
 
-      // Create unit
+      // Create actor
       await write(`
         insert
-          $u isa unit,
-            has uid "${uid}",
+          $u isa actor,
+            has aid "${uid}",
             has name "${safeName}",
-            has unit-kind "agent",
+            has actor-type "agent",
             has model "${model}",
             has status "active",
             has tag "${safeTeam}",
@@ -87,7 +87,7 @@ export const POST: APIRoute = async ({ request }) => {
       await write(`
         match
           $g isa group, has gid "${safeTeam}";
-          $u isa unit, has uid "${uid}";
+          $u isa actor, has aid "${uid}";
         insert
           (group: $g, member: $u) isa membership;
       `)
@@ -105,7 +105,7 @@ export const POST: APIRoute = async ({ request }) => {
 
       await write(`
         match
-          $u isa unit, has uid "${uid}";
+          $u isa actor, has aid "${uid}";
           $s isa skill, has skill-id "${skillId}";
         insert
           (provider: $u, offered: $s) isa capability,
@@ -131,8 +131,8 @@ export const POST: APIRoute = async ({ request }) => {
 
       await write(`
         match
-          $s isa unit, has uid "${sourceUid}";
-          $t isa unit, has uid "${targetUid}";
+          $s isa actor, has aid "${sourceUid}";
+          $t isa actor, has aid "${targetUid}";
         insert
           (source: $s, target: $t) isa path,
             has strength 1.0,
@@ -153,7 +153,7 @@ export const POST: APIRoute = async ({ request }) => {
 
       await write(`
         match
-          $r isa unit, has uid "${firstUid}";
+          $r isa actor, has aid "${firstUid}";
         insert
           (receiver: $r) isa signal,
             has data "${brief.replace(/"/g, '\\"').slice(0, 500)}",

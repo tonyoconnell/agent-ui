@@ -325,7 +325,7 @@ This governance model enforces the three locked rules from CLAUDE.md:
 - [lifecycle.md](one/lifecycle.md) — agent career arc + governance layer
 - [lifecycle-one.md](lifecycle-one.md) — user funnel + CEO-as-router
 - [buy-and-sell.md](buy-and-sell.md) — trade mechanics + commerce gates
-- [auth.md](auth.md) — auth implementation + role permission matrix
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — auth implementation + role permission matrix
 - [dictionary.md](dictionary.md) — canonical names
 - [routing.md](routing.md) — pheromone mechanics
 - [TODO-SUI.md](TODO-SUI.md) — Sui integration (wallets, escrow, hardening)

@@ -3,7 +3,7 @@
  *
  * Two fields. Dual strength. Queue. Concurrency safe.
  *
- * receiver: who (unit:task)
+ * receiver: who (actor:task)
  * data: what (anything)
  * data.marks: false to observe without marking trails
  * data.weight: override default mark weight
@@ -27,20 +27,20 @@ type Route = (s: Signal, from: string) => void
 type SignalData = { marks?: boolean; weight?: number; tags?: string[] | string; [k: string]: unknown }
 const asData = (d: unknown): SignalData => (d && typeof d === 'object' ? (d as SignalData) : {})
 
-export interface Unit {
+export interface Actor {
   (s: Signal, from?: string): void
-  on: (name: string, fn: (d: unknown, emit: Emit, ctx: { from: string; self: string }) => unknown) => Unit
-  then: (name: string, template: Template) => Unit
-  role: (name: string, task: string, ctx: Record<string, unknown>) => Unit
+  on: (name: string, fn: (d: unknown, emit: Emit, ctx: { from: string; self: string }) => unknown) => Actor
+  then: (name: string, template: Template) => Actor
+  role: (name: string, task: string, ctx: Record<string, unknown>) => Actor
   has: (name: string) => boolean
   list: () => string[]
-  subscribe: (tags: string[]) => Unit
+  subscribe: (tags: string[]) => Actor
   subscribedTags: () => string[]
   id: string
 }
 
 export interface World {
-  units: Record<string, Unit>
+  actors: Record<string, Actor>
   strength: Record<string, number>
   resistance: Record<string, number>
   peak: Record<string, number>
@@ -48,7 +48,7 @@ export interface World {
   latency: Record<string, number>
   revenue: Record<string, number>
   queue: Signal[]
-  add: (id: string, existing?: Unit) => Unit
+  add: (id: string, existing?: Actor) => Actor
   remove: (id: string) => void
   signal: (s: Signal, from?: string) => void
   ask: (
@@ -72,18 +72,18 @@ export interface World {
   isHighway: (path: string, threshold?: number) => boolean
   has: (id: string) => boolean
   list: () => string[]
-  get: (id: string) => Unit | undefined
+  get: (id: string) => Actor | undefined
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // UNIT
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const unit = (id: string, route?: Route): Unit => {
+export const actor = (id: string, route?: Route): Actor => {
   const tasks: Record<string, Task> = {}
   const next: Record<string, Template> = {}
 
-  const u: Unit = ({ receiver, data }, from = 'entry') => {
+  const u: Actor = ({ receiver, data }, from = 'entry') => {
     const taskName = receiver.includes(':') ? receiver.split(':')[1] : 'default'
     const task = tasks[taskName] || tasks.default
 
@@ -152,7 +152,7 @@ export const unit = (id: string, route?: Route): Unit => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const world = (): World => {
-  const units: Record<string, Unit> = {}
+  const actors: Record<string, Actor> = {}
   const strength: Record<string, number> = {}
   const resistance: Record<string, number> = {}
   const peak: Record<string, number> = {}
@@ -162,7 +162,7 @@ export const world = (): World => {
   const queue: Signal[] = []
 
   // ── Routing index ─────────────────────────────────────────────────────────
-  // typeIndex: maps each unit-id segment → set of edges that contain it.
+  // typeIndex: maps each actor-id segment → set of edges that contain it.
   // Lets follow/select scan only the relevant edges instead of all of strength.
   // Edges are never removed from typeIndex (stale entries skipped via strength lookup).
   const typeIndex: Record<string, Set<string>> = {}
@@ -214,30 +214,40 @@ export const world = (): World => {
   const danger = (path: string) => resistance[path] || 0
 
   const signal = ({ receiver, data }: Signal, from = 'entry') => {
-    const unitId = receiver.includes(':') ? receiver.split(':')[0] : receiver
-    const target = units[unitId]
-    if (!target) return
-
     const d = asData(data)
-    const edge = `${from}→${receiver}`
 
-    // marks gate: only mark pheromone on production signals
-    d.marks !== false && mark(edge, d.weight ?? 1)
-
-    target({ receiver, data }, from)
-
-    // Tag fan-out: deliver to any unit subscribed on tags that intersect data.tags
-    const sigTags = Array.isArray(d.tags) ? d.tags : []
-    if (sigTags.length > 0) {
-      for (const [uid, sub] of Object.entries(units)) {
-        if (uid === unitId) continue
-        const subTags = sub.subscribedTags()
-        if (subTags.length > 0 && subTags.some((t) => sigTags.includes(t))) {
+    // sub: fan-out — deliver to all actors subscribed to this topic
+    // Actor subscribes via: actor.subscribe(['sub:news:crypto'])
+    if (receiver.startsWith('sub:')) {
+      for (const [uid, u] of Object.entries(actors)) {
+        if (u.subscribedTags().includes(receiver)) {
           d.marks !== false && mark(`${from}→${uid}`, d.weight ?? 1)
-          sub({ receiver: uid, data }, from)
+          u({ receiver: uid, data }, from)
         }
       }
+      return
     }
+
+    // all: fan-out — deliver to every actor that has ALL the requested capability tags
+    if (receiver.startsWith('all:')) {
+      const tags = receiver.slice(4).split('+')
+      for (const [uid, u] of Object.entries(actors)) {
+        const subTags = u.subscribedTags()
+        if (tags.every((t) => subTags.includes(t))) {
+          d.marks !== false && mark(`${from}→${uid}`, d.weight ?? 1)
+          u({ receiver: uid, data }, from)
+        }
+      }
+      return
+    }
+
+    // direct delivery
+    const actorId = receiver.includes(':') ? receiver.split(':')[0] : receiver
+    const target = actors[actorId]
+    if (!target) return
+
+    d.marks !== false && mark(`${from}→${receiver}`, d.weight ?? 1)
+    target({ receiver, data }, from)
   }
 
   // ask: signal and wait for reply. Returns { result, timeout, dissolved }.
@@ -247,20 +257,20 @@ export const world = (): World => {
     timeout = 30000,
   ): Promise<{ result?: unknown; timeout?: boolean; dissolved?: boolean; failure?: boolean }> =>
     new Promise((resolve) => {
-      const unitId = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
+      const actorId = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
       const taskName = s.receiver.includes(':') ? s.receiver.split(':')[1] : 'default'
-      const target = units[unitId]
-      // Synchronous dissolve: unit missing, or capability missing with no default fallback.
+      const target = actors[actorId]
+      // Synchronous dissolve: actor missing, or capability missing with no default fallback.
       // Replaces a 30s timer race with an O(1) lookup — dissolved ≠ timeout.
       if (!target || (!target.has(taskName) && !target.has('default'))) {
         resolve({ dissolved: true })
         return
       }
-      // rid must NOT contain ':' — signal routing splits on ':' to get unit ID
+      // rid must NOT contain ':' — signal routing splits on ':' to get actor ID
       const rid = `ask${Date.now()}${Math.random().toString(36).slice(2, 6)}`
-      const u = unit(rid, (reply) => signal(reply, rid))
+      const u = actor(rid, (reply) => signal(reply, rid))
       u.on('default', (data) => {
-        delete units[rid]
+        delete actors[rid]
         if ((data as Record<string, unknown>)?.failure === true) {
           resolve({ failure: true })
         } else {
@@ -269,10 +279,10 @@ export const world = (): World => {
         // Return null to prevent this from routing further
         return null
       })
-      units[rid] = u
+      actors[rid] = u
       signal({ ...s, data: { ...((s.data as object) || {}), replyTo: rid } }, from)
       setTimeout(() => {
-        delete units[rid]
+        delete actors[rid]
         resolve({ timeout: true })
       }, timeout) // Fix 1: timeout ≠ failure
     })
@@ -299,10 +309,10 @@ export const world = (): World => {
   }
   const pending = () => queue.length
 
-  const add = (id: string, existing?: Unit) => {
-    const u = existing ?? unit(id, (s, from) => signal(s, from))
-    units[id] = u
-    // drain queued signals for this unit
+  const add = (id: string, existing?: Actor) => {
+    const u = existing ?? actor(id, (s, from) => signal(s, from))
+    actors[id] = u
+    // drain queued signals for this actor
     let i = queue.length
     while (i--) {
       const uid = queue[i].receiver.includes(':') ? queue[i].receiver.split(':')[0] : queue[i].receiver
@@ -314,9 +324,9 @@ export const world = (): World => {
     return u
   }
 
-  // unit stops receiving. trails remain, fade naturally
+  // actor stops receiving. trails remain, fade naturally
   const remove = (id: string) => {
-    delete units[id]
+    delete actors[id]
   }
 
   // exact segment match: "analyst" matches "scout→analyst:process" but "an" doesn't
@@ -412,12 +422,12 @@ export const world = (): World => {
 
   const isHighway = (path: string, threshold = 50) => (strength[path] || 0) - (resistance[path] || 0) >= threshold
 
-  const has = (id: string) => id in units
-  const list = () => Object.keys(units)
-  const get = (id: string) => units[id]
+  const has = (id: string) => id in actors
+  const list = () => Object.keys(actors)
+  const get = (id: string) => actors[id]
 
   return {
-    units,
+    actors,
     strength,
     resistance,
     peak,

@@ -8,6 +8,7 @@ import { Inspector } from './Inspector'
 import { LearningPanel } from './LearningPanel'
 import { PathsGraph } from './PathsGraph'
 import { ThingsTable } from './ThingsTable'
+import { InviteButton } from '@/components/auth/InviteButton'
 
 interface Props {
   groupId: string
@@ -39,6 +40,10 @@ export function TabShell({ groupId }: Props) {
           </TabsContent>
 
           <TabsContent value="actors" className="flex-1 overflow-auto p-4 h-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-medium text-font/60">Members</h2>
+              <InviteButton gid={groupId} />
+            </div>
             <ActorsTable groupId={groupId} onSelect={(uid) => setSelectedItem(uid)} />
           </TabsContent>
 

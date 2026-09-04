@@ -14,7 +14,7 @@ type KpiCard = {
   label: string
   value: number
   delta?: number
-  unit?: string
+  actor?: string
   sparkline?: number[]
 }
 
@@ -134,13 +134,13 @@ export const GET: APIRoute = async ({ locals }) => {
   }
 
   const kpis: KpiCard[] = [
-    { id: 'closedLoopRate', label: 'Closed Loop Rate', value: closedLoopRate, unit: '%' },
-    { id: 'medianSettlementMs', label: 'Median Settlement', value: medianSettlementMs, unit: 'ms' },
-    { id: 'takeRate', label: 'Take Rate', value: takeRate, unit: '%', delta: 0 },
+    { id: 'closedLoopRate', label: 'Closed Loop Rate', value: closedLoopRate, actor: '%' },
+    { id: 'medianSettlementMs', label: 'Median Settlement', value: medianSettlementMs, actor: 'ms' },
+    { id: 'takeRate', label: 'Take Rate', value: takeRate, actor: '%', delta: 0 },
     { id: 'highwaysCount', label: 'Highways', value: highwaysCount },
     { id: 'frontierCoverage', label: 'Frontier Tags', value: frontierCoverage },
     { id: 'toxicPathTrend', label: 'Toxic Paths', value: toxicPathTrend, delta: 0 },
-    { id: 'revenuePerHour', label: 'Revenue / Hour', value: revenuePerHour, unit: 'SUI' },
+    { id: 'revenuePerHour', label: 'Revenue / Hour', value: revenuePerHour, actor: 'SUI' },
   ]
 
   return Response.json({ kpis, refreshedAt: Date.now() }, { headers: { 'Cache-Control': 'public, max-age=30' } })

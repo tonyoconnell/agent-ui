@@ -2,13 +2,13 @@
  * useCanvasGestures — Gesture state management for STREAM 5
  *
  * Handles 8 direct manipulation gestures:
- * 1. Drag to move units
+ * 1. Drag to move actors
  * 2. Click to rename (inline edit)
- * 3. Draw path (drag from unit to unit)
+ * 3. Draw path (drag from actor to actor)
  * 4. Weight path (sliders on hover card)
  * 5. Mark/Warn buttons
- * 6. Delete unit (key press)
- * 7. Group units (lasso + G)
+ * 6. Delete actor (key press)
+ * 7. Group actors (lasso + G)
  * 8. Pan + Zoom (built into ReactFlow)
  */
 
@@ -24,7 +24,7 @@ export interface PathDrawState {
 }
 
 export interface RenameState {
-  unitId?: string
+  actorId?: string
   isEditing: boolean
 }
 
@@ -77,15 +77,15 @@ export function useCanvasGestures() {
 
   // Handlers for each gesture
 
-  const startRename = useCallback((unitId: string) => {
-    setRename({ unitId, isEditing: true })
+  const startRename = useCallback((actorId: string) => {
+    setRename({ actorId, isEditing: true })
   }, [])
 
   const cancelRename = useCallback(() => {
     setRename({ isEditing: false })
   }, [])
 
-  const confirmRename = useCallback((unitId: string, newName: string) => {
+  const confirmRename = useCallback((actorId: string, newName: string) => {
     setRename({ isEditing: false })
     return newName // caller will emit signal
   }, [])

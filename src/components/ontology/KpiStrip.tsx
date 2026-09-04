@@ -174,7 +174,11 @@ export function KpiStrip({ gid }: Props) {
   ]
 
   return (
-    <div className="flex shrink-0 border-b border-[#252538] bg-[#0d0d14]" role="region" aria-label="World KPIs">
+    <div
+      className="flex shrink-0 border-b border-border bg-[hsl(var(--color-background)/0.5)]"
+      role="region"
+      aria-label="World KPIs"
+    >
       {tiles.map((tile) => (
         <button
           key={tile.key}
@@ -182,17 +186,17 @@ export function KpiStrip({ gid }: Props) {
           onClick={() => emitClick('ui:ontology:kpi-click', { kpi: tile.key })}
           className={cn(
             'flex flex-1 flex-col px-3 py-2 text-left',
-            'border-r border-[#252538] last:border-r-0',
-            'hover:bg-[#161622] transition-colors',
+            'border-r border-border last:border-r-0',
+            'hover:bg-card transition-colors',
             tile.wide && 'min-w-0',
           )}
         >
-          <span className="text-[10px] uppercase tracking-wider text-slate-500">{tile.label}</span>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{tile.label}</span>
           <span
             className={cn(
-              'mt-0.5 font-mono text-sm text-slate-100',
+              'mt-0.5 font-mono text-sm text-font',
               tile.wide && 'truncate text-xs',
-              tile.danger && 'text-red-400',
+              tile.danger && 'text-[hsl(var(--color-destructive))]',
             )}
             title={tile.wide ? String(tile.value) : undefined}
           >

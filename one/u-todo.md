@@ -91,7 +91,7 @@ status: DONE
 | [dictionary.md](dictionary.md) | canonical names — `ui:u:*`, `substrate:u:*` |
 | [rubrics.md](rubrics.md) | fit/form/truth/taste scoring for W4 |
 | [u.md](u.md) | the verification plan this TODO operationalizes |
-| [auth.md](auth.md) | session + API-key identity (vault is separate from session) |
+| [auth.md](one-ie/dev.one.ie/one/auth.md) | session + API-key identity (vault is separate from session) |
 | [pay.md](pay.md) | `/u/send` emits `substrate:pay` — same contract as the other rails |
 | [SUI.md](SUI.md) | agent wallets (for contrast — `/u` is the human counterpart) |
 | [adl-integration.md](adl-integration.md) | 3 PEP gates on outbound routes from `/u` |
@@ -470,7 +470,7 @@ tags: [u, wallet, vault, passkey, webauthn, harden, verify, test]
 ## See also
 
 - [u.md](u.md) — the verification plan this TODO operationalizes
-- [auth.md](auth.md) — session + API-key identity (separate from vault)
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — session + API-key identity (separate from vault)
 - [pay.md](pay.md) — `/u/send` is the crypto-rail buyer UI
 - [SUI.md](SUI.md) — deterministic agent wallets (`/u` is the human counterpart)
 - [zklogin.md](zklogin.md) — OAuth → Sui address, the optional sibling front door; not a `/u` dependency

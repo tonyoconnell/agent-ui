@@ -93,11 +93,13 @@ cycles: {N}                                # 🔒 how many W1-W4 cycles
 route_hints:                               # 🔒 tags, never names
   primary: [tag, tag, tag]
   secondary: [tag, tag]
-rubric_weights:                            # 🔒 sums to 1.0, tilts W4
-  fit: 0.30
-  form: 0.20
-  truth: 0.35
-  taste: 0.15
+rubric: code                               # 🔒 'code' (default) or 'msg' — picks W4 dim set
+                                           #   code: security 0.35, stability 0.30, simplicity 0.25, speed 0.10
+                                           #   msg:  fit 0.35, form 0.20, truth 0.30, taste 0.15
+rubric_weights:                            # optional — override default weights for this rubric kind
+                                           # (must use the kind's dim names; sum must = 1.0)
+                                           # omit unless the plan genuinely needs to retilt W4
+  # security: 0.40   # example: a security-critical plan retilting toward security
 split_tests:                               # optional — explicit variance points
   - cycle: {N}
     wave: {W3|W2}
@@ -110,12 +112,18 @@ downstream:                                # 🔒 emergent capability
   capability: {skill-id}
   price: {0.00 or null if not sellable}
   scope: {private | group | public}
-source_of_truth:                           # 🔒 docs W2 auto-loads
+source_of_truth:                           # 🔒 docs W2 auto-loads always
   - one/dictionary.md
   - one/task.md
   - one/patterns.md
   - one/rubrics.md
   - {additional plan-specific docs}
+context_triggers:                          # optional — W2 pulls these only when W1 matches
+  - pattern: "signal\\(|emit\\(|receiver:"
+    inject: one/signals.md
+  - pattern: "\\.tql|@/engine|isa path"
+    inject: src/schema/one.tql
+  # add plan-specific triggers; default triggers always run even without this field
 mode: lean | full | mixed                  # 🔒 decided by §0 classifier
 lifecycle: discovery|construction|evolution|maintenance|retirement  # 🔒
 show: true | false                         # 🔒 if true, /do --auto renders cycle frames
@@ -135,7 +143,8 @@ status: PLAN                               # 🔒 PLAN → SYNCED → RUNNING �
 
 > **Mode-dependent fields:** `cycles`, `rubric_weights`, `split_tests`, and §5-§14
 > below apply only when `mode: full`. Lean plans omit them and embed the 5-section
-> body in their owning spec doc (see §0).
+> body in their owning spec doc (see §0). `rubric` (the kind selector) is
+> still required for lean plans so W4 knows which dim set to score.
 ```
 
 ---

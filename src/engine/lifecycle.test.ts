@@ -13,7 +13,7 @@
  *   2. Self-Learning   — the flywheel: chains reinforce, select() biases
  *   3. Wave Pattern    — context accumulates through .then() chains
  *
- * Note on ask(): ask() resolves when a unit explicitly emits a reply to
+ * Note on ask(): ask() resolves when a actor explicitly emits a reply to
  * the replyTo address. Simple fire-and-forget handlers don't auto-reply.
  * Tests verify signal delivery via w.sense(), not ask() result values.
  *
@@ -37,7 +37,7 @@ describe('Agent Lifecycle: register → signal → highway', () => {
     w = world()
   })
 
-  it('register: add() makes the unit reachable', () => {
+  it('register: add() makes the actor reachable', () => {
     expect(w.has('scout')).toBe(false)
 
     w.add('scout')
@@ -56,14 +56,14 @@ describe('Agent Lifecycle: register → signal → highway', () => {
     expect(scout.list()).toContain('observe')
   })
 
-  it('signal to missing unit dissolves — no path, no cost', async () => {
-    // ask() immediately returns dissolved when unit does not exist
+  it('signal to missing actor dissolves — no path, no cost', async () => {
+    // ask() immediately returns dissolved when actor does not exist
     const outcome = await w.ask({ receiver: 'ghost:observe', data: {} })
     expect(outcome.dissolved).toBe(true)
     expect(w.sense('entry→ghost:observe')).toBe(0)
   })
 
-  it('signal delivery: path is marked when a unit receives a signal', () => {
+  it('signal delivery: path is marked when a actor receives a signal', () => {
     // Handler called flag
     let called = false
     w.add('scout').on('observe', () => {
@@ -161,7 +161,7 @@ describe('Agent Lifecycle: register → signal → highway', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 2: SELF-LEARNING — THE FLYWHEEL
 //
-// A 3-unit chain. 100 signals through all three. All edges become highways.
+// A 3-actor chain. 100 signals through all three. All edges become highways.
 // select() learns to bias toward the proven path. Fade humbles strength
 // but highways survive. New paths can overtake incumbents after long fade.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -173,7 +173,7 @@ describe('Self-Learning: the flywheel', () => {
     w = world()
   })
 
-  it('3-unit chain: all edges become highways after 100 signals', async () => {
+  it('3-actor chain: all edges become highways after 100 signals', async () => {
     // Build the chain: scout → analyst → reporter
     const scout = w.add('scout')
     const analyst = w.add('analyst')

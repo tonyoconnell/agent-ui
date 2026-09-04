@@ -1,8 +1,8 @@
 /**
- * POST /api/signup — Register a new unit (name reservation)
+ * POST /api/signup — Register a new actor (name reservation)
  *
  * Body: { name: string, unitKind: "human" | "agent" | "llm", wallet?: string }
- * Creates unit in TypeDB with initial stats.
+ * Creates actor in TypeDB with initial stats.
  */
 import type { APIRoute } from 'astro'
 import { write } from '@/lib/typedb'
@@ -35,10 +35,10 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     await write(`
       insert
-        $u isa unit,
-          has uid "${uid}",
+        $u isa actor,
+          has aid "${uid}",
           has name "${safeName}",
-          has unit-kind "${unitKind}",
+          has actor-type "${unitKind}",
           ${walletClause}
           has status "active",
           has balance 0.0,

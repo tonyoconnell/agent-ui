@@ -171,15 +171,15 @@ export function TestnetTokensPage() {
         <div className="text-center mb-12 sm:mb-16">
           {/* Animated background */}
           <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-            <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute -top-40 -right-40 w-96 h-96 bg-[hsl(var(--color-primary-bright)/0.1)] rounded-full blur-3xl animate-pulse" />
             <div
-              className="absolute -bottom-40 -left-40 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"
+              className="absolute -bottom-40 -left-40 w-96 h-96 bg-[hsl(var(--color-primary-bright)/0.1)] rounded-full blur-3xl animate-pulse"
               style={{ animationDelay: '1s' }}
             />
           </div>
 
           {/* Main Icon */}
-          <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 mb-6 shadow-2xl">
+          <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-[hsl(var(--color-primary-bright)/0.2)] to-[hsl(var(--color-primary-bright)/0.2)] mb-6 shadow-2xl">
             <span className="text-5xl sm:text-6xl">💧</span>
           </div>
 
@@ -196,7 +196,7 @@ export function TestnetTokensPage() {
 
           {/* Badge */}
           <div className="mt-8 flex justify-center">
-            <Badge className="bg-blue-600/20 text-blue-600 border-blue-600/30 text-base px-4 py-2">
+            <Badge className="bg-[hsl(var(--color-primary-bright)/0.2)] text-[hsl(var(--color-primary-bright))] border-[hsl(var(--color-primary-bright)/0.3)] text-base px-4 py-2">
               <span className="inline-block mr-2">🧪</span>
               Development & Testing
             </Badge>
@@ -204,7 +204,7 @@ export function TestnetTokensPage() {
         </div>
 
         {/* Quick Info Card */}
-        <Card className="mb-8 sm:mb-12 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
+        <Card className="mb-8 sm:mb-12 bg-gradient-to-br from-[hsl(var(--color-primary-bright)/0.1)] to-[hsl(var(--color-primary-bright)/0.1)] border-[hsl(var(--color-primary-bright)/0.2)]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <span className="text-2xl">📖</span>
@@ -361,7 +361,7 @@ export function TestnetTokensPage() {
         </div>
 
         {/* Tips Section */}
-        <Card className="mt-8 sm:mt-12 bg-amber-500/5 border-amber-500/20">
+        <Card className="mt-8 sm:mt-12 bg-[hsl(var(--color-gold)/0.05)] border-[hsl(var(--color-gold)/0.2)]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <span className="text-2xl">💡</span>
@@ -371,31 +371,31 @@ export function TestnetTokensPage() {
           <CardContent>
             <ul className="space-y-3">
               <li className="flex gap-3">
-                <span className="text-amber-600 font-bold">1.</span>
+                <span className="text-[hsl(var(--color-gold))] font-bold">1.</span>
                 <span className="text-sm">
                   <strong>Use testnet networks</strong> - Make sure your wallet is set to the testnet, not mainnet
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="text-amber-600 font-bold">2.</span>
+                <span className="text-[hsl(var(--color-gold))] font-bold">2.</span>
                 <span className="text-sm">
                   <strong>Save your requests</strong> - Most faucets have rate limits (1 request per day/week)
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="text-amber-600 font-bold">3.</span>
+                <span className="text-[hsl(var(--color-gold))] font-bold">3.</span>
                 <span className="text-sm">
                   <strong>No real value</strong> - Testnet tokens have zero value and reset periodically
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="text-amber-600 font-bold">4.</span>
+                <span className="text-[hsl(var(--color-gold))] font-bold">4.</span>
                 <span className="text-sm">
                   <strong>Different from mainnet</strong> - Testnet is a separate network with different addresses
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="text-amber-600 font-bold">5.</span>
+                <span className="text-[hsl(var(--color-gold))] font-bold">5.</span>
                 <span className="text-sm">
                   <strong>For testing only</strong> - Never use mainnet addresses or keys on testnet faucets
                 </span>
@@ -405,7 +405,7 @@ export function TestnetTokensPage() {
         </Card>
 
         {/* Common Networks Card */}
-        <Card className="mt-8 sm:mt-12 bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200 dark:from-slate-900/50 dark:to-slate-800/50 dark:border-slate-700">
+        <Card className="mt-8 sm:mt-12 bg-gradient-to-br from-muted to-muted border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <span className="text-2xl">📡</span>

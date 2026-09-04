@@ -2,7 +2,7 @@
  * Sui Client — Ephemeral keypairs, capability-based signing, object reads
  *
  * Agents use ephemeral Ed25519 keypairs per Worker session (generated in RAM, never stored).
- * Chairman mints a Capability granting the ephemeral address authority over the agent's Unit.
+ * Chairman mints a Capability granting the ephemeral address authority over the agent's Actor.
  * No platform seed. No persistent private keys. Agent authority = Capability object.
  *
  * Flow:
@@ -85,8 +85,8 @@ export async function signAndExecute(
 // ���═══════════════════════════════════════════════���══════════════════════════
 
 /**
- * Create a Unit on-chain. The agent derives its keypair, signs the tx itself.
- * The Unit object is owned by the agent's Sui address. Self-sovereign.
+ * Create a Actor on-chain. The agent derives its keypair, signs the tx itself.
+ * The Actor object is owned by the agent's Sui address. Self-sovereign.
  *
  * Returns: { address, objectId, digest }
  */
@@ -105,17 +105,17 @@ export async function createUnit(
   }
 
   const tx = new Transaction()
-  const unit = tx.moveCall({
+  const actor = tx.moveCall({
     target: `${PACKAGE_ID}::substrate::create_unit`,
     arguments: [tx.pure.string(name), tx.pure.string(unitType)],
   })
 
-  // Transfer the Unit object to the agent's own address
-  tx.transferObjects([unit], address)
+  // Transfer the Actor object to the agent's own address
+  tx.transferObjects([actor], address)
 
   const result = await signAndExecute(tx, keypair)
 
-  // Extract the created Unit object ID from effects
+  // Extract the created Actor object ID from effects
   const created = (result.effects as any)?.created || []
   const unitObj = created.find((o: any) => o.owner?.AddressOwner === address)
   const objectId = unitObj?.reference?.objectId || ''
@@ -187,7 +187,7 @@ export async function getOwnedUnits(address: string) {
   const client = getClient()
   return client.getOwnedObjects({
     owner: address,
-    filter: { StructType: `${PACKAGE_ID}::substrate::Unit` },
+    filter: { StructType: `${PACKAGE_ID}::substrate::Actor` },
     options: { showContent: true },
   })
 }
@@ -232,7 +232,7 @@ export async function warn(
  * Send a signal on-chain. Creates an owned Signal object and transfers it
  * to the receiver's Sui address. The signal is a physical object that moves.
  *
- * Requires: sender's Unit object ID, receiver's Unit object ID + owner address.
+ * Requires: sender's Actor object ID, receiver's Actor object ID + owner address.
  */
 export async function send(
   keypair: Ed25519Keypair,
@@ -298,7 +298,7 @@ export async function consume(
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Direct payment between units. Marks the path. Collects protocol fee.
+ * Direct payment between actors. Marks the path. Collects protocol fee.
  * Revenue IS weight — same atomic transaction.
  */
 export async function pay(
@@ -328,7 +328,7 @@ export async function pay(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CREATE PATH — Shared object between two units
+// CREATE PATH — Shared object between two actors
 // ═══════════════════════════════════════════════════════════════════════════
 
 export async function createPath(
@@ -395,8 +395,8 @@ export async function harden(
  * Poster locks amount, worker claims on completion before deadline.
  *
  * Args:
- *   posterUnitId    — Sui object ID of poster's Unit
- *   workerId        — Sui ID of worker (dest unit)
+ *   posterUnitId    — Sui object ID of poster's Actor
+ *   workerId        — Sui ID of worker (dest actor)
  *   taskName        — human task name (e.g., "research")
  *   amountMist      — amount in MIST (1 SUI = 1e9 MIST)
  *   deadlineMs      — absolute deadline in milliseconds
@@ -421,7 +421,7 @@ export function createEscrowTx(
   tx.moveCall({
     target: `${PACKAGE_ID}::substrate::create_escrow`,
     arguments: [
-      tx.object(posterUnitId), // &mut Unit poster
+      tx.object(posterUnitId), // &mut Actor poster
       tx.pure.id(workerId), // worker_id: ID
       tx.pure.string(taskName), // task_name: String
       tx.pure.u64(amountMist), // amount: u64
@@ -444,7 +444,7 @@ export function createEscrowTx(
  *
  * Args:
  *   escrowId      — Sui object ID of Escrow shared object
- *   workerUnitId  — Sui object ID of worker's Unit
+ *   workerUnitId  — Sui object ID of worker's Actor
  *   pathId        — Sui object ID of the path to mark
  *
  * Returns: Transaction object, unsigned.
@@ -458,7 +458,7 @@ export function releaseEscrowTx(escrowId: string, workerUnitId: string, pathId: 
     target: `${PACKAGE_ID}::substrate::release_escrow`,
     arguments: [
       tx.object(escrowId), // escrow: Escrow (mutable shared object)
-      tx.object(workerUnitId), // &mut Unit worker
+      tx.object(workerUnitId), // &mut Actor worker
       tx.object(pathId), // &mut Path path
       tx.object(PROTOCOL_ID), // &mut Protocol protocol
       tx.object('0x6'), // &Clock (shared object)
@@ -478,7 +478,7 @@ export function releaseEscrowTx(escrowId: string, workerUnitId: string, pathId: 
  *
  * Args:
  *   escrowId      — Sui object ID of Escrow shared object
- *   posterUnitId  — Sui object ID of poster's Unit
+ *   posterUnitId  — Sui object ID of poster's Actor
  *   pathId        — Sui object ID of the path to warn
  *
  * Returns: Transaction object, unsigned.
@@ -491,7 +491,7 @@ export function cancelEscrowTx(escrowId: string, posterUnitId: string, pathId: s
     target: `${PACKAGE_ID}::substrate::cancel_escrow`,
     arguments: [
       tx.object(escrowId), // escrow: Escrow (mutable shared object)
-      tx.object(posterUnitId), // &mut Unit poster
+      tx.object(posterUnitId), // &mut Actor poster
       tx.object(pathId), // &mut Path path
       tx.object('0x6'), // &Clock (shared object)
     ],
@@ -579,14 +579,14 @@ export async function viewEscrow(escrowObjectId: string): Promise<EscrowView | n
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Look up a unit's Sui wallet and object ID from TypeDB.
- * Returns null if unit doesn't exist or has no wallet.
+ * Look up a actor's Sui wallet and object ID from TypeDB.
+ * Returns null if actor doesn't exist or has no wallet.
  */
 export async function resolveUnit(uid: string): Promise<{ wallet: string; objectId: string } | null> {
   // Import dynamically to avoid circular dependency
   const { readParsed } = await import('@/lib/typedb')
   const rows = await readParsed(`
-    match $u isa unit, has uid "${uid}", has wallet $w;
+    match $u isa actor, has aid "${uid}", has wallet $w;
     select $w;
   `).catch(() => [])
 
@@ -600,7 +600,7 @@ export async function resolveUnit(uid: string): Promise<{ wallet: string; object
 
 /**
  * Build TX to mint a Capability for an agent's ephemeral address.
- * Caller must be the unit's owner (chairman). Signed with chairman's keypair.
+ * Caller must be the actor's owner (chairman). Signed with chairman's keypair.
  *
  * scope: "mark" | "warn" | "pay" | "all"
  * amountCap: max per-op amount in MIST (0 = unlimited)

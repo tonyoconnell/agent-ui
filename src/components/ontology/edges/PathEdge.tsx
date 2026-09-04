@@ -28,7 +28,11 @@ export function PathEdge({
 
   const strokeWidth = Math.min(8, Math.max(1, Math.log(strength + 1) * 2))
   const isToxic = resistance > strength * 2 && resistance >= 10
-  const stroke = isToxic ? '#ef4444' : resistance > strength ? '#fb923c' : '#f59e0b'
+  const stroke = isToxic
+    ? 'hsl(var(--color-destructive))'
+    : resistance > strength
+      ? 'hsl(var(--color-gold))'
+      : 'hsl(var(--color-gold))'
 
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -74,7 +78,7 @@ export function PathEdge({
       {dots.length > 0 && (
         <g pointerEvents="none">
           {dots.map(({ key, begin }) => (
-            <circle key={key} r={4} fill="#fbbf24">
+            <circle key={key} r={4} fill="hsl(var(--color-gold))">
               <animateMotion dur="2s" repeatCount="indefinite" begin={begin}>
                 <mpath href={`#${id}`} />
               </animateMotion>
@@ -93,9 +97,9 @@ export function PathEdge({
               pointerEvents: 'all',
               fontFamily: 'monospace',
               fontSize: 10,
-              color: '#94a3b8', // slate-400
-              background: '#161622',
-              border: '1px solid #252538',
+              color: 'hsl(var(--color-muted-foreground))',
+              background: 'hsl(var(--color-card))',
+              border: '1px solid hsl(var(--color-border))',
               borderRadius: 4,
               padding: '1px 4px',
               whiteSpace: 'nowrap',

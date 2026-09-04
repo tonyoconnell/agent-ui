@@ -5,7 +5,7 @@
  *
  * Flow:
  *   1. Validate input: amount > 0, deadline > now, objects exist
- *   2. Resolve poster's Unit object ID from TypeDB
+ *   2. Resolve poster's Actor object ID from TypeDB
  *   3. Call createEscrow(posterUid, posterUnitId, workerId, taskName, amountMist, deadlineMs, pathId)
  *   4. signAndExecute with poster's derived keypair
  *   5. Return { escrowId, deadline, tx_digest, status }
@@ -68,11 +68,11 @@ export const POST: APIRoute = async ({ request }) => {
       )
     }
 
-    // Resolve poster's Unit object ID from TypeDB
+    // Resolve poster's Actor object ID from TypeDB
     let posterUnitObjectId: string | null = null
     try {
       const posterUnits = await readParsed(`
-        match $u isa unit, has uid "${posterUid}", has sui-unit-id $suid;
+        match $u isa actor, has aid "${posterUid}", has sui-unit-id $suid;
         select $suid;
       `)
       if (posterUnits.length > 0) {
@@ -88,7 +88,7 @@ export const POST: APIRoute = async ({ request }) => {
       if (!posterUnit?.objectId) {
         return new Response(
           JSON.stringify({
-            error: `Poster unit not found: ${posterUid}`,
+            error: `Poster actor not found: ${posterUid}`,
             code: 'unit_not_found',
           }),
           { status: 400, headers: { 'Content-Type': 'application/json' } },

@@ -39,13 +39,13 @@ export const GET: APIRoute = async ({ url }) => {
     // ────────────────────────────────────────────────────────────────────
 
     const net = createWorld()
-    net.add('unit-0')
-    net.add('unit-1')
+    net.add('actor-0')
+    net.add('actor-1')
 
     results.pheromone_mark = await benchmark(
       'pheromone_mark',
       () => {
-        net.mark('unit-0→unit-1', 1)
+        net.mark('actor-0→actor-1', 1)
       },
       1000,
     )
@@ -57,7 +57,7 @@ export const GET: APIRoute = async ({ url }) => {
     results.pheromone_warn = await benchmark(
       'pheromone_warn',
       () => {
-        net.warn('unit-0→unit-1', 0.5)
+        net.warn('actor-0→actor-1', 0.5)
       },
       1000,
     )
@@ -68,9 +68,9 @@ export const GET: APIRoute = async ({ url }) => {
 
     // Seed with paths
     for (let i = 0; i < 100; i++) {
-      net.add(`unit-${i}`)
+      net.add(`actor-${i}`)
       if (i > 0) {
-        net.mark(`unit-${i - 1}→unit-${i}`, Math.random() * 50)
+        net.mark(`actor-${i - 1}→actor-${i}`, Math.random() * 50)
       }
     }
 
@@ -113,7 +113,7 @@ export const GET: APIRoute = async ({ url }) => {
       u.then('task', (result) => ({ receiver: `chain-${i + 1}:task`, data: result }))
     }
 
-    // Final unit
+    // Final actor
     const final = net3.add('chain-5')
     final.on('task', async (data) => {
       return { final: true, depth: (data as any).depth }

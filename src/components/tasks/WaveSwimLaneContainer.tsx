@@ -29,17 +29,17 @@ export function WaveSwimLaneContainer({ tasks, onMove, onSelect }: Props) {
         const laneTasks = byWave.get(wave.key) ?? []
         const collapsed = laneTasks.length === 0 && wave.key !== 'unwaved'
         return (
-          <section key={wave.key} className="rounded-lg border border-[#252538] bg-[#0f0f18]">
+          <section key={wave.key} className="rounded-lg border border-border bg-card">
             <header
               className="flex items-center justify-between px-4 py-2"
               style={{ borderBottom: collapsed ? 'none' : `1px solid ${wave.color}22` }}
             >
               <div className="flex items-center gap-3">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: wave.color }} />
-                <h3 className="text-sm font-medium text-slate-100">{wave.label}</h3>
-                <span className="text-xs text-slate-400">{wave.hint}</span>
+                <h3 className="text-sm font-medium text-foreground">{wave.label}</h3>
+                <span className="text-xs text-muted-foreground">{wave.hint}</span>
               </div>
-              <span className="text-xs font-mono text-slate-400">{laneTasks.length}</span>
+              <span className="text-xs font-mono text-muted-foreground">{laneTasks.length}</span>
             </header>
             {!collapsed && (
               <div className="p-3">

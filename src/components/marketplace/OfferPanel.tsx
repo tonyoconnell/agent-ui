@@ -73,17 +73,17 @@ export function OfferPanel({ service, onClose, onOffer }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-label="Offer panel">
       <button type="button" className="flex-1 bg-black/60" onClick={handleClose} aria-label="Close offer panel" />
-      <div className="w-full max-w-md bg-[#161622] border-l border-[#252538] p-6 flex flex-col gap-4 overflow-y-auto">
+      <div className="w-full max-w-md bg-card border-l border-border p-6 flex flex-col gap-4 overflow-y-auto">
         <div className="flex justify-between items-start">
           <div>
-            <div className="text-[10px] font-mono tracking-widest text-slate-500">OFFER</div>
-            <div className="text-lg text-white mt-1">{service.task}</div>
-            <div className="text-sm text-slate-400 mt-0.5">{service.provider}</div>
+            <div className="text-[10px] font-mono tracking-widest text-muted-foreground">OFFER</div>
+            <div className="text-lg text-foreground mt-1">{service.task}</div>
+            <div className="text-sm text-muted-foreground mt-0.5">{service.provider}</div>
           </div>
           <button
             type="button"
             onClick={handleClose}
-            className="text-slate-500 hover:text-slate-300 text-xl leading-none"
+            className="text-muted-foreground hover:text-foreground text-xl leading-none"
             aria-label="Close"
           >
             ×
@@ -92,30 +92,30 @@ export function OfferPanel({ service, onClose, onOffer }: Props) {
 
         <dl className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <dt className="text-[10px] font-mono tracking-widest text-slate-500">PRICE</dt>
-            <dd className="text-white font-mono mt-0.5">${service.price.toFixed(2)}</dd>
+            <dt className="text-[10px] font-mono tracking-widest text-muted-foreground">PRICE</dt>
+            <dd className="text-foreground font-mono mt-0.5">${service.price.toFixed(2)}</dd>
           </div>
           <div>
-            <dt className="text-[10px] font-mono tracking-widest text-slate-500">Path strength</dt>
-            <dd className="text-white font-mono mt-0.5">{service.strength.toFixed(2)}</dd>
+            <dt className="text-[10px] font-mono tracking-widest text-muted-foreground">Path strength</dt>
+            <dd className="text-foreground font-mono mt-0.5">{service.strength.toFixed(2)}</dd>
           </div>
           <div>
-            <dt className="text-[10px] font-mono tracking-widest text-slate-500">Revenue (30d)</dt>
-            <dd className="text-white font-mono mt-0.5">${service.revenue.toFixed(2)}</dd>
+            <dt className="text-[10px] font-mono tracking-widest text-muted-foreground">Revenue (30d)</dt>
+            <dd className="text-foreground font-mono mt-0.5">${service.revenue.toFixed(2)}</dd>
           </div>
           <div>
-            <dt className="text-[10px] font-mono tracking-widest text-slate-500">Times used</dt>
-            <dd className="text-white font-mono mt-0.5">{service.calls}</dd>
+            <dt className="text-[10px] font-mono tracking-widest text-muted-foreground">Times used</dt>
+            <dd className="text-foreground font-mono mt-0.5">{service.calls}</dd>
           </div>
           {service.successRate !== undefined && service.successRate > 0 && (
             <div>
-              <dt className="text-[10px] font-mono tracking-widest text-slate-500">Success rate</dt>
-              <dd className="text-white font-mono mt-0.5">{(service.successRate * 100).toFixed(0)}%</dd>
+              <dt className="text-[10px] font-mono tracking-widest text-muted-foreground">Success rate</dt>
+              <dd className="text-foreground font-mono mt-0.5">{(service.successRate * 100).toFixed(0)}%</dd>
             </div>
           )}
         </dl>
 
-        <div className="h-px bg-[#252538] my-2" />
+        <div className="h-px bg-border my-2" />
 
         <div aria-live="polite">
           <button
@@ -123,7 +123,7 @@ export function OfferPanel({ service, onClose, onOffer }: Props) {
             onClick={handleOffer}
             disabled={isPending || optimisticPhase === 'offered'}
             aria-label={`Send offer of $${service.price.toFixed(2)} to ${service.provider}`}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded text-sm font-medium"
+            className="px-4 py-2 bg-[hsl(var(--color-secondary-bright))] hover:bg-[hsl(var(--color-secondary-mid))] disabled:opacity-50 text-white rounded text-sm font-medium"
           >
             {label}
           </button>

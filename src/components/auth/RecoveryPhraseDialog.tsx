@@ -33,28 +33,28 @@ export function RecoveryPhraseDialog({ phrase, onConfirm }: Props) {
 
   return (
     <Dialog open onOpenChange={() => {}}>
-      <DialogContent className="max-w-md border-zinc-800 bg-[#0a0a0f] p-6 text-white">
+      <DialogContent className="max-w-md border-border bg-background p-6 text-font">
         <DialogTitle className="sr-only">Your recovery phrase</DialogTitle>
         <DialogDescription className="sr-only">
           Save these 24 words. They restore your wallets if you lose this device and your passkey isn't synced.
         </DialogDescription>
         <div className="space-y-4">
           <div>
-            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-300">
-              <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-[hsl(var(--color-gold)/0.3)] bg-[hsl(var(--color-gold)/0.1)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-gold">
+              <span className="size-1.5 rounded-full bg-gold animate-pulse" />
               Write this down
             </div>
-            <h2 className="text-2xl font-semibold tracking-tight text-white">Your recovery phrase</h2>
-            <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+            <h2 className="text-2xl font-semibold tracking-tight text-font">Your recovery phrase</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               The only way to restore your wallets if you lose this device <strong>and</strong> your passkey isn't
               synced. ONE cannot recover it for you. Keep it somewhere safe and offline.
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 font-mono text-xs text-amber-100 sm:grid-cols-4">
+          <div className="grid grid-cols-3 gap-2 rounded-lg border border-[hsl(var(--color-gold)/0.2)] bg-[hsl(var(--color-gold)/0.05)] p-3 font-mono text-xs text-gold/80 sm:grid-cols-4">
             {words.map((w, i) => (
               <div key={`${i}-${w}`} className="flex items-baseline gap-1.5">
-                <span className="w-5 text-right tabular-nums text-zinc-600">{i + 1}</span>
+                <span className="w-5 text-right tabular-nums text-muted-foreground/60">{i + 1}</span>
                 <span>{w}</span>
               </div>
             ))}
@@ -63,12 +63,12 @@ export function RecoveryPhraseDialog({ phrase, onConfirm }: Props) {
           <button
             type="button"
             onClick={handleCopy}
-            className="w-full rounded-md border border-white/10 bg-white/[0.03] py-2 text-xs font-medium text-slate-200 hover:bg-white/[0.06] transition-colors"
+            className="w-full rounded-md border border-border bg-card/30 py-2 text-xs font-medium text-foreground hover:bg-card/50 transition-colors"
           >
             {copied ? 'Copied ✓' : 'Copy to clipboard'}
           </button>
 
-          <label className="flex items-start gap-2 text-xs text-zinc-400">
+          <label className="flex items-start gap-2 text-xs text-muted-foreground">
             <input
               type="checkbox"
               checked={acknowledged}
@@ -82,7 +82,7 @@ export function RecoveryPhraseDialog({ phrase, onConfirm }: Props) {
             type="button"
             onClick={onConfirm}
             disabled={!acknowledged}
-            className="h-11 w-full bg-white text-sm font-semibold text-black hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-11 w-full bg-font text-sm font-semibold text-background hover:bg-foreground disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Continue
             <span aria-hidden="true">→</span>

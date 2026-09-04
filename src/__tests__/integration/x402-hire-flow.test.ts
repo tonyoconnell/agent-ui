@@ -23,10 +23,10 @@ describe('x402 Hire Flow — 402 Payment Required', () => {
     // Bootstrap: create units, skill, capability
     try {
       await writeSilent(`
-        insert $b isa unit, has uid "${buyerUid}", has sui-unit-id "0xbuyer";
-        insert $p isa unit, has uid "${providerUid}", has sui-unit-id "0xprovider";
+        insert $b isa actor, has aid "${buyerUid}", has sui-unit-id "0xbuyer";
+        insert $p isa actor, has aid "${providerUid}", has sui-unit-id "0xprovider";
         insert $s isa skill, has skill-id "${skillId}", has name "Research", has price 0.05;
-        match $b isa unit, has uid "${buyerUid}"; $p isa unit, has uid "${providerUid}"; $s isa skill, has skill-id "${skillId}";
+        match $b isa actor, has aid "${buyerUid}"; $p isa actor, has aid "${providerUid}"; $s isa skill, has skill-id "${skillId}";
         insert (provider: $p, offered: $s) isa capability, has price 0.05;
       `)
     } catch (e) {

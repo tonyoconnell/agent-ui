@@ -261,7 +261,7 @@ export function LifecycleSpeedrun() {
               buyer: { ...(buyerDetail ?? {}), objectId: buyerOnChain?.objectId ?? 'rate-limited' },
               onChain:
                 sellerOnChain?.ok && buyerOnChain?.ok
-                  ? 'both units minted on Sui testnet'
+                  ? 'both actors minted on Sui testnet'
                   : 'on-chain mint rate-limited — TypeDB addresses are still real and verifiable',
             },
           },
@@ -305,7 +305,7 @@ export function LifecycleSpeedrun() {
       price: `${price} SUI`,
       tags: ['sell', 'test', tag],
       endpoint: 'POST /api/signal + POST /api/subscribe',
-      sui: lSig?.sui ?? 'pending (no on-chain unit yet)',
+      sui: lSig?.sui ?? 'pending (no on-chain actor yet)',
     })
     up()
 
@@ -483,14 +483,18 @@ export function LifecycleSpeedrun() {
     <div className="space-y-6">
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={run} disabled={running} className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-medium">
+        <Button
+          onClick={run}
+          disabled={running}
+          className="bg-primary-bright hover:bg-primary-bright/80 text-black font-medium"
+        >
           {running ? 'Running…' : 'Start speedrun'}
         </Button>
-        <Badge variant="outline" className="font-mono text-cyan-300 border-cyan-900/60">
+        <Badge variant="outline" className="font-mono text-primary-bright border-primary/40">
           total: {formatMs(totalMs)}
         </Badge>
         {activeStage && running && (
-          <Badge variant="outline" className="font-mono text-amber-300 border-amber-900/60 animate-pulse">
+          <Badge variant="outline" className="font-mono text-gold border-gold/40 animate-pulse">
             {activeStage}
           </Badge>
         )}
@@ -499,7 +503,7 @@ export function LifecycleSpeedrun() {
             variant="outline"
             size="sm"
             onClick={() => setVerifyOpen(true)}
-            className="text-violet-400 border-violet-800 hover:bg-violet-900/30"
+            className="text-secondary-bright border-secondary hover:bg-secondary/10"
           >
             Verify on chain
           </Button>
@@ -519,12 +523,12 @@ export function LifecycleSpeedrun() {
                 className={cn(
                   'px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider font-medium transition-all',
                   err
-                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    ? 'bg-destructive/20 text-destructive border border-destructive/40'
                     : done
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      ? 'bg-tertiary-bright/20 text-tertiary-bright border border-tertiary-bright/40'
                       : active
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
-                        : 'bg-slate-800/50 text-slate-500 border border-slate-700/40',
+                        ? 'bg-gold/20 text-gold border border-gold/40 animate-pulse'
+                        : 'bg-muted text-muted-foreground border border-muted/40',
                 )}
               >
                 {s.label}
@@ -535,28 +539,28 @@ export function LifecycleSpeedrun() {
       )}
 
       {/* Single lane */}
-      <Card className="bg-[#111118] border-slate-800 p-5">
+      <Card className="bg-card border-border p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span
               className={cn(
                 'inline-block w-2 h-2 rounded-full',
                 status === 'done'
-                  ? 'bg-emerald-400'
+                  ? 'bg-tertiary-bright'
                   : status === 'error'
-                    ? 'bg-rose-400'
+                    ? 'bg-destructive'
                     : status === 'running'
-                      ? 'bg-amber-400 animate-pulse'
-                      : 'bg-slate-600',
+                      ? 'bg-gold animate-pulse'
+                      : 'bg-muted-foreground',
               )}
             />
-            <h2 className="text-lg font-medium text-slate-100">Zero → Seller → Buyer → Advocate</h2>
+            <h2 className="text-lg font-medium text-font">Zero → Seller → Buyer → Advocate</h2>
           </div>
-          <span className="font-mono text-sm text-cyan-400">{formatMs(totalMs)}</span>
+          <span className="font-mono text-sm text-primary-bright">{formatMs(totalMs)}</span>
         </div>
 
         {chain.sellerUid && (
-          <div className="text-xs text-slate-500 font-mono mb-3 truncate">
+          <div className="text-xs text-muted-foreground font-mono mb-3 truncate">
             {chain.sellerUid} (seller) ↔ {chain.buyerUid} (buyer)
           </div>
         )}
@@ -568,26 +572,26 @@ export function LifecycleSpeedrun() {
             const err = stage?.err
             const isExp = expanded[s.key]
             return (
-              <li key={s.key} className="rounded bg-slate-900/40 overflow-hidden">
+              <li key={s.key} className="rounded bg-muted/20 overflow-hidden">
                 <button
                   type="button"
                   onClick={() => stage && setExpanded((prev) => ({ ...prev, [s.key]: !prev[s.key] }))}
-                  className="flex items-center justify-between text-sm px-2 py-1.5 w-full text-left hover:bg-slate-800/40 transition-colors"
+                  className="flex items-center justify-between text-sm px-2 py-1.5 w-full text-left hover:bg-muted/40 transition-colors"
                   disabled={!stage}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-mono text-[10px] text-slate-600 w-4 inline-block">{s.idx}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground w-4 inline-block">{s.idx}</span>
                     <span
-                      className={`font-mono text-xs w-4 inline-block ${err ? 'text-rose-400' : done ? 'text-emerald-400' : 'text-slate-600'}`}
+                      className={`font-mono text-xs w-4 inline-block ${err ? 'text-destructive' : done ? 'text-tertiary-bright' : 'text-muted-foreground'}`}
                     >
                       {err ? '×' : done ? '✓' : '·'}
                     </span>
-                    <span className="text-slate-200 font-medium">{s.label}</span>
-                    <span className="text-slate-500 text-xs truncate hidden sm:inline">{s.hint}</span>
+                    <span className="text-foreground font-medium">{s.label}</span>
+                    <span className="text-muted-foreground text-xs truncate hidden sm:inline">{s.hint}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`font-mono text-xs ${err ? 'text-rose-400' : done ? 'text-slate-300' : 'text-slate-600'}`}
+                      className={`font-mono text-xs ${err ? 'text-destructive' : done ? 'text-foreground' : 'text-muted-foreground'}`}
                     >
                       {err ? 'err' : stage ? formatMs(stage.ms) : '—'}
                     </span>
@@ -595,7 +599,7 @@ export function LifecycleSpeedrun() {
                   </div>
                 </button>
                 {isExp && stage?.detail && (
-                  <div className="px-3 pb-3 pt-1 border-t border-slate-800/60">
+                  <div className="px-3 pb-3 pt-1 border-t border-border/40">
                     <DetailView detail={stage.detail} />
                   </div>
                 )}
@@ -605,7 +609,7 @@ export function LifecycleSpeedrun() {
         </ol>
 
         {Object.values(stages).some((s) => s?.err) && (
-          <div className="mt-3 text-xs text-rose-400/80 font-mono space-y-1">
+          <div className="mt-3 text-xs text-destructive/80 font-mono space-y-1">
             {Object.entries(stages).map(([k, v]) =>
               v?.err ? (
                 <div key={k}>
@@ -638,7 +642,7 @@ function DetailView({ detail }: { detail: Record<string, unknown> }) {
                 href={value}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-violet-400 hover:text-violet-300 underline underline-offset-2"
+                className="text-secondary-bright hover:text-secondary-bright/80 underline underline-offset-2"
               >
                 view on Suiscan →
               </a>
@@ -651,14 +655,14 @@ function DetailView({ detail }: { detail: Record<string, unknown> }) {
           if (typeof value[0] === 'object' && value[0] !== null) {
             return (
               <div key={key}>
-                <span className="text-slate-500">{key}:</span>
+                <span className="text-muted-foreground">{key}:</span>
                 <div className="ml-3 mt-1 space-y-1">
                   {value.map((item, i) => (
-                    <div key={`${key}-${i}`} className="rounded px-2 py-1 border bg-cyan-500/10 border-cyan-500/20">
+                    <div key={`${key}-${i}`} className="rounded px-2 py-1 border bg-primary/10 border-primary/20">
                       {Object.entries(item as Record<string, unknown>).map(([k, v]) => (
                         <span key={k} className="mr-3">
-                          <span className="text-slate-500">{k}:</span>{' '}
-                          <span className="text-cyan-400">{String(v)}</span>
+                          <span className="text-muted-foreground">{k}:</span>{' '}
+                          <span className="text-primary-bright">{String(v)}</span>
                         </span>
                       ))}
                     </div>
@@ -669,11 +673,11 @@ function DetailView({ detail }: { detail: Record<string, unknown> }) {
           }
           return (
             <div key={key} className="flex flex-wrap gap-1 items-center">
-              <span className="text-slate-500">{key}:</span>
+              <span className="text-muted-foreground">{key}:</span>
               {value.map((v, i) => (
                 <span
                   key={`${key}-${i}`}
-                  className="px-1.5 py-0.5 rounded border bg-cyan-500/10 border-cyan-500/20 text-cyan-400"
+                  className="px-1.5 py-0.5 rounded border bg-primary/10 border-primary/20 text-primary-bright"
                 >
                   {String(v)}
                 </span>
@@ -685,12 +689,12 @@ function DetailView({ detail }: { detail: Record<string, unknown> }) {
         if (typeof value === 'object') {
           return (
             <div key={key}>
-              <span className="text-slate-500">{key}:</span>
+              <span className="text-muted-foreground">{key}:</span>
               <div className="ml-3 mt-0.5">
                 {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
                   <div key={k}>
-                    <span className="text-slate-500">{k}:</span>{' '}
-                    <span className="text-cyan-400">{JSON.stringify(v)}</span>
+                    <span className="text-muted-foreground">{k}:</span>{' '}
+                    <span className="text-primary-bright">{JSON.stringify(v)}</span>
                   </div>
                 ))}
               </div>
@@ -701,11 +705,11 @@ function DetailView({ detail }: { detail: Record<string, unknown> }) {
         const isSui = key === 'sui' || key === 'address' || key === 'txHash'
         return (
           <div key={key}>
-            <span className="text-slate-500">{key}: </span>
+            <span className="text-muted-foreground">{key}: </span>
             <span
               className={cn(
-                typeof value === 'number' ? 'text-cyan-400' : isSui ? 'text-violet-400' : 'text-slate-300',
-                key === 'endpoint' && 'text-slate-400 italic',
+                typeof value === 'number' ? 'text-primary-bright' : isSui ? 'text-secondary-bright' : 'text-foreground',
+                key === 'endpoint' && 'text-muted-foreground italic',
               )}
             >
               {String(value)}
@@ -766,10 +770,10 @@ function VerifyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#111118] border-slate-800 text-slate-200 max-w-xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border text-foreground max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-slate-100">Chain Verification</DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogTitle className="text-font">Chain Verification</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             {passCount}/{Object.keys(stages).length} stages in {formatMs(totalMs)}. Zero → Seller → Buyer → Advocate.
           </DialogDescription>
         </DialogHeader>
@@ -777,7 +781,7 @@ function VerifyDialog({
         <div className="space-y-4">
           {/* Wallets */}
           <section>
-            <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-2">Wallets (Sui Testnet)</h3>
+            <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Wallets (Sui Testnet)</h3>
             <div className="space-y-2">
               <ChainRow
                 label="Seller"
@@ -798,30 +802,30 @@ function VerifyDialog({
 
           {/* Economics */}
           <section>
-            <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-2">Economics</h3>
+            <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Economics</h3>
             <div className="grid grid-cols-4 gap-2">
-              <div className="text-center rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3">
-                <div className="text-lg font-mono text-emerald-400">{chain.earned}</div>
-                <div className="text-[10px] uppercase tracking-wider text-slate-500">Earned (SUI)</div>
+              <div className="text-center rounded-lg bg-tertiary/10 border border-tertiary/20 p-3">
+                <div className="text-lg font-mono text-tertiary-bright">{chain.earned}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Earned (SUI)</div>
               </div>
-              <div className="text-center rounded-lg bg-rose-500/10 border border-rose-500/20 p-3">
-                <div className="text-lg font-mono text-rose-400">{chain.spent}</div>
-                <div className="text-[10px] uppercase tracking-wider text-slate-500">Spent (SUI)</div>
+              <div className="text-center rounded-lg bg-destructive/10 border border-destructive/20 p-3">
+                <div className="text-lg font-mono text-destructive">{chain.spent}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Spent (SUI)</div>
               </div>
-              <div className="text-center rounded-lg bg-violet-500/10 border border-violet-500/20 p-3">
-                <div className="text-lg font-mono text-violet-400">{(chain.earned - chain.spent).toFixed(4)}</div>
-                <div className="text-[10px] uppercase tracking-wider text-slate-500">Net (SUI)</div>
+              <div className="text-center rounded-lg bg-secondary/10 border border-secondary/20 p-3">
+                <div className="text-lg font-mono text-secondary-bright">{(chain.earned - chain.spent).toFixed(4)}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Net (SUI)</div>
               </div>
-              <div className="text-center rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-3">
-                <div className="text-lg font-mono text-cyan-400">{chain.hardened}</div>
-                <div className="text-[10px] uppercase tracking-wider text-slate-500">Highways</div>
+              <div className="text-center rounded-lg bg-primary/10 border border-primary/20 p-3">
+                <div className="text-lg font-mono text-primary-bright">{chain.hardened}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Highways</div>
               </div>
             </div>
           </section>
 
           {/* Transactions */}
           <section>
-            <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-2">
+            <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
               Transactions ({chain.digests.length || 'pending'})
             </h3>
             {chain.digests.length > 0 ? (
@@ -829,14 +833,14 @@ function VerifyDialog({
                 {chain.digests.map((d) => (
                   <div
                     key={d.digest}
-                    className="flex items-center justify-between text-xs font-mono bg-slate-900/40 rounded px-2 py-1.5"
+                    className="flex items-center justify-between text-xs font-mono bg-muted/20 rounded px-2 py-1.5"
                   >
-                    <span className="text-slate-500 w-16 shrink-0">{d.stage}</span>
+                    <span className="text-muted-foreground w-16 shrink-0">{d.stage}</span>
                     <a
                       href={`${SUISCAN}/tx/${d.digest}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-violet-400 hover:text-violet-300 truncate mx-2"
+                      className="text-secondary-bright hover:text-secondary-bright/80 truncate mx-2"
                     >
                       {d.digest.slice(0, 20)}…
                     </a>
@@ -845,9 +849,9 @@ function VerifyDialog({
                 ))}
               </div>
             ) : (
-              <div className="text-xs text-slate-500 bg-slate-900/40 rounded px-3 py-2">
-                Sui on-chain units not yet created — wallet addresses are real and verifiable. Digests appear once units
-                are mirrored on-chain.
+              <div className="text-xs text-muted-foreground bg-muted/20 rounded px-3 py-2">
+                Sui on-chain actors not yet created — wallet addresses are real and verifiable. Digests appear once
+                actors are mirrored on-chain.
               </div>
             )}
           </section>
@@ -855,12 +859,12 @@ function VerifyDialog({
           {/* Faucet */}
           {chain.funded && chain.sellerAddress && (
             <section>
-              <h3 className="text-xs uppercase tracking-wider text-slate-500 mb-2">Faucet Funding</h3>
+              <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Faucet Funding</h3>
               <a
                 href={`${SUISCAN}/account/${chain.sellerAddress}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block text-xs text-violet-400 hover:text-violet-300 underline underline-offset-2 bg-slate-900/40 rounded px-3 py-2"
+                className="block text-xs text-secondary-bright hover:text-secondary-bright/80 underline underline-offset-2 bg-muted/20 rounded px-3 py-2"
               >
                 View {chain.sellerAddress.slice(0, 12)}… balance on Suiscan →
               </a>
@@ -872,7 +876,7 @@ function VerifyDialog({
           <Button
             variant="outline"
             size="sm"
-            className="text-slate-300 border-slate-700"
+            className="text-foreground border-border"
             onClick={() => copyText(allJson, 'json')}
           >
             {copied === 'json' ? 'Copied!' : 'Copy all as JSON'}
@@ -880,7 +884,7 @@ function VerifyDialog({
           <Button
             variant="outline"
             size="sm"
-            className="text-violet-400 border-violet-800"
+            className="text-secondary-bright border-secondary"
             onClick={() => {
               const blob = new Blob([allJson], { type: 'application/json' })
               const url = URL.createObjectURL(blob)
@@ -913,10 +917,10 @@ function ChainRow({
   onCopy: (text: string, label: string) => void
 }) {
   return (
-    <div className="bg-slate-900/40 rounded-lg px-3 py-2 space-y-1">
+    <div className="bg-muted/20 rounded-lg px-3 py-2 space-y-1">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-500 uppercase tracking-wider">{label}</span>
-        <span className="text-xs font-mono text-slate-400">{uid}</span>
+        <span className="text-xs text-muted-foreground uppercase tracking-wider">{label}</span>
+        <span className="text-xs font-mono text-muted-foreground">{uid}</span>
       </div>
       {address ? (
         <div className="flex items-center gap-2">
@@ -924,14 +928,14 @@ function ChainRow({
             href={`${SUISCAN}/account/${address}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-mono text-violet-400 hover:text-violet-300 truncate"
+            className="text-xs font-mono text-secondary-bright hover:text-secondary-bright/80 truncate"
           >
             {address}
           </a>
           <CopyBtn text={address} label={`addr-${label}`} copied={copied} onCopy={onCopy} />
         </div>
       ) : (
-        <span className="text-xs text-slate-500">no address</span>
+        <span className="text-xs text-muted-foreground">no address</span>
       )}
     </div>
   )
@@ -955,8 +959,8 @@ function CopyBtn({
       className={cn(
         'shrink-0 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider border transition-all',
         copied === label
-          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-          : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200',
+          ? 'bg-tertiary/20 border-tertiary/40 text-tertiary-bright'
+          : 'bg-muted border-border text-muted-foreground hover:text-foreground',
       )}
     >
       {copied === label ? 'copied' : 'copy'}

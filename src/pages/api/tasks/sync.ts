@@ -34,7 +34,7 @@ function fnv1a(data: string): string {
   return hash.toString(16)
 }
 
-/** Read pheromone for skills that have inbound paths to their provider unit */
+/** Read pheromone for skills that have inbound paths to their provider actor */
 async function readPheromone(): Promise<Map<string, { strength: number; resistance: number }>> {
   const rows = await readParsed(`
     match
@@ -104,7 +104,7 @@ function renderTodo(
     '# TODO',
     '',
     '> ONE Substrate — self-learning task system.',
-    '> Tasks are signals. Waves are loops. The template is a unit.',
+    '> Tasks are signals. Waves are loops. The template is a actor.',
     `> ${open.length} open, ${done.length} done. Priority + pheromone adjusts at runtime.`,
     '>',
     '> **Sync:** `POST /api/tasks/sync` or `/sync` — writes to KV (10ms), then TypeDB (100ms)',

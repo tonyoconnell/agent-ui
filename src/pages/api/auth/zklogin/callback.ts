@@ -15,7 +15,7 @@ export const prerender = false
 
 export const GET: APIRoute = async () => {
   const html = `<!doctype html><html><head><meta charset=utf-8><title>Signing in…</title></head>
-<body style="font-family:system-ui;background:#0a0a0f;color:#cbd5e1;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+<body style="font-family:system-ui;background:hsl(var(--color-background));color:hsl(var(--color-foreground));display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
 <p>Completing sign-in…</p>
 <script>
 (async () => {

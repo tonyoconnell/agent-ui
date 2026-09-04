@@ -63,13 +63,13 @@ export async function sendHeartbeat(uid: string): Promise<void> {
   // Step 2: upsert liveness-last-verified-at on the unit
   // Pattern mirrors last-evolved upsert in loop.ts
   writeSilent(`
-    match $u isa unit, has uid "${uid}";
+    match $u isa actor, has aid "${uid}";
     delete $u has liveness-last-verified-at $lv;
     insert $u has liveness-last-verified-at ${isoNow};
   `).catch(() => {
     // Attribute may not exist yet — try insert-only path
     writeSilent(`
-      match $u isa unit, has uid "${uid}";
+      match $u isa actor, has aid "${uid}";
       not { $u has liveness-last-verified-at $lv; };
       insert $u has liveness-last-verified-at ${isoNow};
     `).catch(() => {})
@@ -100,9 +100,9 @@ export async function checkDeadManCascade(parentUid: string): Promise<void> {
     match
       $g isa group, has gid $gid, has group-type "owns";
       (group: $g, member: $parent) isa membership, has member-role "chairman";
-      $parent isa unit, has uid "${parentUid}";
+      $parent isa actor, has aid "${parentUid}";
       (group: $g, member: $child) isa membership;
-      $child isa unit, has uid $childUid;
+      $child isa actor, has aid $childUid;
       $childUid != "${parentUid}";
     select $childUid, $gid;
   `).catch(() => [] as Array<{ childUid: unknown; gid: unknown }>)
@@ -119,7 +119,7 @@ export async function checkDeadManCascade(parentUid: string): Promise<void> {
 
     // Check last heartbeat for this child
     const liveness = await readParsed(`
-      match $u isa unit, has uid "${childUid}", has liveness-last-verified-at $lv;
+      match $u isa actor, has aid "${childUid}", has liveness-last-verified-at $lv;
       select $lv;
     `).catch(() => [] as Array<{ lv: unknown }>)
 
@@ -128,7 +128,7 @@ export async function checkDeadManCascade(parentUid: string): Promise<void> {
     if (!liveness.length) {
       // Never sent a heartbeat — treat as silent if created before cutoff
       const creation = await readParsed(`
-        match $u isa unit, has uid "${childUid}", has created $c;
+        match $u isa actor, has aid "${childUid}", has created $c;
         select $c;
       `).catch(() => [] as Array<{ c: unknown }>)
 

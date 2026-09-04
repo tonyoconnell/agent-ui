@@ -21,7 +21,7 @@ Owner inbox for every group. Live substrate + claw data replaces static
 /in               owners    operator surface (this TODO)
 ```
 
-**Source of truth:** [debby-todo.md](debby-todo.md) · [groups-todo.md](groups-todo.md) · [DSL.md](one/DSL.md) · [dictionary.md](dictionary.md) · [rubrics.md](rubrics.md) · [auth.md](auth.md)
+**Source of truth:** [debby-todo.md](debby-todo.md) · [groups-todo.md](groups-todo.md) · [DSL.md](one/DSL.md) · [dictionary.md](dictionary.md) · [rubrics.md](rubrics.md) · [auth.md](one-ie/dev.one.ie/one/auth.md)
 
 **Schema:** no `one.tql` change. `/in` projects existing entities — `actor`
 (students), `signal` (conversations), `group` (scope).
@@ -304,4 +304,4 @@ Gate: curls + greps clean.
 
 ## See Also
 
-[debby-todo.md](debby-todo.md) · [groups-todo.md](groups-todo.md) · [auth.md](auth.md) · [DSL.md](one/DSL.md) · [dictionary.md](dictionary.md) · [rubrics.md](rubrics.md) · [TODO-template.md](one/TODO-template.md)
+[debby-todo.md](debby-todo.md) · [groups-todo.md](groups-todo.md) · [auth.md](one-ie/dev.one.ie/one/auth.md) · [DSL.md](one/DSL.md) · [dictionary.md](dictionary.md) · [rubrics.md](rubrics.md) · [TODO-template.md](one/TODO-template.md)

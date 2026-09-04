@@ -297,7 +297,7 @@ they already do.
 
 ## See Also
 
-- [auth.md](auth.md) — Identity, keys, wallets
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — Identity, keys, wallets
 - [groups.md](one/groups.md) — RBAC, ABAC, ReBAC, tenancy
 - [SECURE-DEPLOY.md](SECURE-DEPLOY.md) — Deploy-time credential handling
 - [routing.md](routing.md) — The deterministic sandwich

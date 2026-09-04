@@ -15,7 +15,7 @@ export function MarketplaceGrid({ capabilities }: Props) {
       <FilterBar capabilities={capabilities} onFilter={setFiltered} />
 
       {filtered.length === 0 ? (
-        <p className="text-sm text-slate-500 text-center py-8">No capabilities match your filter.</p>
+        <p className="text-sm text-muted-foreground text-center py-8">No capabilities match your filter.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((c) => (
@@ -24,7 +24,7 @@ export function MarketplaceGrid({ capabilities }: Props) {
         </div>
       )}
 
-      <p className="text-xs text-slate-600 text-right">
+      <p className="text-xs text-muted-foreground text-right">
         {filtered.length} of {capabilities.length} capabilities
       </p>
     </div>

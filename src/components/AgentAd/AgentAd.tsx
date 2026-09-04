@@ -83,20 +83,22 @@ function StepRow({
     <div className="flex items-center gap-2 text-sm py-0.5">
       <span className="w-3 flex-none text-center">
         {done ? (
-          <span className="text-emerald-400">✓</span>
+          <span className="text-tertiary-bright">✓</span>
         ) : active ? (
-          <span className="text-amber-400 animate-pulse">⟳</span>
+          <span className="text-gold animate-pulse">⟳</span>
         ) : (
-          <span className="text-slate-600">·</span>
+          <span className="text-muted-foreground">·</span>
         )}
       </span>
-      <span className={done ? 'text-slate-200 font-medium' : active ? 'text-slate-300' : 'text-slate-600'}>
+      <span className={done ? 'text-font font-medium' : active ? 'text-foreground' : 'text-muted-foreground'}>
         {label}
       </span>
-      <span className="text-slate-600 text-xs hidden sm:inline">{hint}</span>
+      <span className="text-muted-foreground text-xs hidden sm:inline">{hint}</span>
       <span className="ml-auto flex items-center gap-2">
-        {value && <span className="font-mono text-xs text-slate-500 truncate max-w-[120px]">{value}</span>}
-        {ms !== undefined && ms > 0 && <span className="font-mono text-[10px] text-slate-600">{ms.toFixed(0)}ms</span>}
+        {value && <span className="font-mono text-xs text-muted-foreground truncate max-w-[120px]">{value}</span>}
+        {ms !== undefined && ms > 0 && (
+          <span className="font-mono text-[10px] text-muted-foreground">{ms.toFixed(0)}ms</span>
+        )}
       </span>
     </div>
   )
@@ -114,14 +116,14 @@ function CopyRow({ label, value, href }: { label: string; value: string; href?: 
   }
   return (
     <div className="flex items-start gap-2 py-1">
-      <span className="text-slate-500 text-[10px] uppercase tracking-wider w-16 flex-none pt-0.5">{label}</span>
-      <span className="font-mono text-xs text-slate-300 break-all flex-1 select-all">
+      <span className="text-muted-foreground text-[10px] uppercase tracking-wider w-16 flex-none pt-0.5">{label}</span>
+      <span className="font-mono text-xs text-foreground break-all flex-1 select-all">
         {href ? (
           <a
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-violet-400 hover:text-violet-300 underline underline-offset-2"
+            className="text-secondary-bright hover:text-secondary-bright/80 underline underline-offset-2"
           >
             {value}
           </a>
@@ -129,7 +131,11 @@ function CopyRow({ label, value, href }: { label: string; value: string; href?: 
           value
         )}
       </span>
-      <button type="button" onClick={copy} className="text-[10px] text-slate-600 hover:text-slate-400 flex-none">
+      <button
+        type="button"
+        onClick={copy}
+        className="text-[10px] text-muted-foreground hover:text-foreground flex-none"
+      >
         {copied ? '✓' : 'copy'}
       </button>
     </div>
@@ -172,19 +178,19 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
   }
 
   return (
-    <div className="rounded-lg border border-[#252538] bg-[#161622] p-5 flex flex-col gap-4 w-full max-w-md">
+    <div className="rounded-lg border border-border bg-card p-5 flex flex-col gap-4 w-full max-w-md">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="text-[10px] font-mono tracking-widest text-slate-500 uppercase">
+          <div className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase">
             {agentId} · {skill}
           </div>
-          <div className="text-base text-white mt-1 font-medium">{headline}</div>
-          {description && <div className="text-sm text-slate-400 mt-0.5">{description}</div>}
+          <div className="text-base text-font mt-1 font-medium">{headline}</div>
+          {description && <div className="text-sm text-muted-foreground mt-0.5">{description}</div>}
         </div>
         <div className="text-right flex-none">
-          <div className="text-[10px] font-mono tracking-widest text-slate-500">PRICE</div>
-          <div className="font-mono text-white text-sm mt-0.5">${price.toFixed(2)}</div>
+          <div className="text-[10px] font-mono tracking-widest text-muted-foreground">PRICE</div>
+          <div className="font-mono text-font text-sm mt-0.5">${price.toFixed(2)}</div>
         </div>
       </div>
 
@@ -199,10 +205,10 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
                 key={s}
                 className={`px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-medium transition-all ${
                   d
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    ? 'bg-tertiary/20 text-tertiary-bright border border-tertiary/30'
                     : a
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse'
-                      : 'bg-slate-800/50 text-slate-600 border border-slate-700/30'
+                      ? 'bg-gold/20 text-gold border border-gold/30 animate-pulse'
+                      : 'bg-muted/50 text-muted-foreground border border-muted/30'
                 }`}
               >
                 {STAGE_LABELS[s]}
@@ -214,7 +220,7 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
 
       {/* Lifecycle steps */}
       {!idle && (
-        <div className="flex flex-col gap-0.5 border border-[#252538] rounded bg-[#0a0a0f] px-3 py-2">
+        <div className="flex flex-col gap-0.5 border border-border rounded bg-background px-3 py-2">
           <StepRow
             label={STAGE_LABELS.wallet}
             hint={STAGE_HINTS.wallet}
@@ -290,7 +296,7 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
 
       {/* Result — only show if it's a real LLM response, not signal metadata */}
       {done && result && !result.startsWith('{') && result !== 'signal delivered' && (
-        <div className="rounded border border-emerald-900/50 bg-emerald-950/20 px-3 py-2 text-sm text-emerald-300 leading-relaxed max-h-32 overflow-y-auto">
+        <div className="rounded border border-tertiary/50 bg-tertiary/20 px-3 py-2 text-sm text-tertiary-bright leading-relaxed max-h-32 overflow-y-auto">
           {result}
         </div>
       )}
@@ -299,26 +305,26 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
       {done && (
         <div className="space-y-3">
           {/* Quick summary */}
-          <div className="rounded border border-cyan-900/40 bg-cyan-950/10 px-3 py-2">
+          <div className="rounded border border-primary/40 bg-primary/10 px-3 py-2">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-mono tracking-widest text-cyan-500 uppercase">Commerce Loop</span>
-              <span className="font-mono text-xs text-cyan-400">{totalMs}ms</span>
+              <span className="text-[10px] font-mono tracking-widest text-primary-bright uppercase">Commerce Loop</span>
+              <span className="font-mono text-xs text-primary-bright">{totalMs}ms</span>
             </div>
-            <div className="text-xs text-slate-400 flex flex-wrap gap-x-4 gap-y-0.5">
+            <div className="text-xs text-muted-foreground flex flex-wrap gap-x-4 gap-y-0.5">
               <span>
-                earned <span className="font-mono text-emerald-400">+{earned} SUI</span>
+                earned <span className="font-mono text-tertiary-bright">+{earned} SUI</span>
               </span>
               <span>
-                spent <span className="font-mono text-amber-400">-{spent} SUI</span>
+                spent <span className="font-mono text-gold">-{spent} SUI</span>
               </span>
               {agent && (
                 <span>
-                  routed <span className="font-mono text-violet-400">{agent.uid}</span>
+                  routed <span className="font-mono text-secondary-bright">{agent.uid}</span>
                 </span>
               )}
               {buyTarget && (
                 <span>
-                  buyer <span className="font-mono text-violet-400">{buyTarget}</span>
+                  buyer <span className="font-mono text-secondary-bright">{buyTarget}</span>
                 </span>
               )}
             </div>
@@ -331,17 +337,17 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
               emitClick('ui:ad:view-data')
               setShowData((v) => !v)
             }}
-            className="w-full px-3 py-2 rounded border border-violet-800/60 bg-violet-950/20 text-sm font-medium text-violet-300 hover:bg-violet-900/30 hover:text-violet-200 transition-colors text-center"
+            className="w-full px-3 py-2 rounded border border-secondary/60 bg-secondary/20 text-sm font-medium text-secondary-bright hover:bg-secondary/30 hover:text-secondary-bright/80 transition-colors text-center"
           >
             {showData ? 'hide live data' : 'view live data →'}
           </button>
 
           {/* ── Live Data Panel ─────────────────────────────────────────── */}
           {showData && (
-            <div className="rounded border border-[#252538] bg-[#0a0a0f] p-4 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="rounded border border-border bg-background p-4 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               {/* Wallets */}
               <div>
-                <div className="text-[10px] font-mono tracking-widest text-cyan-500 uppercase mb-2">Wallets</div>
+                <div className="text-[10px] font-mono tracking-widest text-primary-bright uppercase mb-2">Wallets</div>
                 {buyerAddress && (
                   <CopyRow label="buyer" value={buyerAddress} href={`${SUISCAN}/account/${buyerAddress}`} />
                 )}
@@ -352,7 +358,9 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
 
               {/* Identity */}
               <div>
-                <div className="text-[10px] font-mono tracking-widest text-slate-500 uppercase mb-2">Identity</div>
+                <div className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase mb-2">
+                  Identity
+                </div>
                 {buyerUid && <CopyRow label="buyer" value={buyerUid} />}
                 {sellerUid && <CopyRow label="seller" value={sellerUid} />}
                 {agent && <CopyRow label="routed" value={agent.uid} />}
@@ -362,10 +370,10 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
               {/* Conversation / Signal Result */}
               {result && (
                 <div>
-                  <div className="text-[10px] font-mono tracking-widest text-slate-500 uppercase mb-2">
+                  <div className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase mb-2">
                     Signal Response
                   </div>
-                  <div className="rounded border border-[#252538] bg-[#161622] px-3 py-2 text-xs text-slate-300 leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap font-mono">
+                  <div className="rounded border border-border bg-card px-3 py-2 text-xs text-foreground leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap font-mono">
                     {result}
                   </div>
                 </div>
@@ -373,27 +381,27 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
 
               {/* Transactions */}
               <div>
-                <div className="text-[10px] font-mono tracking-widest text-emerald-500 uppercase mb-2">
+                <div className="text-[10px] font-mono tracking-widest text-tertiary-bright uppercase mb-2">
                   Transactions
                 </div>
                 <div className="space-y-1 text-xs">
-                  <div className="flex items-center justify-between text-slate-300">
+                  <div className="flex items-center justify-between text-foreground">
                     <span>
                       {buyerUid} → {sellerUid}
                     </span>
-                    <span className="font-mono text-emerald-400">+{earned} SUI</span>
+                    <span className="font-mono text-tertiary-bright">+{earned} SUI</span>
                   </div>
                   {buyTarget && (
-                    <div className="flex items-center justify-between text-slate-300">
+                    <div className="flex items-center justify-between text-foreground">
                       <span>
                         {sellerUid} → {buyTarget}
                       </span>
-                      <span className="font-mono text-amber-400">-{spent} SUI</span>
+                      <span className="font-mono text-gold">-{spent} SUI</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-slate-400 border-t border-[#252538] pt-1 mt-1">
+                  <div className="flex items-center justify-between text-muted-foreground border-t border-border pt-1 mt-1">
                     <span>net</span>
-                    <span className="font-mono text-cyan-400">{(earned - spent).toFixed(4)} SUI</span>
+                    <span className="font-mono text-primary-bright">{(earned - spent).toFixed(4)} SUI</span>
                   </div>
                 </div>
               </div>
@@ -401,18 +409,18 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
               {/* Chain Digests */}
               {digests.length > 0 && (
                 <div>
-                  <div className="text-[10px] font-mono tracking-widest text-violet-500 uppercase mb-2">
+                  <div className="text-[10px] font-mono tracking-widest text-secondary-bright uppercase mb-2">
                     On-Chain Proofs
                   </div>
                   <div className="space-y-1">
                     {digests.map((d) => (
                       <div key={d.digest} className="flex items-center gap-2 text-xs">
-                        <span className="text-slate-500 w-12">{d.stage}</span>
+                        <span className="text-muted-foreground w-12">{d.stage}</span>
                         <a
                           href={`${SUISCAN}/tx/${d.digest}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-mono text-violet-400 hover:text-violet-300 underline underline-offset-2 truncate"
+                          className="font-mono text-secondary-bright hover:text-secondary-bright/80 underline underline-offset-2 truncate"
                         >
                           {d.digest}
                         </a>
@@ -424,34 +432,36 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
 
               {/* Timing breakdown */}
               <div>
-                <div className="text-[10px] font-mono tracking-widest text-slate-500 uppercase mb-2">Timing</div>
+                <div className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase mb-2">Timing</div>
                 <div className="grid grid-cols-3 gap-x-3 gap-y-0.5 text-xs">
                   {STAGE_ORDER.filter((s) => s !== 'done' && stageTimings[s] !== undefined).map((s) => (
                     <div key={s} className="flex justify-between">
-                      <span className="text-slate-500">{STAGE_LABELS[s]}</span>
-                      <span className="font-mono text-slate-400">{stageTimings[s]?.toFixed(0)}ms</span>
+                      <span className="text-muted-foreground">{STAGE_LABELS[s]}</span>
+                      <span className="font-mono text-muted-foreground">{stageTimings[s]?.toFixed(0)}ms</span>
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-between mt-1 pt-1 border-t border-[#252538] text-xs">
-                  <span className="text-cyan-500 font-medium">Total</span>
-                  <span className="font-mono text-cyan-400">{totalMs}ms</span>
+                <div className="flex justify-between mt-1 pt-1 border-t border-border text-xs">
+                  <span className="text-primary-bright font-medium">Total</span>
+                  <span className="font-mono text-primary-bright">{totalMs}ms</span>
                 </div>
               </div>
 
               {/* Pheromone paths */}
               <div>
-                <div className="text-[10px] font-mono tracking-widest text-slate-500 uppercase mb-2">Paths Learned</div>
+                <div className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase mb-2">
+                  Paths Learned
+                </div>
                 <div className="space-y-0.5 text-xs font-mono">
-                  <div className="text-slate-300">
-                    {buyerUid} → {sellerUid} <span className="text-emerald-400">+strength</span>
+                  <div className="text-foreground">
+                    {buyerUid} → {sellerUid} <span className="text-tertiary-bright">+strength</span>
                   </div>
                   {buyTarget && (
-                    <div className="text-slate-300">
-                      {sellerUid} → {buyTarget} <span className="text-emerald-400">+strength</span>
+                    <div className="text-foreground">
+                      {sellerUid} → {buyTarget} <span className="text-tertiary-bright">+strength</span>
                     </div>
                   )}
-                  <div className="text-slate-500 text-[10px] mt-1">
+                  <div className="text-muted-foreground text-[10px] mt-1">
                     each run increases path strength — the substrate learns which sellers deliver
                   </div>
                 </div>
@@ -460,14 +470,16 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
               {/* Marketplace discovery */}
               {listings.length > 0 && (
                 <div>
-                  <div className="text-[10px] font-mono tracking-widest text-slate-500 uppercase mb-2">Marketplace</div>
+                  <div className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase mb-2">
+                    Marketplace
+                  </div>
                   <div className="space-y-1 text-xs">
                     {listings.map((l, i) => (
-                      <div key={`${l.provider}-${i}`} className="flex items-center justify-between text-slate-300">
+                      <div key={`${l.provider}-${i}`} className="flex items-center justify-between text-foreground">
                         <span>
-                          {l.name} <span className="text-slate-500">by {l.provider}</span>
+                          {l.name} <span className="text-muted-foreground">by {l.provider}</span>
                         </span>
-                        <span className="font-mono text-slate-400">{l.price} SUI</span>
+                        <span className="font-mono text-muted-foreground">{l.price} SUI</span>
                       </div>
                     ))}
                   </div>
@@ -480,7 +492,9 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
 
       {/* Error */}
       {errored && error && (
-        <div className="rounded border border-red-900/50 bg-red-950/20 px-3 py-2 text-sm text-red-400">{error}</div>
+        <div className="rounded border border-destructive/50 bg-destructive/20 px-3 py-2 text-sm text-destructive">
+          {error}
+        </div>
       )}
 
       {/* Action button */}
@@ -496,7 +510,7 @@ export function AgentAd({ agentId, skill, price, headline, description }: Props)
             : handleRun
         }
         disabled={running}
-        className="w-full px-4 py-2 rounded text-sm font-medium transition-colors disabled:opacity-40 bg-indigo-600 hover:bg-indigo-500 text-white"
+        className="w-full px-4 py-2 rounded text-sm font-medium transition-colors disabled:opacity-40 bg-[hsl(var(--color-primary-bright))] hover:bg-[hsl(var(--color-primary-bright))] hover:opacity-80 text-font"
       >
         {running
           ? `${STAGE_LABELS[stage] ?? 'Running'}…`

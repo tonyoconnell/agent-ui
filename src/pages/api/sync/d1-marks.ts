@@ -88,7 +88,7 @@ export const POST = async ({ locals }: { locals: any }): Promise<Response> => {
       // Update path in TypeDB
       try {
         await writeSilent(`
-          match $from isa unit, has uid "${from}"; $to isa unit, has uid "${to}";
+          match $from isa actor, has aid "${from}"; $to isa actor, has aid "${to}";
           $e (source: $from, target: $to) isa path, has strength $s, has resistance $r, has traversals $t;
           delete $s of $e; delete $r of $e; delete $t of $e;
           insert $e has strength (${strength}), has resistance (${resistance}), has traversals (${count});

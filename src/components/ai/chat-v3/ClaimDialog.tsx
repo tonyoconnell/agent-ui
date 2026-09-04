@@ -32,8 +32,8 @@ export function ClaimDialog({ nonce, isClaiming, isClaimed, onCancel }: Props) {
           {/* Header */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-blue-500/15">
-                <Link className="h-4 w-4 text-blue-500" />
+              <div className="p-2 rounded-lg bg-[hsl(var(--color-primary-bright)/0.15)]">
+                <Link className="h-4 w-4 text-[hsl(var(--color-primary-bright))]" />
               </div>
               <div>
                 <p className="font-semibold text-sm">Link Telegram Memory</p>
@@ -55,9 +55,9 @@ export function ClaimDialog({ nonce, isClaiming, isClaimed, onCancel }: Props) {
 
           {isClaimed ? (
             /* Success state */
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-              <Check className="h-5 w-5 text-green-500 shrink-0" />
-              <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-[hsl(var(--color-tertiary-bright)/0.15)] border border-[hsl(var(--color-tertiary-bright)/0.2)]">
+              <Check className="h-5 w-5 text-[hsl(var(--color-tertiary-bright))] shrink-0" />
+              <p className="text-sm text-[hsl(var(--color-tertiary-bright))] dark:text-[hsl(var(--color-tertiary-bright))] font-medium">
                 Linked! Your Telegram memory is now active.
               </p>
             </div>
@@ -90,7 +90,7 @@ export function ClaimDialog({ nonce, isClaiming, isClaimed, onCancel }: Props) {
               >
                 <span className="truncate">/link {nonce}</span>
                 {copied ? (
-                  <Check className="h-4 w-4 text-green-500 shrink-0" />
+                  <Check className="h-4 w-4 text-[hsl(var(--color-tertiary-bright))] shrink-0" />
                 ) : (
                   <Copy className="h-4 w-4 text-muted-foreground shrink-0" />
                 )}

@@ -64,7 +64,7 @@ w.know()                      // persist
 
 - [flows.md](flows.md) — How signals flow through the stack layers
 - [code.md](code.md) — TypeScript substrate implementation
-- [Plan.md](Plan.md) — Strategic context for the stack
+- [Plan.md](one-ie/dev.one.ie/one/plan.md) — Strategic context for the stack
 - [one-ontology.md](one-ontology.md) — Six dimensions the stack implements
 - [typedb.md](typedb.md) — TypeDB schema layer
 - [framework.md](framework.md) — UI rendering layer

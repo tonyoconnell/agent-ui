@@ -35,7 +35,7 @@ export const GET: APIRoute = async ({ request, url }) => {
     match
       (provider: $p, offered: $s) isa capability, has price $price;
       $s isa skill, has skill-id $sid, has name $name;
-      $p isa unit, has uid $pid;
+      $p isa actor, has aid $pid;
     select $sid, $name, $price, $pid;
   `).catch(() => [] as Record<string, unknown>[])
 

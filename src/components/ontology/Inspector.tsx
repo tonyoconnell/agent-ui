@@ -60,16 +60,16 @@ export function Inspector({ node, mode, canMark, canMintCapability, onClose }: P
   }
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-l border-[#252538] bg-[#0d0d14] text-slate-200">
-      <header className="flex items-center justify-between border-b border-[#252538] px-3 py-2">
-        <span className="text-[10px] uppercase tracking-wider text-slate-500">Inspector</span>
+    <aside className="flex w-72 shrink-0 flex-col border-l border-border bg-background text-font">
+      <header className="flex items-center justify-between border-b border-border px-3 py-2">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Inspector</span>
         <button
           type="button"
           onClick={() => {
             emitClick('ui:ontology:inspector-close', { node: node.id })
             onClose()
           }}
-          className="rounded px-1.5 py-0.5 text-xs text-slate-400 hover:bg-[#161622] hover:text-slate-100"
+          className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-card hover:text-font"
         >
           ✕
         </button>
@@ -77,29 +77,29 @@ export function Inspector({ node, mode, canMark, canMintCapability, onClose }: P
 
       <div className="space-y-3 px-3 py-3 text-xs">
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-slate-500">id</div>
-          <div className="mt-0.5 break-all font-mono text-slate-200">{node.id}</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">id</div>
+          <div className="mt-0.5 break-all font-mono text-font">{node.id}</div>
         </div>
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-slate-500">label</div>
-          <div className="mt-0.5 text-slate-200">{label}</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">label</div>
+          <div className="mt-0.5 text-font">{label}</div>
         </div>
         {data.kind ? (
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-slate-500">kind</div>
-            <div className="mt-0.5 text-slate-200">{String(data.kind)}</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">kind</div>
+            <div className="mt-0.5 text-font">{String(data.kind)}</div>
           </div>
         ) : null}
         <div>
-          <div className="text-[10px] uppercase tracking-wider text-slate-500">position</div>
-          <div className="mt-0.5 font-mono text-slate-300">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">position</div>
+          <div className="mt-0.5 font-mono text-foreground">
             ({Math.round(node.position.x)}, {Math.round(node.position.y)})
           </div>
         </div>
       </div>
 
-      <div className="space-y-1.5 border-t border-[#252538] px-3 py-3">
-        <div className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">Actions</div>
+      <div className="space-y-1.5 border-t border-border px-3 py-3">
+        <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">Actions</div>
         {actions.map((a) => (
           <button
             key={a.id}
@@ -110,13 +110,13 @@ export function Inspector({ node, mode, canMark, canMintCapability, onClose }: P
             className={cn(
               'w-full rounded-md border px-2 py-1.5 text-left text-xs transition',
               a.enabled
-                ? 'border-[#252538] bg-[#161622] text-slate-100 hover:border-[#3b82f6]'
-                : 'cursor-not-allowed border-transparent bg-transparent text-slate-600',
+                ? 'border-border bg-card text-font hover:border-primary-bright'
+                : 'cursor-not-allowed border-transparent bg-transparent text-muted-foreground',
             )}
             aria-disabled={!a.enabled}
           >
             <div className="font-medium">{a.label}</div>
-            <div className="text-[10px] text-slate-500">{a.reason ?? a.desc}</div>
+            <div className="text-[10px] text-muted-foreground">{a.reason ?? a.desc}</div>
           </button>
         ))}
       </div>

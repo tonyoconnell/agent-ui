@@ -1,5 +1,5 @@
 /**
- * POST /api/pay — x402 payment between units
+ * POST /api/pay — x402 payment between actors
  *
  * Body: { from: string, to: string, task: string, amount: number }
  * Records signal with amount, strengthens path by payment amount (revenue = weight).
@@ -27,8 +27,8 @@ export const POST: APIRoute = async ({ request }) => {
 
   // Check if from and to are in different groups
   const groupRows = await readParsed(`
-    match $uf isa unit, has uid "${(from as string).replace(/"/g, '')}";
-          $ut isa unit, has uid "${(to as string).replace(/"/g, '')}";
+    match $uf isa actor, has aid "${(from as string).replace(/"/g, '')}";
+          $ut isa actor, has aid "${(to as string).replace(/"/g, '')}";
           (group: $gf, member: $uf) isa membership;
           (group: $gt, member: $ut) isa membership;
           $gf has gid $gfid; $gt has gid $gtid;
@@ -42,8 +42,8 @@ export const POST: APIRoute = async ({ request }) => {
       // Cross-org payment — check path scope
       const scopeRows = await readParsed(`
         match $p isa path, has from $f, has to $t, has scope $sc;
-              $uf isa unit, has uid "${(from as string).replace(/"/g, '')}"; $f = $uf;
-              $ut isa unit, has uid "${(to as string).replace(/"/g, '')}"; $t = $ut;
+              $uf isa actor, has aid "${(from as string).replace(/"/g, '')}"; $f = $uf;
+              $ut isa actor, has aid "${(to as string).replace(/"/g, '')}"; $t = $ut;
         select $sc;
       `).catch(() => [] as any[])
 
@@ -76,8 +76,8 @@ export const POST: APIRoute = async ({ request }) => {
   // Record payment signal
   await write(`
     match
-      $from isa unit, has uid "${from}";
-      $to isa unit, has uid "${to}";
+      $from isa actor, has aid "${from}";
+      $to isa actor, has aid "${to}";
     insert
       (sender: $from, receiver: $to) isa signal,
         has data "${task}",
@@ -89,8 +89,8 @@ export const POST: APIRoute = async ({ request }) => {
   // Strengthen path by payment amount (revenue = weight)
   await write(`
     match
-      $from isa unit, has uid "${from}";
-      $to isa unit, has uid "${to}";
+      $from isa actor, has aid "${from}";
+      $to isa actor, has aid "${to}";
       $e (source: $from, target: $to) isa path,
         has strength $s, has traversals $t, has revenue $r;
     delete $s of $e; delete $t of $e; delete $r of $e;
@@ -101,8 +101,8 @@ export const POST: APIRoute = async ({ request }) => {
   `).catch(() =>
     write(`
       match
-        $from isa unit, has uid "${from}";
-        $to isa unit, has uid "${to}";
+        $from isa actor, has aid "${from}";
+        $to isa actor, has aid "${to}";
       insert
         (source: $from, target: $to) isa path,
           has strength ${amount}, has resistance 0.0,
@@ -110,14 +110,14 @@ export const POST: APIRoute = async ({ request }) => {
     `),
   )
 
-  // Mirror to Sui (if both units have wallets)
+  // Mirror to Sui (if both actors have wallets)
   const suiDigest: string | null = null
   try {
     const fromUnit = await resolveUnit(from)
     const toUnit = await resolveUnit(to)
     if (fromUnit?.objectId && toUnit?.objectId) {
       // TODO: need path object ID — for now, Sui pay requires on-chain Path
-      // This will work once createPath is called during first signal between units
+      // This will work once createPath is called during first signal between actors
     }
   } catch {
     // Sui not configured — TypeDB payment still recorded

@@ -78,11 +78,11 @@ export function WalletSignIn({ onSuccess, onError, label = 'Sign in with Sui' }:
         type="button"
         onClick={signIn}
         disabled={busy || phase === 'done'}
-        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.08] disabled:opacity-60"
+        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-muted px-4 py-3 text-sm font-medium text-font transition hover:bg-muted/80 disabled:opacity-60"
       >
         {labelText}
       </button>
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-[hsl(var(--color-destructive))]">{error}</p>}
     </div>
   )
 }

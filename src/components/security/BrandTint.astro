@@ -1,0 +1,13 @@
+---
+interface Props {
+  family: 'primary' | 'secondary' | 'tertiary'
+  as?: 'div' | 'section' | 'details' | 'article'
+  class?: string
+}
+
+const { family, as: Tag = 'div', class: className = '' } = Astro.props
+---
+
+<Tag class:list={[`tint-${family}`, `brand-${family}`, 'border', className]}>
+  <slot />
+</Tag>

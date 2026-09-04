@@ -56,15 +56,15 @@ export const PATCH: APIRoute = async ({ request }) => {
     // 1. Update Better Auth's auth-user entity in TypeDB (authoritative for auth)
     await auth.api.updateUser({ body: { name }, headers: request.headers })
 
-    // 2. Sync the substrate unit entity so routing/signals see the new name
+    // 2. Sync the substrate actor entity so routing/signals see the new name
     const uid = deriveHumanUid(session.user)
     const u = escapeTqlString(uid)
     const n = escapeTqlString(name)
     try {
-      await write(`match $u isa unit, has uid "${u}"; $u has name $old; delete $old of $u;`)
-      await write(`match $u isa unit, has uid "${u}"; insert $u has name "${n}";`)
+      await write(`match $u isa actor, has aid "${u}"; $u has name $old; delete $old of $u;`)
+      await write(`match $u isa actor, has aid "${u}"; insert $u has name "${n}";`)
     } catch {
-      // auth-user is already updated (authoritative); unit.name syncs on next auth call
+      // auth-user is already updated (authoritative); actor.name syncs on next auth call
     }
 
     // 3. Clear session cache so the next SSR page load reads fresh data
@@ -82,7 +82,7 @@ export const PATCH: APIRoute = async ({ request }) => {
     }
 
     // Better Auth updates auth-user.auth-email in TypeDB.
-    // The substrate unit uid (derived from signup email) stays fixed so existing
+    // The substrate actor uid (derived from signup email) stays fixed so existing
     // paths and signals are not orphaned by an address change.
     try {
       await auth.api.changeEmail({

@@ -45,21 +45,28 @@ function truncate(s: string): string {
   return `${s.slice(0, 7)}…${s.slice(-6)}`
 }
 
-// Gate badge: scope=blue, network=amber, sensitivity=violet, default=slate
+// Gate badge: scope=primary, network=gold, sensitivity=secondary, default=muted-foreground
 const GATE_CLASSES: Record<string, string> = {
-  scope: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  network: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  sensitivity: 'bg-violet-500/15 text-violet-400 border-violet-500/30',
+  scope:
+    'bg-[hsl(var(--color-primary-bright)/0.15)] text-[hsl(var(--color-primary-bright))] border-[hsl(var(--color-primary-bright)/0.3)]',
+  network: 'bg-[hsl(var(--color-gold)/0.15)] text-[hsl(var(--color-gold))] border-[hsl(var(--color-gold)/0.3)]',
+  sensitivity:
+    'bg-[hsl(var(--color-secondary-bright)/0.15)] text-[hsl(var(--color-secondary-bright))] border-[hsl(var(--color-secondary-bright)/0.3)]',
 }
 
-// Decision badge: allow-audit=blue, deny=red, observe=gray, owner-bypass=emerald
+// Decision badge: allow-audit=primary, deny=destructive, observe=muted-foreground, owner-bypass=tertiary
 const DECISION_CLASSES: Record<string, string> = {
-  allow: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  'allow-audit': 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  deny: 'bg-red-500/15 text-red-400 border-red-500/30',
-  blocked: 'bg-red-500/15 text-red-400 border-red-500/30',
-  observe: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
-  'owner-bypass': 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+  allow:
+    'bg-[hsl(var(--color-primary-bright)/0.15)] text-[hsl(var(--color-primary-bright))] border-[hsl(var(--color-primary-bright)/0.3)]',
+  'allow-audit':
+    'bg-[hsl(var(--color-primary-bright)/0.15)] text-[hsl(var(--color-primary-bright))] border-[hsl(var(--color-primary-bright)/0.3)]',
+  deny: 'bg-[hsl(var(--color-destructive)/0.15)] text-[hsl(var(--color-destructive))] border-[hsl(var(--color-destructive)/0.3)]',
+  blocked:
+    'bg-[hsl(var(--color-destructive)/0.15)] text-[hsl(var(--color-destructive))] border-[hsl(var(--color-destructive)/0.3)]',
+  observe:
+    'bg-[hsl(var(--color-muted-foreground)/0.15)] text-[hsl(var(--color-muted-foreground))] border-[hsl(var(--color-muted-foreground)/0.3)]',
+  'owner-bypass':
+    'bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright))] border-[hsl(var(--color-tertiary-bright)/0.3)]',
 }
 
 const POLL_INTERVAL = 30_000
@@ -118,25 +125,29 @@ export function AuditLogViewer() {
   }
 
   return (
-    <Card className="bg-[#0f0f14] border-[#1e293b]">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-3 flex flex-row items-center justify-between gap-4 flex-wrap">
         <div>
-          <CardTitle className="text-sm font-medium text-slate-300 flex items-center gap-2">
+          <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
             Audit log — last 50 events
             {!loading && !error && (
-              <Badge variant="outline" className="text-xs border-[#1e293b] text-slate-500">
+              <Badge variant="outline" className="text-xs border-border text-muted-foreground">
                 {rows.length}
               </Badge>
             )}
           </CardTitle>
-          <p className="text-xs text-slate-600 mt-0.5" aria-live="polite">
-            {paused ? <span className="text-amber-500">Paused</span> : <span>Live · refreshes every 30s</span>}
+          <p className="text-xs text-muted-foreground mt-0.5" aria-live="polite">
+            {paused ? (
+              <span className="text-[hsl(var(--color-gold))]">Paused</span>
+            ) : (
+              <span>Live · refreshes every 30s</span>
+            )}
           </p>
         </div>
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 text-xs text-slate-400 hover:text-white"
+          className="h-7 text-xs text-muted-foreground hover:text-font"
           onClick={handleRefresh}
           aria-label="Refresh audit log"
         >
@@ -156,12 +167,12 @@ export function AuditLogViewer() {
             <span className="sr-only">Loading audit events</span>
             {[0, 1, 2, 3, 4].map((i) => (
               <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-4 w-16 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-20 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-20 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-20 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-16 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-16 bg-[#1e293b]" />
+                <Skeleton className="h-4 w-16 bg-muted" />
+                <Skeleton className="h-4 w-20 bg-muted" />
+                <Skeleton className="h-4 w-20 bg-muted" />
+                <Skeleton className="h-4 w-20 bg-muted" />
+                <Skeleton className="h-4 w-16 bg-muted" />
+                <Skeleton className="h-4 w-16 bg-muted" />
               </div>
             ))}
           </div>
@@ -169,13 +180,13 @@ export function AuditLogViewer() {
 
         {/* Error state */}
         {error && !loading && (
-          <div className="bg-red-500/5 border border-red-500/20 rounded-md p-4 space-y-3">
-            <p className="text-sm text-red-400">{error}</p>
+          <div className="bg-[hsl(var(--color-destructive)/0.05)] border border-[hsl(var(--color-destructive)/0.2)] rounded-md p-4 space-y-3">
+            <p className="text-sm text-[hsl(var(--color-destructive))]">{error}</p>
             <Button
               ref={retryButtonRef}
               size="sm"
               variant="outline"
-              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+              className="border-[hsl(var(--color-destructive)/0.3)] text-[hsl(var(--color-destructive))] hover:bg-[hsl(var(--color-destructive)/0.1)]"
               onClick={handleRetry}
               aria-label="Retry loading audit log"
             >
@@ -186,7 +197,7 @@ export function AuditLogViewer() {
 
         {/* Empty state */}
         {!loading && !error && rows.length === 0 && (
-          <p className="text-sm text-slate-500 py-4 text-center">No owner-tier audit events yet.</p>
+          <p className="text-sm text-muted-foreground py-4 text-center">No owner-tier audit events yet.</p>
         )}
 
         {/* Audit table with pause-on-hover */}
@@ -200,7 +211,7 @@ export function AuditLogViewer() {
               <table className="w-full text-xs font-mono">
                 <caption className="sr-only">Audit log — hover to pause live refresh</caption>
                 <thead>
-                  <tr className="text-slate-500 border-b border-[#1e293b]">
+                  <tr className="text-muted-foreground border-b border-border">
                     <th scope="col" className="text-left py-2 px-2 font-medium">
                       Time
                     </th>
@@ -223,18 +234,18 @@ export function AuditLogViewer() {
                 </thead>
                 <tbody>
                   {rows.map((r, i) => (
-                    <tr key={i} className="border-b border-[#1e293b]/50 hover:bg-[#161622] transition-colors">
+                    <tr key={i} className="border-b border-border/50 hover:bg-muted transition-colors">
                       <td className="py-2.5 px-2 whitespace-nowrap">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-slate-500 cursor-default">{relativeTs(r.ts)}</span>
+                            <span className="text-muted-foreground cursor-default">{relativeTs(r.ts)}</span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <span className="font-mono text-xs">{isoTs(r.ts)}</span>
                           </TooltipContent>
                         </Tooltip>
                       </td>
-                      <td className="py-2.5 px-2 text-amber-400 max-w-[140px] truncate">
+                      <td className="py-2.5 px-2 text-[hsl(var(--color-gold))] max-w-[140px] truncate">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="cursor-default">{r.action}</span>
@@ -247,7 +258,7 @@ export function AuditLogViewer() {
                       <td className="py-2.5 px-2">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-slate-400 cursor-default">{truncate(r.sender)}</span>
+                            <span className="text-muted-foreground cursor-default">{truncate(r.sender)}</span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <span className="font-mono text-xs">{r.sender}</span>
@@ -257,7 +268,7 @@ export function AuditLogViewer() {
                       <td className="py-2.5 px-2">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-slate-400 cursor-default">{truncate(r.receiver)}</span>
+                            <span className="text-muted-foreground cursor-default">{truncate(r.receiver)}</span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <span className="font-mono text-xs">{r.receiver}</span>
@@ -267,7 +278,7 @@ export function AuditLogViewer() {
                       <td className="py-2.5 px-2">
                         <Badge
                           variant="outline"
-                          className={`text-xs ${GATE_CLASSES[r.gate] ?? 'border-slate-500/30 text-slate-400'}`}
+                          className={`text-xs ${GATE_CLASSES[r.gate] ?? 'border-[hsl(var(--color-muted-foreground)/0.3)] text-[hsl(var(--color-muted-foreground))]'}`}
                         >
                           {r.gate}
                         </Badge>
@@ -275,7 +286,7 @@ export function AuditLogViewer() {
                       <td className="py-2.5 px-2">
                         <Badge
                           variant="outline"
-                          className={`text-xs ${DECISION_CLASSES[r.decision] ?? 'border-slate-500/30 text-slate-400'}`}
+                          className={`text-xs ${DECISION_CLASSES[r.decision] ?? 'border-[hsl(var(--color-muted-foreground)/0.3)] text-[hsl(var(--color-muted-foreground))]'}`}
                         >
                           {r.decision}
                         </Badge>

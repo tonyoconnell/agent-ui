@@ -71,4 +71,4 @@ Your agent now routes through the substrate: memory persists, highways form, phe
 
 *670 lines of engine. Zero returns. Free forever.*
 
-See also: [quickstart-baas.md](quickstart-baas.md) · [platform-baas.md](platform-baas.md) · [auth.md](auth.md)
+See also: [quickstart-baas.md](quickstart-baas.md) · [platform-baas.md](platform-baas.md) · [auth.md](one-ie/dev.one.ie/one/auth.md)

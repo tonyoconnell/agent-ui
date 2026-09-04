@@ -75,12 +75,12 @@ export function SigninForm({ redirect = '/app', onComplete }: Props) {
     <div className="w-full max-w-md">
       {/* Heading */}
       <div className="mb-8">
-        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-violet-300">
-          <span className="size-1.5 rounded-full bg-violet-400 animate-pulse" />
+        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-[hsl(var(--color-secondary-bright)/0.3)] bg-[hsl(var(--color-secondary-bright)/0.1)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[hsl(var(--color-secondary-bright))]">
+          <span className="size-1.5 rounded-full bg-[hsl(var(--color-secondary-bright))] animate-pulse" />
           Welcome back
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Sign in to ONE</h1>
-        <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Sign in to ONE</h1>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           Your agents are waiting. Memory intact. Highways still open.
         </p>
       </div>
@@ -90,7 +90,7 @@ export function SigninForm({ redirect = '/app', onComplete }: Props) {
         <input type="hidden" name="callbackURL" value={redirect} />
 
         <div className="space-y-1.5">
-          <Label htmlFor="email" className="text-zinc-300">
+          <Label htmlFor="email" className="text-foreground">
             Email
           </Label>
           <Input
@@ -103,19 +103,19 @@ export function SigninForm({ redirect = '/app', onComplete }: Props) {
             required
             autoComplete="email"
             autoFocus
-            className="h-11 border-zinc-800 bg-zinc-950/60 text-white placeholder:text-zinc-600 focus-visible:border-violet-500/60 focus-visible:ring-violet-500/20"
+            className="h-11 border-border bg-card text-foreground placeholder:text-muted-foreground focus-visible:border-[hsl(var(--color-secondary-bright)/0.6)] focus-visible:ring-[hsl(var(--color-secondary-bright)/0.2)]"
           />
         </div>
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-zinc-300">
+            <Label htmlFor="password" className="text-foreground">
               Password
             </Label>
             <a
               href="/forgot-password"
               onClick={() => emitClick('ui:signin:forgot-password')}
-              className="text-[11px] font-medium text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-300 hover:underline"
+              className="text-[11px] font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
             >
               Forgot password?
             </a>
@@ -129,7 +129,7 @@ export function SigninForm({ redirect = '/app', onComplete }: Props) {
             placeholder="Your password"
             required
             autoComplete="current-password"
-            className="h-11 border-zinc-800 bg-zinc-950/60 text-white placeholder:text-zinc-600 focus-visible:border-violet-500/60 focus-visible:ring-violet-500/20"
+            className="h-11 border-border bg-card text-foreground placeholder:text-muted-foreground focus-visible:border-[hsl(var(--color-secondary-bright)/0.6)] focus-visible:ring-[hsl(var(--color-secondary-bright)/0.2)]"
           />
         </div>
 
@@ -137,7 +137,7 @@ export function SigninForm({ redirect = '/app', onComplete }: Props) {
         {error && (
           <div
             role="alert"
-            className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-300"
+            className="rounded-lg border border-[hsl(var(--color-destructive)/0.3)] bg-[hsl(var(--color-destructive)/0.1)] px-3 py-2.5 text-sm text-[hsl(var(--color-destructive))]"
           >
             {error}
           </div>
@@ -149,7 +149,7 @@ export function SigninForm({ redirect = '/app', onComplete }: Props) {
         {caps && !caps.prf && caps.detected === 'capability-api' && (
           <div
             role="alert"
-            className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-300"
+            className="rounded-lg border border-[hsl(var(--color-gold)/0.3)] bg-[hsl(var(--color-gold)/0.1)] px-3 py-2.5 text-sm text-[hsl(var(--color-gold))]"
           >
             {PRF_UPGRADE_HINT}
           </div>
@@ -159,7 +159,7 @@ export function SigninForm({ redirect = '/app', onComplete }: Props) {
         <Button
           type="submit"
           disabled={isPending || !email || !password}
-          className="h-11 w-full bg-white text-sm font-semibold text-black hover:bg-zinc-200 disabled:opacity-60"
+          className="h-11 w-full bg-foreground text-sm font-semibold text-background hover:opacity-90 disabled:opacity-60"
         >
           {isPending ? (
             <span className="inline-flex items-center gap-2">
@@ -176,12 +176,12 @@ export function SigninForm({ redirect = '/app', onComplete }: Props) {
       </form>
 
       {/* Footnote */}
-      <p className="mt-6 text-center text-xs text-zinc-500">
+      <p className="mt-6 text-center text-xs text-muted-foreground">
         New here?{' '}
         <a
           href="/signup"
           onClick={() => emitClick('ui:signin:goto-signup')}
-          className="font-medium text-zinc-300 underline-offset-4 transition-colors hover:text-white hover:underline"
+          className="font-medium text-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
         >
           Create an account
         </a>

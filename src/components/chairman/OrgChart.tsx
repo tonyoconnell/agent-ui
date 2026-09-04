@@ -20,11 +20,26 @@ import { UnitNode } from './nodes/UnitNode'
 // ─── palette ────────────────────────────────────────────────────────────────
 
 const C = {
-  bg: '#0a0a0f',
-  chairman: { bg: '#1a0533', border: '#7c3aed', text: '#c4b5fd', accent: '#8b5cf6' },
-  ceo: { bg: '#0f1140', border: '#4f46e5', text: '#a5b4fc', accent: '#6366f1' },
-  director: { bg: '#150d2e', border: '#6d28d9', text: '#c084fc', accent: '#7c3aed' },
-  hired: '#10b981',
+  bg: 'hsl(var(--color-background))',
+  chairman: {
+    bg: 'hsl(var(--color-card))',
+    border: 'hsl(var(--color-secondary-bright))',
+    text: 'hsl(var(--color-secondary-bright))',
+    accent: 'hsl(var(--color-secondary-bright))',
+  },
+  ceo: {
+    bg: 'hsl(var(--color-card))',
+    border: 'hsl(var(--color-primary-bright))',
+    text: 'hsl(var(--color-primary-bright))',
+    accent: 'hsl(var(--color-primary-bright))',
+  },
+  director: {
+    bg: 'hsl(var(--color-card))',
+    border: 'hsl(var(--color-secondary-bright))',
+    text: 'hsl(var(--color-secondary-bright))',
+    accent: 'hsl(var(--color-secondary-bright))',
+  },
+  hired: 'hsl(var(--color-tertiary-bright))',
 }
 
 // ─── node data shapes ────────────────────────────────────────────────────────
@@ -54,7 +69,7 @@ function ChairmanNode({ data }: NodeProps) {
       />
       <div className="flex items-center gap-2 mb-0.5">
         <span style={{ color: C.chairman.accent }}>♛</span>
-        <span className="text-sm font-semibold text-slate-100">{d.label}</span>
+        <span className="text-sm font-semibold text-foreground">{d.label}</span>
       </div>
       <div className="text-[10px]" style={{ color: C.chairman.text }}>
         Chairman
@@ -65,7 +80,7 @@ function ChairmanNode({ data }: NodeProps) {
 
 // ─── component ───────────────────────────────────────────────────────────────
 
-const NODE_TYPES = { chairman: ChairmanNode, unit: UnitNode, pending: PendingNode }
+const NODE_TYPES = { chairman: ChairmanNode, actor: UnitNode, pending: PendingNode }
 
 interface HiredUnit {
   uid: string
@@ -79,13 +94,13 @@ interface OrgUnit {
 }
 
 interface Props {
-  unit: HiredUnit | null
+  actor: HiredUnit | null
   orgUnits: OrgUnit[]
   building: boolean
   pending: string[]
 }
 
-export function OrgChart({ unit, orgUnits, building, pending }: Props) {
+export function OrgChart({ actor, orgUnits, building, pending }: Props) {
   const paths = useOrgPaths()
   const rawNodes = useMemo<Node[]>(() => {
     const ns: Node[] = [
@@ -96,16 +111,16 @@ export function OrgChart({ unit, orgUnits, building, pending }: Props) {
         data: { label: 'You' },
       },
     ]
-    if (unit) {
+    if (actor) {
       ns.push({
         id: 'ceo',
-        type: 'unit',
+        type: 'actor',
         position: { x: 0, y: 0 },
         data: {
-          uid: unit.uid,
+          uid: actor.uid,
           role: 'ceo',
-          wallet: unit.wallet,
-          skills: unit.skills,
+          wallet: actor.wallet,
+          skills: actor.skills,
           status: building ? 'hiring' : 'hired',
         },
       })
@@ -113,7 +128,7 @@ export function OrgChart({ unit, orgUnits, building, pending }: Props) {
     for (const u of orgUnits) {
       ns.push({
         id: u.uid,
-        type: 'unit',
+        type: 'actor',
         position: { x: 0, y: 0 },
         data: { uid: u.uid, role: u.uid.replace('roles:', ''), wallet: null, skills: [], status: 'hired' },
       })
@@ -127,11 +142,11 @@ export function OrgChart({ unit, orgUnits, building, pending }: Props) {
       })
     }
     return ns
-  }, [unit, orgUnits, building, pending])
+  }, [actor, orgUnits, building, pending])
 
   const rawEdges = useMemo<Edge[]>(() => {
     const es: Edge[] = []
-    if (unit) {
+    if (actor) {
       const p = paths.get('chairman→ceo')
       es.push({
         id: 'chairman→ceo',
@@ -168,7 +183,7 @@ export function OrgChart({ unit, orgUnits, building, pending }: Props) {
       })
     }
     return es
-  }, [unit, orgUnits, building, pending, paths])
+  }, [actor, orgUnits, building, pending, paths])
 
   const laidOut = useNodeLayout(rawNodes, rawEdges, { rankdir: 'TB', nodesep: 52, ranksep: 80, nodeW: 184, nodeH: 80 })
 
@@ -197,7 +212,7 @@ export function OrgChart({ unit, orgUnits, building, pending }: Props) {
       nodesConnectable={false}
       elementsSelectable={false}
     >
-      <Background color="#1c1c2e" gap={28} size={1} />
+      <Background color="hsl(var(--color-card))" gap={28} size={1} />
     </ReactFlow>
   )
 }

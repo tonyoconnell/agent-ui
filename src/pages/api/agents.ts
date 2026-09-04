@@ -7,7 +7,7 @@
  *   capabilities: Array<{ taskName, taskType, price, currency }>
  * }
  *
- * Creates: unit + tasks + capability relations in TypeDB.
+ * Creates: actor + tasks + capability relations in TypeDB.
  */
 import type { APIRoute } from 'astro'
 import { write } from '@/lib/typedb'
@@ -44,13 +44,13 @@ export const POST: APIRoute = async ({ request }) => {
   const walletClause = wallet ? `has wallet "${wallet}",` : ''
 
   try {
-    // 1. Create the agent unit
+    // 1. Create the agent actor
     await write(`
       insert
-        $u isa unit,
-          has uid "${uid}",
+        $u isa actor,
+          has aid "${uid}",
           has name "${safeName}",
-          has unit-kind "agent",
+          has actor-type "agent",
           ${walletClause}
           has status "active",
           has balance 0.0,
@@ -85,7 +85,7 @@ export const POST: APIRoute = async ({ request }) => {
       // Create capability relation
       await write(`
         match
-          $u isa unit, has uid "${uid}";
+          $u isa actor, has aid "${uid}";
           $s isa skill, has skill-id "${tid}";
         insert
           (provider: $u, offered: $s) isa capability,

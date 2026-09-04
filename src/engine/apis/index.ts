@@ -3,7 +3,7 @@
  * Each returns an apiUnit() wired with the right base URL, auth, and headers.
  *
  * Usage:
- *   net.units['github'] = github(GITHUB_TOKEN)
+ *   net.actors['github'] = github(GITHUB_TOKEN)
  *   net.signal({ receiver: 'github:post',
  *     data: { path: '/repos/owner/repo/pulls', body: { title: 'PR', head: 'feat', base: 'main' } }
  *   }, 'loop')

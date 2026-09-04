@@ -73,7 +73,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   const existingMembership = await readParsed(`
     match
       $g isa group, has gid "${esc(ownershipGroup)}";
-      $u isa unit, has uid "${esc(humanUid)}";
+      $u isa actor, has aid "${esc(humanUid)}";
       (member: $u, group: $g) isa membership, has member-role "chairman";
     select $g;
   `).catch(() => [])
@@ -85,7 +85,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     )
   }
 
-  // 4. Ensure human unit exists in TypeDB
+  // 4. Ensure human actor exists in TypeDB
   await ensureHumanUnit(humanUid, sessionUser)
 
   // 5. Upsert ownership group (idempotent via best-effort)
@@ -103,7 +103,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   await write(`
     match
       $g isa group, has gid "${esc(ownershipGroup)}";
-      $agent isa unit, has uid "${esc(uid)}";
+      $agent isa actor, has aid "${esc(uid)}";
     insert
       (group: $g, member: $agent) isa membership, has member-role "agent";
   `).catch(() => {
@@ -113,7 +113,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   await write(`
     match
       $g isa group, has gid "${esc(ownershipGroup)}";
-      $human isa unit, has uid "${esc(humanUid)}";
+      $human isa actor, has aid "${esc(humanUid)}";
     insert
       (group: $g, member: $human) isa membership, has member-role "chairman";
   `).catch(() => {
@@ -147,13 +147,13 @@ export const POST: APIRoute = async ({ request, params }) => {
       has created ${now};
   `)
 
-  // Link key to human unit
+  // Link key to human actor
   writeSilent(`
     match
       $k isa api-key, has api-key-id "${esc(newKeyId)}";
-      $u isa unit, has uid "${esc(humanUid)}";
+      $u isa actor, has aid "${esc(humanUid)}";
     insert
-      (api-key: $k, authorized-unit: $u) isa api-authorization;
+      (api-key: $k, authorized-actor: $u) isa api-authorization;
   `)
 
   return new Response(

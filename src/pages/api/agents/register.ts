@@ -1,7 +1,7 @@
 /**
  * POST /api/agents/register
  *
- * Register a new agent unit with optional capabilities and wallet link.
+ * Register a new agent actor with optional capabilities and wallet link.
  *
  * Body:
  *   { uid: string, kind?: string, capabilities?: { skill: string, price?: number }[], wallet?: string, chain?: string }
@@ -9,7 +9,7 @@
  * Returns:
  *   { uid: string, status: "registered", capabilities: number, walletLinked?: boolean }
  *
- * Lifecycle gate: creates unit + capability relations in one call.
+ * Lifecycle gate: creates actor + capability relations in one call.
  * Rate limit: 10 wallet-link writes per uid per day (returns 429 if exceeded).
  *
  * BaaS tier gate (Cycle 1 T-B1-09): authenticated callers' agent counts
@@ -91,7 +91,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const net = world()
     const kind = body.kind || 'agent'
 
-    // Create the unit (register stage)
+    // Create the actor (register stage)
     net.actor(body.uid, kind)
 
     // Declare capabilities if provided
@@ -127,7 +127,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (callerUid) {
       const escUid = body.uid.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
       const escCaller = callerUid.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
-      writeSilent(`match $u isa unit, has uid "${escUid}"; insert $u has owner "${escCaller}";`)
+      writeSilent(`match $u isa actor, has aid "${escUid}"; insert $u has owner "${escCaller}";`)
     }
 
     // Record in D1 AFTER successful creation (idempotent via ON CONFLICT DO NOTHING).

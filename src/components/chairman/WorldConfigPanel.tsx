@@ -66,29 +66,29 @@ export function WorldConfigPanel({ gid = DEFAULT_GID }: { gid?: string }) {
 
   if (!cfg) {
     return (
-      <Card className="bg-[#161622] border-[#252538]">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-slate-200">World Config</CardTitle>
+          <CardTitle className="text-font">World Config</CardTitle>
         </CardHeader>
-        <CardContent className="text-slate-400 text-sm">Loading…</CardContent>
+        <CardContent className="text-muted-foreground text-sm">Loading…</CardContent>
       </Card>
     )
   }
 
   return (
-    <Card className="bg-[#161622] border-[#252538]">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between text-slate-200">
+        <CardTitle className="flex items-center justify-between text-font">
           <span>World Config</span>
           {pending ? (
-            <Badge variant="secondary" className="bg-slate-700 text-slate-300">
+            <Badge variant="secondary" className="bg-muted text-font">
               saving…
             </Badge>
           ) : null}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {error ? <div className="text-rose-400 text-sm">{error}</div> : null}
+        {error ? <div className="text-destructive text-sm">{error}</div> : null}
 
         <Knob
           label="Sensitivity"
@@ -157,8 +157,8 @@ function Knob({ label, hint, min, max, step, value, precision, onCommit }: KnobP
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="text-sm text-slate-300">{label}</label>
-        <span className="text-sm text-slate-400 font-mono">{local.toFixed(precision)}</span>
+        <label className="text-sm text-foreground">{label}</label>
+        <span className="text-sm text-muted-foreground font-mono">{local.toFixed(precision)}</span>
       </div>
       <Slider
         min={min}
@@ -168,7 +168,7 @@ function Knob({ label, hint, min, max, step, value, precision, onCommit }: KnobP
         onValueChange={(vs) => setLocal(vs[0] ?? local)}
         onValueCommit={(vs) => onCommit(vs[0] ?? local)}
       />
-      <div className="text-xs text-slate-500 mt-1">{hint}</div>
+      <div className="text-xs text-muted-foreground mt-1">{hint}</div>
     </div>
   )
 }

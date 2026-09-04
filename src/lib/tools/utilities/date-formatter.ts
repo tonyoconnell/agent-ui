@@ -24,10 +24,10 @@ const dateFormatterParams = z.object({
     .describe('Operation to perform'),
   format: z.string().optional().describe('Output format (e.g., "YYYY-MM-DD", "MMM D, YYYY")'),
   amount: z.number().optional().describe('Amount for add/subtract operations'),
-  unit: z
+  actor: z
     .enum(['years', 'months', 'days', 'hours', 'minutes', 'seconds'])
     .optional()
-    .describe('Unit for add/subtract/diff operations'),
+    .describe('Actor for add/subtract/diff operations'),
   compareDate: z.string().optional().describe('Second date for diff operation'),
   timezone: z.string().optional().describe('Target timezone (e.g., "America/New_York", "UTC")'),
 })
@@ -104,10 +104,10 @@ function relativeTime(date: Date): string {
   }
 }
 
-function addTime(date: Date, amount: number, unit: string): Date {
+function addTime(date: Date, amount: number, actor: string): Date {
   const result = new Date(date)
 
-  switch (unit) {
+  switch (actor) {
     case 'years':
       result.setFullYear(result.getFullYear() + amount)
       break
@@ -131,10 +131,10 @@ function addTime(date: Date, amount: number, unit: string): Date {
   return result
 }
 
-function dateDiff(date1: Date, date2: Date, unit: string): number {
+function dateDiff(date1: Date, date2: Date, actor: string): number {
   const diffMs = Math.abs(date2.getTime() - date1.getTime())
 
-  switch (unit) {
+  switch (actor) {
     case 'years':
       return Math.floor(diffMs / (1000 * 60 * 60 * 24 * 365))
     case 'months':
@@ -153,7 +153,7 @@ function dateDiff(date1: Date, date2: Date, unit: string): number {
 }
 
 async function formatDateTool(params: z.infer<typeof dateFormatterParams>) {
-  const { date: dateStr, operation, format, amount, unit, compareDate } = params
+  const { date: dateStr, operation, format, amount, actor, compareDate } = params
 
   try {
     const date = parseDate(dateStr)
@@ -176,47 +176,47 @@ async function formatDateTool(params: z.infer<typeof dateFormatterParams>) {
         }
 
       case 'add': {
-        if (amount === undefined || !unit) {
-          throw new Error('amount and unit are required for add operation')
+        if (amount === undefined || !actor) {
+          throw new Error('amount and actor are required for add operation')
         }
-        const addedDate = addTime(date, amount, unit)
+        const addedDate = addTime(date, amount, actor)
         return {
           operation: 'add',
           input: dateStr || 'current date',
           amount,
-          unit,
+          actor,
           output: formatDate(addedDate, format),
           iso: addedDate.toISOString(),
         }
       }
 
       case 'subtract': {
-        if (amount === undefined || !unit) {
-          throw new Error('amount and unit are required for subtract operation')
+        if (amount === undefined || !actor) {
+          throw new Error('amount and actor are required for subtract operation')
         }
-        const subtractedDate = addTime(date, -amount, unit)
+        const subtractedDate = addTime(date, -amount, actor)
         return {
           operation: 'subtract',
           input: dateStr || 'current date',
           amount,
-          unit,
+          actor,
           output: formatDate(subtractedDate, format),
           iso: subtractedDate.toISOString(),
         }
       }
 
       case 'diff': {
-        if (!compareDate || !unit) {
-          throw new Error('compareDate and unit are required for diff operation')
+        if (!compareDate || !actor) {
+          throw new Error('compareDate and actor are required for diff operation')
         }
         const date2 = parseDate(compareDate)
-        const difference = dateDiff(date, date2, unit)
+        const difference = dateDiff(date, date2, actor)
         return {
           operation: 'diff',
           date1: dateStr || 'current date',
           date2: compareDate,
           difference,
-          unit,
+          actor,
         }
       }
 

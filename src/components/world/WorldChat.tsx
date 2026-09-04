@@ -278,7 +278,7 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
             onClick={toggleVoice}
             className={cn('px-3 py-2 rounded-lg transition-all', listening && 'animate-pulse')}
             style={{
-              backgroundColor: listening ? '#ef4444' : skin.colors.surface,
+              backgroundColor: listening ? 'hsl(var(--color-destructive))' : skin.colors.surface,
               color: listening ? 'white' : skin.colors.muted,
             }}
           >
@@ -293,7 +293,7 @@ export function WorldChat({ world, agents, onWorldUpdate }: WorldChatProps) {
             onKeyDown={handleKeyDown}
             placeholder={`${t('send')} a command...`}
             disabled={isStreaming}
-            className="flex-1 px-3 py-2 rounded-lg text-sm text-white placeholder:text-slate-500 outline-none"
+            className="flex-1 px-3 py-2 rounded-lg text-sm text-white placeholder:text-muted-foreground outline-none"
             style={{
               backgroundColor: skin.colors.surface,
               borderColor: `${skin.colors.muted}30`,

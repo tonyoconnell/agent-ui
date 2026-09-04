@@ -19,7 +19,7 @@ import { escapeTqlString, readParsed } from '@/lib/typedb'
 
 // Alert thresholds
 const DEVIATION_THRESHOLD = 0.05 // 5 %
-const MIN_SUI_THRESHOLD = 0.1 // minimum gap to alert (in SUI units)
+const MIN_SUI_THRESHOLD = 0.1 // minimum gap to alert (in SUI actors)
 const MIST_PER_SUI = 1_000_000_000n // 1 SUI = 10^9 MIST
 const LOOKBACK_MS = 24 * 60 * 60 * 1000 // 24 h in ms
 
@@ -62,12 +62,12 @@ export const POST: APIRoute = async () => {
   let checked = 0
 
   try {
-    // ── 1. Query TypeDB for all units with a wallet attribute ───────────────
+    // ── 1. Query TypeDB for all actors with a wallet attribute ───────────────
     let wallets: { uid: string; wallet: string }[]
     try {
       const rows = await readParsed(`
         match
-          $u isa unit, has uid $uid, has wallet $wallet;
+          $u isa actor, has aid $uid, has wallet $wallet;
         select $uid, $wallet;
       `)
       wallets = rows
@@ -108,7 +108,7 @@ export const POST: APIRoute = async () => {
           const onChainMist = BigInt(balanceResp.totalBalance ?? '0')
 
           // TypeDB: signed delta from signals over last 24 h.
-          // Inbound (received by this unit) is positive, outbound negative.
+          // Inbound (received by this actor) is positive, outbound negative.
           // Weights are stored in SUI; convert to MIST for comparison.
           const safeWallet = escapeTqlString(wallet)
           const safeUid = escapeTqlString(uid)
@@ -133,7 +133,7 @@ export const POST: APIRoute = async () => {
               }
             }
 
-            // Outbound: signals whose sender matches the unit uid
+            // Outbound: signals whose sender matches the actor uid
             const outRows = await readParsed(`
               match
                 $s isa signal,

@@ -527,10 +527,12 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
 
                     {(!editedProduct.walletAddresses || editedProduct.walletAddresses.length === 0) &&
                       !editedProduct.walletAddress && (
-                        <p className="text-xs text-amber-500">⚠️ No wallet set - payments won't have a destination</p>
+                        <p className="text-xs text-[hsl(var(--color-gold))]">
+                          ⚠️ No wallet set - payments won't have a destination
+                        </p>
                       )}
                     {(editedProduct.walletAddresses?.length || 0) > 1 && (
-                      <p className="text-xs text-green-600">
+                      <p className="text-xs text-[hsl(var(--color-tertiary-bright))]">
                         ✅ Customers will choose from {editedProduct.walletAddresses?.length} payment options
                       </p>
                     )}
@@ -538,7 +540,7 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
                 ) : (
                   <div>
                     {(product.walletAddresses?.length || 0) > 0 || product.walletAddress ? (
-                      <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <div className="p-3 bg-[hsl(var(--color-tertiary-bright)/0.1)] border border-[hsl(var(--color-tertiary-bright)/0.2)] rounded-lg">
                         <p className="text-xs text-muted-foreground mb-2">
                           {(product.walletAddresses?.length || 1) > 1
                             ? `Customers can pay to ${product.walletAddresses?.length} wallets:`
@@ -572,15 +574,15 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
               </CardHeader>
               <CardContent className="space-y-4">
                 {!product.walletAddress && (!product.walletAddresses || product.walletAddresses.length === 0) && (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                  <div className="p-3 bg-[hsl(var(--color-gold)/0.1)] border border-[hsl(var(--color-gold)/0.2)] rounded-lg">
+                    <p className="text-sm text-[hsl(var(--color-gold))]">
                       ⚠️ No receiving wallet set! Click <strong>Edit</strong> above to add one.
                     </p>
                   </div>
                 )}
                 {(product.walletAddresses?.length || 0) > 1 && (
-                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    <p className="text-sm text-blue-600 dark:text-blue-400">
+                  <div className="p-3 bg-[hsl(var(--color-primary-bright)/0.1)] border border-[hsl(var(--color-primary-bright)/0.2)] rounded-lg">
+                    <p className="text-sm text-[hsl(var(--color-primary-bright))]">
                       ℹ️ Customers will be able to choose from {product.walletAddresses?.length} payment wallets
                     </p>
                   </div>

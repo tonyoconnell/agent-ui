@@ -27,7 +27,7 @@ export const GET: APIRoute = async ({ request }) => {
     // Step 1: find groups where caller holds chairman or ceo role
     const membershipRows = await readParsed(`
       match
-        $u isa unit, has uid "${esc(ctx.user)}";
+        $u isa actor, has aid "${esc(ctx.user)}";
         (member: $u, group: $g) isa membership, has member-role $r;
         $g has name $gn;
         select $gn, $r;
@@ -52,14 +52,14 @@ export const GET: APIRoute = async ({ request }) => {
       authGroups.map(async (groupName) => {
         let memberRows: Record<string, unknown>[] = []
 
-        // Primary: group is modelled as unit with uid = groupName
+        // Primary: group is modelled as actor with uid = groupName
         try {
           memberRows = await readParsed(`
             match
-              $g isa unit, has uid "${esc(groupName)}";
+              $g isa actor, has aid "${esc(groupName)}";
               (member: $a, group: $g) isa membership, has member-role $mrole;
-              $a has uid $uid, has name $name;
-              not { $a has uid "${esc(ctx.user)}"; };
+              $a has aid $uid, has name $name;
+              not { $a has aid "${esc(ctx.user)}"; };
               select $uid, $name, $mrole;
           `)
         } catch {
@@ -69,8 +69,8 @@ export const GET: APIRoute = async ({ request }) => {
               match
                 $g isa group, has name "${esc(groupName)}";
                 (member: $a, group: $g) isa membership, has member-role $mrole;
-                $a has uid $uid, has name $name;
-                not { $a has uid "${esc(ctx.user)}"; };
+                $a has aid $uid, has name $name;
+                not { $a has aid "${esc(ctx.user)}"; };
                 select $uid, $name, $mrole;
             `)
           } catch {
@@ -101,7 +101,7 @@ export const GET: APIRoute = async ({ request }) => {
       Array.from(seen.keys()).map(async (agentUid) => {
         try {
           const rows = await readParsed(`
-            match $u isa unit, has uid "${esc(agentUid)}";
+            match $u isa actor, has aid "${esc(agentUid)}";
             optional { $u has wallet $wallet; };
             optional { $u has status $status; };
             select $wallet, $status;

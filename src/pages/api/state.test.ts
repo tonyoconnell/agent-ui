@@ -37,15 +37,15 @@ describe('GET /api/state', () => {
 
   // ── KV path ────────────────────────────────────────────────────────────
 
-  it('returns units and edges from KV snapshots', async () => {
-    const units = [
+  it('returns actors and edges from KV snapshots', async () => {
+    const actors = [
       { uid: 'scout', name: 'Scout', kind: 'agent', successRate: 0.9, generation: 2 },
       { uid: 'analyst', name: 'Analyst', kind: 'agent', successRate: 0.7, generation: 1 },
     ]
     const paths = [{ from: 'scout', to: 'analyst', strength: 60, resistance: 5, revenue: 0.5 }]
 
     const ctx = makeCtx({
-      'units.json': JSON.stringify(units),
+      'actors.json': JSON.stringify(actors),
       'paths.json': JSON.stringify(paths),
       'toxic.json': JSON.stringify([]),
     })
@@ -53,12 +53,12 @@ describe('GET /api/state', () => {
     const res = await GET(ctx)
     const body = (await res.json()) as Record<string, any>
 
-    expect(body.units).toHaveLength(2)
-    expect(body.units[0].id).toBe('scout')
-    expect(body.units[0].name).toBe('Scout')
-    expect(body.units[0].kind).toBe('agent')
-    expect(body.units[0].sr).toBe(0.9)
-    expect(body.units[0].g).toBe(2)
+    expect(body.actors).toHaveLength(2)
+    expect(body.actors[0].id).toBe('scout')
+    expect(body.actors[0].name).toBe('Scout')
+    expect(body.actors[0].kind).toBe('agent')
+    expect(body.actors[0].sr).toBe(0.9)
+    expect(body.actors[0].g).toBe(2)
 
     expect(body.edges).toHaveLength(1)
     expect(body.edges[0].from).toBe('scout')
@@ -69,7 +69,7 @@ describe('GET /api/state', () => {
   })
 
   it('calculates stats correctly from KV data', async () => {
-    const units = [
+    const actors = [
       { uid: 'a', name: 'A' },
       { uid: 'b', name: 'B' },
       { uid: 'c', name: 'C' },
@@ -81,7 +81,7 @@ describe('GET /api/state', () => {
     ]
 
     const ctx = makeCtx({
-      'units.json': JSON.stringify(units),
+      'actors.json': JSON.stringify(actors),
       'paths.json': JSON.stringify(paths),
       'toxic.json': JSON.stringify([]),
     })
@@ -89,7 +89,7 @@ describe('GET /api/state', () => {
     const res = await GET(ctx)
     const body = (await res.json()) as Record<string, any>
 
-    expect(body.stats.units).toBe(3)
+    expect(body.stats.actors).toBe(3)
     expect(body.stats.edges).toBe(3)
     // highways: strength >= 50 and not toxic
     expect(body.stats.highways).toBe(2) // a→b (60) and b→c (80)
@@ -104,7 +104,7 @@ describe('GET /api/state', () => {
     ]
 
     const ctx = makeCtx({
-      'units.json': JSON.stringify([]),
+      'actors.json': JSON.stringify([]),
       'paths.json': JSON.stringify(paths),
       'toxic.json': JSON.stringify([]),
     })
@@ -121,7 +121,7 @@ describe('GET /api/state', () => {
     const paths = [{ from: 'a', to: 'b', strength: 5, resistance: 2 }]
 
     const ctx = makeCtx({
-      'units.json': JSON.stringify([]),
+      'actors.json': JSON.stringify([]),
       'paths.json': JSON.stringify(paths),
       'toxic.json': JSON.stringify(['a\u2192b']),
     })
@@ -139,7 +139,7 @@ describe('GET /api/state', () => {
     ]
 
     const ctx = makeCtx({
-      'units.json': JSON.stringify([]),
+      'actors.json': JSON.stringify([]),
       'paths.json': JSON.stringify(paths),
       'toxic.json': JSON.stringify([]),
     })
@@ -158,7 +158,7 @@ describe('GET /api/state', () => {
     const paths = [{ from: 'x', to: 'y', strength: 3, resistance: 12 }]
 
     const ctx = makeCtx({
-      'units.json': JSON.stringify([]),
+      'actors.json': JSON.stringify([]),
       'paths.json': JSON.stringify(paths),
       'toxic.json': JSON.stringify(['x\u2192y']),
     })
@@ -173,7 +173,7 @@ describe('GET /api/state', () => {
 
   it('returns empty state when KV has no data', async () => {
     const ctx = makeCtx({
-      'units.json': null,
+      'actors.json': null,
       'paths.json': null,
       'toxic.json': null,
     })
@@ -181,10 +181,10 @@ describe('GET /api/state', () => {
     const res = await GET(ctx)
     const body = (await res.json()) as Record<string, any>
 
-    expect(body.units).toEqual([])
+    expect(body.actors).toEqual([])
     expect(body.edges).toEqual([])
     expect(body.highways).toEqual([])
-    expect(body.stats.units).toBe(0)
+    expect(body.stats.actors).toBe(0)
     expect(body.stats.edges).toBe(0)
     expect(body.stats.highways).toBe(0)
   })
@@ -193,7 +193,7 @@ describe('GET /api/state', () => {
 
   it('falls back to TypeDB when no KV namespace', async () => {
     const mockReadParsed = readParsed as any
-    // First call: units query
+    // First call: actors query
     mockReadParsed.mockResolvedValueOnce([{ id: 'agent-1', n: 'Agent One', k: 'agent', sr: 0.85, g: 1 }])
     // Second call: paths query
     mockReadParsed.mockResolvedValueOnce([{ sid: 'agent-1', tid: 'agent-2', str: 70, r: 3 }])
@@ -203,9 +203,9 @@ describe('GET /api/state', () => {
     const body = (await res.json()) as Record<string, any>
 
     expect(readParsed).toHaveBeenCalled()
-    expect(body.units).toHaveLength(1)
-    expect(body.units[0].id).toBe('agent-1')
-    expect(body.units[0].name).toBe('Agent One')
+    expect(body.actors).toHaveLength(1)
+    expect(body.actors[0].id).toBe('agent-1')
+    expect(body.actors[0].name).toBe('Agent One')
     expect(body.edges).toHaveLength(1)
     expect(body.edges[0].strength).toBe(70)
   })
@@ -219,17 +219,17 @@ describe('GET /api/state', () => {
     const body = (await res.json()) as Record<string, any>
 
     // Should return empty state, not crash
-    expect(body.units).toEqual([])
+    expect(body.actors).toEqual([])
     expect(body.edges).toEqual([])
-    expect(body.stats.units).toBe(0)
+    expect(body.stats.actors).toBe(0)
   })
 
   // ── Defaults ───────────────────────────────────────────────────────────
 
   it('defaults kind to agent and generation to 1 when missing', async () => {
-    const units = [{ uid: 'minimal', name: 'Minimal' }]
+    const actors = [{ uid: 'minimal', name: 'Minimal' }]
     const ctx = makeCtx({
-      'units.json': JSON.stringify(units),
+      'actors.json': JSON.stringify(actors),
       'paths.json': JSON.stringify([]),
       'toxic.json': JSON.stringify([]),
     })
@@ -237,15 +237,15 @@ describe('GET /api/state', () => {
     const res = await GET(ctx)
     const body = (await res.json()) as Record<string, any>
 
-    expect(body.units[0].kind).toBe('agent')
-    expect(body.units[0].g).toBe(1)
-    expect(body.units[0].sr).toBe(0)
+    expect(body.actors[0].kind).toBe('agent')
+    expect(body.actors[0].g).toBe(1)
+    expect(body.actors[0].sr).toBe(0)
   })
 
   it('defaults revenue to 0 when missing from paths', async () => {
     const paths = [{ from: 'a', to: 'b', strength: 10, resistance: 1 }]
     const ctx = makeCtx({
-      'units.json': JSON.stringify([]),
+      'actors.json': JSON.stringify([]),
       'paths.json': JSON.stringify(paths),
       'toxic.json': JSON.stringify([]),
     })
@@ -260,7 +260,7 @@ describe('GET /api/state', () => {
 
   it('returns application/json content type', async () => {
     const ctx = makeCtx({
-      'units.json': JSON.stringify([]),
+      'actors.json': JSON.stringify([]),
       'paths.json': JSON.stringify([]),
       'toxic.json': JSON.stringify([]),
     })
@@ -270,7 +270,7 @@ describe('GET /api/state', () => {
 
   it('returns tags and tagMap as empty by default', async () => {
     const ctx = makeCtx({
-      'units.json': JSON.stringify([]),
+      'actors.json': JSON.stringify([]),
       'paths.json': JSON.stringify([]),
       'toxic.json': JSON.stringify([]),
     })

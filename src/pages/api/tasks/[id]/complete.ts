@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     delete $o of $t;
   `).catch(() => {})
 
-  // Update task status in TypeDB (using task-id, not unit uid)
+  // Update task status in TypeDB (using task-id, not actor uid)
   writeSilent(`
     match $t isa task, has task-id "${id}", has task-status $st;
     delete $st of $t;
@@ -53,10 +53,10 @@ export const POST: APIRoute = async ({ params, request }) => {
     `).catch(() => {})
   }
 
-  // Update pheromone on path from→task's unit (best-effort — from may not exist as a unit)
+  // Update pheromone on path from→task's actor (best-effort — from may not exist as a actor)
   if (failed) {
     writeSilent(`
-      match $from isa unit, has uid "${from}"; $to isa skill, has skill-id "${id}";
+      match $from isa actor, has aid "${from}"; $to isa skill, has skill-id "${id}";
       (provider: $to_unit, offered: $to) isa capability;
       $e (source: $from, target: $to_unit) isa path, has resistance $r;
       delete $r of $e;
@@ -64,7 +64,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     `).catch(() => {})
   } else {
     writeSilent(`
-      match $from isa unit, has uid "${from}"; $to isa skill, has skill-id "${id}";
+      match $from isa actor, has aid "${from}"; $to isa skill, has skill-id "${id}";
       (provider: $to_unit, offered: $to) isa capability;
       $e (source: $from, target: $to_unit) isa path, has strength $s, has traversals $t;
       delete $s of $e; delete $t of $e;

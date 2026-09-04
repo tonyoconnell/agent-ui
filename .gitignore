@@ -50,3 +50,4 @@ release/
 
 # Local D1 dumps — may contain user PII / vault ciphertext
 backups/
+.deploy.log

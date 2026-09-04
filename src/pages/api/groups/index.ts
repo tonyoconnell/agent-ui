@@ -47,7 +47,7 @@ export const POST: APIRoute = async ({ request }) => {
       has status "active";`)
 
     // Add creator as chairman
-    writeSilent(`match $g isa group, has gid "${esc(gid)}"; $u isa unit, has uid "${esc(ctx.user)}";
+    writeSilent(`match $g isa group, has gid "${esc(gid)}"; $u isa actor, has aid "${esc(ctx.user)}";
       insert (group: $g, member: $u) isa membership, has member-role "chairman";`)
 
     // Wire parent hierarchy if provided
@@ -73,7 +73,7 @@ export const GET: APIRoute = async ({ request }) => {
         match
           $g isa group, has gid $gid, has name $n, has group-type $t, has visibility $v;
           (member: $u, group: $g) isa membership, has member-role $r;
-          $u isa unit, has uid "${esc(ctx.user)}";
+          $u isa actor, has aid "${esc(ctx.user)}";
         select $gid, $n, $t, $v, $r;
       `)
       const publicRows = await readParsed(`

@@ -28,9 +28,11 @@ const MODE_LABEL: Record<NonNullable<PathOfferRowProps['mode']>, string> = {
 }
 
 const VIS_COLOR: Record<NonNullable<PathOfferRowProps['visibility']>, string> = {
-  public: 'bg-emerald-900/50 text-emerald-300 border-emerald-700',
-  group: 'bg-indigo-900/50 text-indigo-300 border-indigo-700',
-  private: 'bg-slate-700/50 text-slate-400 border-slate-600',
+  public:
+    'bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright))] border-[hsl(var(--color-tertiary-mid))]',
+  group:
+    'bg-[hsl(var(--color-primary-bright)/0.15)] text-[hsl(var(--color-primary-bright))] border-[hsl(var(--color-primary-mid))]',
+  private: 'bg-muted text-muted-foreground border-border',
 }
 
 export function PathOfferRow({
@@ -64,17 +66,19 @@ export function PathOfferRow({
   }
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#161622] border border-[#252538] hover:border-indigo-700/50 transition-colors">
+    <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-card border border-border hover:border-[hsl(var(--color-primary-mid)/0.5)] transition-colors">
       {/* Left: name + provider + tags */}
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-        <span className="text-sm font-medium text-slate-100 truncate">{name}</span>
-        {variant === 'buy' && providerName && <span className="text-xs text-slate-500 truncate">{providerName}</span>}
+        <span className="text-sm font-medium text-font truncate">{name}</span>
+        {variant === 'buy' && providerName && (
+          <span className="text-xs text-muted-foreground truncate">{providerName}</span>
+        )}
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-0.5">
             {tags.slice(0, 4).map((t) => (
               <span
                 key={t}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700"
+                className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border"
               >
                 {t}
               </span>
@@ -85,13 +89,13 @@ export function PathOfferRow({
 
       {/* Middle: strength/resistance + mode + visibility */}
       <div className="flex items-center gap-2 shrink-0">
-        <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
+        <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright))] border border-[hsl(var(--color-tertiary-mid))]">
           ↑{strength.toFixed(1)}
         </span>
-        <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800">
+        <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-[hsl(var(--color-destructive)/0.15)] text-[hsl(var(--color-destructive))] border border-[hsl(var(--color-destructive)/0.3)]">
           ↓{resistance.toFixed(1)}
         </span>
-        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-600 capitalize">
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-foreground border border-border capitalize">
           {MODE_LABEL[mode]}
         </span>
         <Badge className={`text-[10px] px-2 py-0.5 border capitalize ${VIS_COLOR[visibility]}`}>{visibility}</Badge>
@@ -99,8 +103,8 @@ export function PathOfferRow({
 
       {/* Right: price + action + export */}
       <div className="flex items-center gap-2 shrink-0">
-        <span className="text-base font-semibold text-slate-100 tabular-nums">
-          {price} <span className="text-xs text-slate-400 font-normal">SUI</span>
+        <span className="text-base font-semibold text-font tabular-nums">
+          {price} <span className="text-xs text-muted-foreground font-normal">SUI</span>
         </span>
         <Button
           size="sm"
@@ -108,8 +112,8 @@ export function PathOfferRow({
           onClick={handleAction}
           className={
             variant === 'buy'
-              ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
-              : 'border-[#252538] text-slate-300 hover:text-slate-100'
+              ? 'bg-[hsl(var(--color-primary-bright))] hover:bg-[hsl(var(--color-primary-bright)/0.9)] text-white'
+              : 'border-border text-foreground hover:text-font'
           }
         >
           {variant === 'buy' ? 'Hire' : 'Edit'}
@@ -118,7 +122,7 @@ export function PathOfferRow({
           type="button"
           title="Export as markdown"
           onClick={handleExport}
-          className="text-slate-500 hover:text-slate-300 transition-colors p-1 rounded"
+          className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
         >
           ↓md
         </button>

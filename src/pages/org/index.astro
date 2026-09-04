@@ -1,0 +1,34 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import { OrgChartView } from '@/components/org/OrgChartView'
+
+export const prerender = false
+---
+
+<Layout
+  title="The Org · ONE"
+  description="Every agent at ONE — Chairman, CEO, Directors and Specialists in one chart."
+>
+  <main class="mx-auto w-full max-w-7xl px-4 py-10 sm:py-14">
+    <header class="mb-8">
+      <p class="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-2">
+        Org Charts
+      </p>
+      <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight">The complete org</h1>
+      <p class="text-muted-foreground mt-3 max-w-2xl">
+        Chairman directs. CEO routes. Five directors own a tag domain each. Specialists do the work.
+        Click any team below to zoom in.
+      </p>
+      <nav class="mt-5 flex flex-wrap gap-2 text-xs">
+        <a href="/org" class="px-3 py-1.5 rounded-full border border-foreground/30 bg-foreground/5">Complete</a>
+        <a href="/org/marketing" class="px-3 py-1.5 rounded-full border border-foreground/15 hover:border-foreground/40 transition-colors">Marketing</a>
+        <a href="/org/sales" class="px-3 py-1.5 rounded-full border border-foreground/15 hover:border-foreground/40 transition-colors">Sales</a>
+        <a href="/org/service" class="px-3 py-1.5 rounded-full border border-foreground/15 hover:border-foreground/40 transition-colors">Service</a>
+      </nav>
+    </header>
+
+    <div style="height: min(82vh, 880px);">
+      <OrgChartView chart="complete" client:only="react" />
+    </div>
+  </main>
+</Layout>

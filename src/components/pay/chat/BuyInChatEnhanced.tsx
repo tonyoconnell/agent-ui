@@ -215,7 +215,7 @@ Brand: ${productContext.brand}
 Category: ${productContext.category}
 Price: $${productContext.price.toFixed(2)}
 Description: ${productContext.description}
-Stock: ${productContext.stock} units available${featuresText}
+Stock: ${productContext.stock} actors available${featuresText}
 
 Answer questions about this product, provide recommendations, and help customers. If they express interest in buying, let them know they can complete their purchase instantly right here in the chat with our "Buy in Chat" feature (33% conversion rate vs traditional 2.1%).
 
@@ -361,7 +361,7 @@ Be friendly, knowledgeable, and concise.`
   }
 
   return (
-    <div className="flex flex-col h-full bg-[hsl(0,0%,10%)]">
+    <div className="flex flex-col h-full bg-background">
       <div className="sr-only">
         <h2>AI Shopping Assistant with Instant Checkout</h2>
       </div>

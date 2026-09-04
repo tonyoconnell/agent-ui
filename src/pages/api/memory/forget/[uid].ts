@@ -2,7 +2,7 @@
  * DELETE /api/memory/forget/:uid — Structural erasure for an actor
  *
  * Deletes all TypeDB records for uid (signals, paths, memberships,
- * capabilities, unit entity) and invalidates the edge KV cache.
+ * capabilities, actor entity) and invalidates the edge KV cache.
  *
  * Authorization: requires 'delete-memory' permission (operator+).
  * BaaS tier gate: GDPR erasure is a World+ feature (Cycle 1 T-B1-06).
@@ -81,9 +81,9 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
   // Crypto-shred the personal group KEK so encrypted signals become unreadable
   await shredGroup(`group:${uid}`).catch(() => {})
 
-  // E13: invalidate edge cache — paths, units, highways all change after erasure
+  // E13: invalidate edge cache — paths, actors, highways all change after erasure
   kvInvalidate('paths.json')
-  kvInvalidate('units.json')
+  kvInvalidate('actors.json')
   kvInvalidate('highways.json')
 
   return new Response(null, { status: 204 })

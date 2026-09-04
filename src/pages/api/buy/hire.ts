@@ -40,7 +40,7 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const rows = await readParsed(`
       match
-        $u isa unit, has uid "${providerUid}";
+        $u isa actor, has aid "${providerUid}";
         $s isa skill, has skill-id "${skillId}";
         (provider: $u, offered: $s) isa capability, has price $p;
       select $p;
@@ -64,7 +64,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (pathStrength < 1.0) {
       // Query for Sui IDs needed for escrow template
       const workerQueryRows = await readParsed(`
-        match $u isa unit, has uid "${providerUid}", has sui-unit-id $wid;
+        match $u isa actor, has aid "${providerUid}", has sui-unit-id $wid;
         select $wid;
       `)
       const workerUnitId = String((workerQueryRows[0] as Record<string, unknown>)?.wid || '')
@@ -107,10 +107,10 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     writeSilent(`insert $g isa group, has gid "${groupId}", has name "hire:${providerUid}", has tag "hire";`)
     writeSilent(
-      `match $g isa group, has gid "${groupId}"; $b isa unit, has uid "${buyerUid}"; insert (member: $b, group: $g) isa membership, has member-role "buyer";`,
+      `match $g isa group, has gid "${groupId}"; $b isa actor, has aid "${buyerUid}"; insert (member: $b, group: $g) isa membership, has member-role "buyer";`,
     )
     writeSilent(
-      `match $g isa group, has gid "${groupId}"; $p isa unit, has uid "${providerUid}"; insert (member: $p, group: $g) isa membership, has member-role "provider";`,
+      `match $g isa group, has gid "${groupId}"; $p isa actor, has aid "${providerUid}"; insert (member: $p, group: $g) isa membership, has member-role "provider";`,
     )
   } catch {
     return Response.json({ error: 'group creation failed' }, { status: 500 })

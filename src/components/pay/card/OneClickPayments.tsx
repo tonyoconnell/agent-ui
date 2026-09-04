@@ -175,12 +175,12 @@ export function OneClickPayments({ productName, price, quantity = 1, onSuccess }
           <button
             onClick={handleGooglePay}
             disabled={isProcessing}
-            className="flex items-center justify-center rounded-lg border border-border bg-white px-4 py-3 font-medium text-gray-800 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center justify-center rounded-lg border border-border bg-muted px-4 py-3 font-medium text-foreground transition-colors hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Buy with Google Pay"
           >
             {isProcessing ? (
               <span className="flex items-center gap-2">
-                <svg className="h-5 w-5 animate-spin text-gray-800" fill="none" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 animate-spin text-foreground" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path
                     className="opacity-75"
@@ -194,7 +194,7 @@ export function OneClickPayments({ productName, price, quantity = 1, onSuccess }
               <span className="flex items-center gap-2">
                 <svg className="h-6 w-6" viewBox="0 0 24 24">
                   <path
-                    fill="#4285F4"
+                    fill="#4285F4" /* theme-ok: Google brand color */
                     d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
                   />
                 </svg>
@@ -208,7 +208,7 @@ export function OneClickPayments({ productName, price, quantity = 1, onSuccess }
         <button
           onClick={handleShopPay}
           disabled={isProcessing}
-          className="flex items-center justify-center rounded-lg bg-[#5A31F4] px-4 py-3 font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-center justify-center rounded-lg bg-secondary px-4 py-3 font-medium text-secondary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           aria-label="Buy with Shop Pay"
         >
           {isProcessing ? (
@@ -275,13 +275,13 @@ export function CompactOneClickPayments(_: CompactOneClickPaymentsProps) {
 
       {/* Google Pay icon button */}
       <button
-        className="flex h-10 flex-1 items-center justify-center rounded-lg border border-border bg-white transition-colors hover:bg-gray-50"
+        className="flex h-10 flex-1 items-center justify-center rounded-lg border border-border bg-foreground transition-colors hover:bg-muted"
         aria-label="Google Pay"
         onClick={() => emitClick('ui:pay:one-click')}
       >
         <svg className="h-5 w-5" viewBox="0 0 24 24">
           <path
-            fill="#4285F4"
+            fill="#4285F4" /* theme-ok: Google brand color */
             d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
           />
         </svg>
@@ -289,7 +289,7 @@ export function CompactOneClickPayments(_: CompactOneClickPaymentsProps) {
 
       {/* Shop Pay icon button */}
       <button
-        className="flex h-10 flex-1 items-center justify-center rounded-lg bg-[#5A31F4] text-white transition-opacity hover:opacity-90"
+        className="flex h-10 flex-1 items-center justify-center rounded-lg bg-secondary text-secondary-foreground transition-opacity hover:opacity-90"
         aria-label="Shop Pay"
         onClick={() => emitClick('ui:pay:one-click')}
       >

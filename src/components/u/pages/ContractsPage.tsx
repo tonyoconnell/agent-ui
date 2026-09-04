@@ -49,9 +49,9 @@ const CONTRACT_TEMPLATES = [
     description: 'Standard fungible token',
     icon: <Coins className="w-6 h-6" />,
     emoji: '🪙',
-    gradient: 'from-amber-500 to-orange-600',
-    bgGradient: 'from-amber-500/10 to-orange-600/10',
-    borderColor: 'border-amber-500/20',
+    gradient: 'from-gold to-tertiary',
+    bgGradient: 'from-gold/10 to-tertiary/10',
+    borderColor: 'border-gold/20',
     prompt: `I want to create an **ERC-20 Token** smart contract.
 
 Please help me configure the following:
@@ -72,9 +72,9 @@ Once I have these details, I'll generate a secure, audited smart contract for yo
     description: 'Non-fungible token collection',
     icon: <ImageIcon className="w-6 h-6" />,
     emoji: '🖼️',
-    gradient: 'from-purple-500 to-pink-600',
-    bgGradient: 'from-purple-500/10 to-pink-600/10',
-    borderColor: 'border-purple-500/20',
+    gradient: 'from-secondary to-secondary',
+    bgGradient: 'from-secondary/10 to-secondary/10',
+    borderColor: 'border-secondary/20',
     prompt: `I want to create an **ERC-721 NFT Collection** smart contract.
 
 Please help me configure:
@@ -95,9 +95,9 @@ I'll generate a battle-tested NFT contract with all modern features.`,
     description: 'Requires multiple signatures',
     icon: <Lock className="w-6 h-6" />,
     emoji: '🔐',
-    gradient: 'from-blue-500 to-cyan-600',
-    bgGradient: 'from-blue-500/10 to-cyan-600/10',
-    borderColor: 'border-blue-500/20',
+    gradient: 'from-primary to-primary',
+    bgGradient: 'from-primary/10 to-primary/10',
+    borderColor: 'border-primary/20',
     prompt: `I want to create a **Multi-Signature Wallet** smart contract.
 
 This provides enhanced security by requiring multiple approvals for transactions.
@@ -117,9 +117,9 @@ I'll generate a secure multi-sig wallet contract.`,
     description: 'Hold funds until conditions met',
     icon: <Handshake className="w-6 h-6" />,
     emoji: '🤝',
-    gradient: 'from-green-500 to-emerald-600',
-    bgGradient: 'from-green-500/10 to-emerald-600/10',
-    borderColor: 'border-green-500/20',
+    gradient: 'from-tertiary to-tertiary',
+    bgGradient: 'from-tertiary/10 to-tertiary/10',
+    borderColor: 'border-tertiary/20',
     prompt: `I want to create an **Escrow** smart contract.
 
 This holds funds securely until predefined conditions are met.
@@ -141,9 +141,9 @@ I'll generate a trustless escrow contract.`,
     description: 'Stake tokens for rewards',
     icon: <TrendingUp className="w-6 h-6" />,
     emoji: '📈',
-    gradient: 'from-indigo-500 to-violet-600',
-    bgGradient: 'from-indigo-500/10 to-violet-600/10',
-    borderColor: 'border-indigo-500/20',
+    gradient: 'from-secondary to-secondary',
+    bgGradient: 'from-secondary/10 to-secondary/10',
+    borderColor: 'border-secondary/20',
     prompt: `I want to create a **Staking Pool** smart contract.
 
 Users can stake tokens to earn rewards over time.
@@ -165,9 +165,9 @@ I'll generate a yield-generating staking contract.`,
     description: 'Voting and proposals',
     icon: <Landmark className="w-6 h-6" />,
     emoji: '🏛️',
-    gradient: 'from-rose-500 to-red-600',
-    bgGradient: 'from-rose-500/10 to-red-600/10',
-    borderColor: 'border-rose-500/20',
+    gradient: 'from-destructive to-destructive',
+    bgGradient: 'from-destructive/10 to-destructive/10',
+    borderColor: 'border-destructive/20',
     prompt: `I want to create a **DAO Governance** smart contract.
 
 This enables decentralized decision-making through voting.
@@ -250,9 +250,9 @@ export function ContractsPage() {
     <TooltipProvider>
       <div className="relative flex size-full flex-col overflow-hidden bg-background">
         {/* Top Bar */}
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur">
+        <div className="flex items-center justify-between px-4 py-3 border-border bg-card/95 backdrop-blur">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-secondary to-secondary flex items-center justify-center shadow-lg">
               <FileCode className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -402,9 +402,9 @@ export function ContractsPage() {
                     description: 'Custom Solidity code',
                     icon: <Code2 className="w-6 h-6" />,
                     emoji: '💻',
-                    gradient: 'from-gray-500 to-slate-600',
-                    bgGradient: 'from-gray-500/10 to-slate-600/10',
-                    borderColor: 'border-gray-500/20',
+                    gradient: 'from-muted-foreground to-muted-foreground',
+                    bgGradient: 'from-muted-foreground/10 to-muted-foreground/10',
+                    borderColor: 'border-muted-foreground/20',
                     prompt: 'I can help with custom Solidity code!',
                   }
                   handleTemplateClick(customTemplate)
@@ -480,7 +480,9 @@ export function ContractsPage() {
         ) : (
           /* AI chat placeholder */
           <div className="flex-1 flex items-center justify-center">
-            <div className="flex items-center justify-center h-64 text-slate-500 text-sm">AI assistant coming soon</div>
+            <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
+              AI assistant coming soon
+            </div>
           </div>
         )}
 

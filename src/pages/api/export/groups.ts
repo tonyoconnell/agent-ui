@@ -33,7 +33,7 @@ export const GET: APIRoute = async () => {
       match
         (group: $g, member: $m) isa membership;
         $g has gid $gid;
-        $m has uid $mid;
+        $m has aid $mid;
       select $gid, $mid;
     `).catch(() => [])
 
@@ -57,10 +57,10 @@ export const GET: APIRoute = async () => {
 
 function colorForType(type: string): string {
   const colors: Record<string, string> = {
-    persona: '#6366f1', // indigo
-    team: '#3b82f6', // blue
-    pod: '#8b5cf6', // purple
-    dao: '#ec4899', // pink
+    persona: 'hsl(var(--color-secondary-bright))',
+    team: 'hsl(var(--color-primary-bright))',
+    pod: 'hsl(var(--color-secondary-bright))',
+    dao: 'hsl(var(--color-destructive))',
   }
-  return colors[type] || '#6b7280' // gray fallback
+  return colors[type] || 'hsl(var(--color-muted-foreground))'
 }

@@ -47,7 +47,7 @@
         height: 100%;
         border: none;
         z-index: 9999;
-        box-shadow: -4px 0 16px rgba(0,0,0,.3);
+        box-shadow: -4px 0 16px rgba(var(--color-font), 0.3);
       }
     `
 
@@ -71,11 +71,11 @@
         height: 3.5rem;
         border-radius: 50%;
         border: none;
-        background: #18181b;
-        color: white;
+        background: hsl(var(--color-background));
+        color: hsl(var(--color-font));
         font-size: 1.5rem;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0,0,0,.4);
+        box-shadow: 0 4px 12px rgba(var(--color-font), 0.4);
       }
       #one-panel {
         position: fixed;
@@ -86,7 +86,7 @@
         height: 600px;
         border: none;
         border-radius: 1rem;
-        box-shadow: 0 8px 32px rgba(0,0,0,.5);
+        box-shadow: 0 8px 32px rgba(var(--color-font), 0.5);
         display: none;
       }
     `

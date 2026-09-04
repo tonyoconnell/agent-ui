@@ -78,11 +78,17 @@ entity thing,
     owns task-priority,               # 0..1
     owns task-variant,                # null/'a'/'b'/'c' (split-test letter)
     owns exit-condition,              # machine-observable acceptance
-    # Rubric (post-verify, any thing-type)
+    # Agent rubric (post-verify LLM response scoring — trade lifecycle VERIFY stage)
     owns rubric-fit,
     owns rubric-form,
     owns rubric-truth,
     owns rubric-taste,
+    # Code rubric (/do cycle W4 scoring — security/stability/simplicity/speed)
+    owns rubric-security,
+    owns rubric-stability,
+    owns rubric-simplicity,
+    owns rubric-speed,
+    owns rubric-composite,
     # Plan-only (meaningful when thing-type='plan')
     owns goal,
     owns cycles-planned,
@@ -111,11 +117,11 @@ entity task,
     owns task-name,
     owns status,                      # "open", "in-progress", "done", "blocked"
     owns done,                        # boolean: completed?
-    owns value,                       # value score (0..1)
+    owns score,                       # value score (0..1)
     owns effort,                      # effort score (0..1)
     owns phase,                       # "W0", "W1", "W2", "W3", "W4"
     owns persona,                     # assigned persona
-    owns priority-score,              # computed: (value - effort) / time
+    owns priority-score,              # computed: (score - effort) / time
     owns exit-condition,              # acceptance criteria
     owns tag @card(0..),              # flat labels for routing
     plays blocks:blocker,
@@ -162,7 +168,7 @@ relation membership,
 relation signal,
     relates sender,
     relates receiver,
-    owns data,                        # JSON payload
+    owns payload,                     # JSON payload
     owns amount,                      # payment (0 = free)
     owns success,
     owns latency,                     # ms from dispatch to outcome
@@ -204,7 +210,7 @@ attribute model, value string;
 attribute prompt, value string;
 attribute tag, value string;
 attribute statement, value string;
-attribute data, value string;
+attribute payload, value string;
 attribute strength, value double;
 attribute resistance, value double;
 attribute price, value double;
@@ -222,7 +228,7 @@ attribute brand, value string;
 attribute owner, value string;
 attribute status, value string;
 attribute done, value boolean;
-attribute value, value double;
+attribute score, value double;
 attribute effort, value double;
 attribute phase, value string;
 attribute persona, value string;
@@ -236,11 +242,18 @@ attribute task-value, value double;
 attribute task-priority, value double;
 attribute task-variant, value string;          # null/'a'/'b'/'c'
 
-# Rubric scoring (any thing-type, set post-verify)
+# Agent rubric scoring (trade lifecycle VERIFY stage — LLM response quality)
 attribute rubric-fit, value double;
 attribute rubric-form, value double;
 attribute rubric-truth, value double;
 attribute rubric-taste, value double;
+
+# Code rubric scoring (/do cycle W4 — composite = 0.35·sec + 0.30·sta + 0.25·sim + 0.10·spd)
+attribute rubric-security, value double;
+attribute rubric-stability, value double;
+attribute rubric-simplicity, value double;
+attribute rubric-speed, value double;
+attribute rubric-composite, value double;
 
 # Plan-only (on `thing` when thing-type='plan')
 attribute goal, value string;
@@ -262,7 +275,7 @@ attribute visibility, value string;       # private/group/public — group visib
 attribute bridge-kind, value string;      # federation/export/escrow — cross-root edge type
 
 # IDENTITY LINK — bridges substrate actor to external identity providers
-attribute linked-at, value long;          # unix ms timestamp of link creation
+attribute linked-at, value integer;       # unix ms timestamp of link creation
 attribute front-door, value string;       # which identity front-door created the link (e.g. "google", "github", "sui")
 
 # WORLD-CONFIG KNOBS — group-level governance tuning (added 2026-04-20 for Chairman dashboard)

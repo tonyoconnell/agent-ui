@@ -22,7 +22,7 @@ const TOPIC_PATTERNS: [RegExp, string][] = [
   [/\b(deploy|deployment|cloudflare|worker|build|ci|pipeline)\b/i, 'deploy'],
   [/\b(test|testing|vitest|jest|spec|assert|expect)\b/i, 'test'],
   [/\b(design|ui|ux|component|layout|style|theme|color)\b/i, 'design'],
-  [/\b(agent|substrate|signal|mark|warn|fade|pheromone|unit)\b/i, 'substrate'],
+  [/\b(agent|substrate|signal|mark|warn|fade|pheromone|actor)\b/i, 'substrate'],
   [/\b(strategy|plan|roadmap|goal|objective|vision)\b/i, 'strategy'],
   [/^(hi|hello|hey|good morning|good evening|howdy)\b/i, 'greeting'],
   [/\?/, 'question'],
@@ -75,16 +75,16 @@ export function detectValence(text: string): number {
 // ── TypeDB queries ────────────────────────────────────────────────────────────
 
 /**
- * Query top paths from an actor to other units/tags.
+ * Query top paths from an actor to other actors/tags.
  * Returns empty array on error (cold start safe).
  */
 export async function actorHighways(uid: string, limit = 10): Promise<Array<{ to: string; strength: number }>> {
   const safe = uid.replace(/"/g, '')
   const rows = await readParsed(
     `match
-       $from isa unit, has uid "${safe}";
+       $from isa actor, has aid "${safe}";
        $e (source: $from, target: $to) isa path, has strength $s;
-       $to has uid $tid;
+       $to has aid $tid;
      sort $s desc; limit ${limit};
      select $tid, $s;`,
   ).catch(() => [] as Record<string, unknown>[])

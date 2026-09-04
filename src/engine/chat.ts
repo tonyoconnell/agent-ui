@@ -2,10 +2,10 @@
  * Chat memory — Pages app turn helpers.
  *
  * Two functions implement the turn loop using the PersistentWorld (TypeDB-backed).
- * These are the Pages-app equivalent of nanoclaw/src/units/ingest + outcome.
+ * These are the Pages-app equivalent of nanoclaw/src/actors/ingest + outcome.
  *
  * Turn flow (called from /api/chat/turn):
- *   1. ingestMessage()   → classify text, ensure actor unit exists in TypeDB
+ *   1. ingestMessage()   → classify text, ensure actor actor exists in TypeDB
  *   2. measureOutcome()  → detect valence of new message vs last turn → mark/warn
  *   3. buildPack()       → (see src/lib/chat/context-pack.ts)
  */
@@ -22,20 +22,20 @@ export interface IngestResult {
 }
 
 /**
- * Classify incoming message text and ensure the actor unit exists in TypeDB.
+ * Classify incoming message text and ensure the actor actor exists in TypeDB.
  * If no actorUid is provided, defaults to "visitor:web".
  * Returns the stable uid and keyword-derived topic tags.
  */
 export function ingestMessage(text: string, actorUid = 'visitor:web'): IngestResult {
   const tags = classify(text)
-  // Ensure actor unit exists — fire-and-forget, cold-start safe
+  // Ensure actor actor exists — fire-and-forget, cold-start safe
   const safe = esc(actorUid)
-  writeSilent(`match $u isa unit, has uid "${safe}"; select $u;`).catch(() => {
+  writeSilent(`match $u isa actor, has aid "${safe}"; select $u;`).catch(() => {
     writeSilent(
-      `insert $u isa unit,
-         has uid "${safe}",
+      `insert $u isa actor,
+         has aid "${safe}",
          has name "${safe}",
-         has unit-kind "human",
+         has actor-type "human",
          has status "active",
          has success-rate 0.5,
          has sample-count 0,

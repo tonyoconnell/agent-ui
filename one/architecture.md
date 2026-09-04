@@ -183,7 +183,7 @@ The substrate provides the signal (who is failing). The agent evolves itself.
 | `optimal_route($from, $task)` | Best unit for task via path strength |
 | `cheapest_provider($task)` | Cheapest unit that can do task |
 | `suggest_route($from, $task)` | Top 5 candidates with strength scores |
-| `proven_units()` | All units with "proven" status |
+| `proven_actors()` | All units with "proven" status |
 | `skills_by_tag($tag)` | Skills matching a tag |
 | `collaborators($me)` | Peers in same group |
 

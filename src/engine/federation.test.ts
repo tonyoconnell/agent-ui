@@ -1,7 +1,7 @@
 /**
  * Federation Tests
  *
- * Verify: federate() wires remote ONE worlds as substrate units.
+ * Verify: federate() wires remote ONE worlds as substrate actors.
  * Zero returns on network error. Signal forwarding with auth.
  *
  * Run: bun vitest run src/engine/federation.test.ts
@@ -23,10 +23,10 @@ describe('federation', () => {
   })
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Test 1: federate(id, url, key) returns a Unit with that id
+  // Test 1: federate(id, url, key) returns a Actor with that id
   // ───────────────────────────────────────────────────────────────────────────
 
-  it('federate returns a Unit with the given id', () => {
+  it('federate returns a Actor with the given id', () => {
     const u = federate('world-legal', 'https://legal.one.ie', 'secret-key')
     expect(u.id).toBe('world-legal')
     expect(u.has('default')).toBe(true)
@@ -48,7 +48,7 @@ describe('federation', () => {
     const u = federate('world-legal', 'https://legal.one.ie', 'secret-key')
     expect(u.has('default')).toBe(true)
 
-    // Invoke unit with data containing receiver + contract
+    // Invoke actor with data containing receiver + contract
     u(
       {
         receiver: 'world-legal',
@@ -85,7 +85,7 @@ describe('federation', () => {
     })
 
     const u = federate('world-finance', 'https://finance.one.ie', 'key')
-    // Invoke unit: should not throw at call time
+    // Invoke actor: should not throw at call time
     expect(() => {
       u(
         {

@@ -332,7 +332,7 @@ export const POST: APIRoute = async ({ request }) => {
     // 7. Fetch reference gas price for budget calculation
     const refGasPrice = await client.getReferenceGasPrice()
     if (refGasPrice) {
-      // budget = price × 1000 units, minimum 1_000_000 MIST
+      // budget = price × 1000 actors, minimum 1_000_000 MIST
       const budget = Math.max(Number(refGasPrice) * 1000, 1_000_000)
       tx.setGasBudget(budget)
     }

@@ -161,7 +161,7 @@ function envValue(name: string): string {
 async function resolveAssertedAddress(uid: string): Promise<string | null> {
   const safeUid = uid.replace(/[^a-zA-Z0-9_:.-]/g, '')
   const rows = await readParsed(`
-    match $u isa unit, has uid "${safeUid}", has wallet $w;
+    match $u isa actor, has aid "${safeUid}", has wallet $w;
     select $w;
   `)
   const w = rows?.[0]?.w
@@ -490,11 +490,11 @@ export const POST: APIRoute = async ({ request }) => {
     return Response.json({ ok: false, error: 'unauthenticated' } satisfies AssertResponse, { status: 401 })
   }
 
-  // 2. Resolve the user's asserted address from their TypeDB unit
+  // 2. Resolve the user's asserted address from their TypeDB actor
   const assertedAddress = await resolveAssertedAddress(ctx.user)
   if (!assertedAddress) {
     return Response.json(
-      { ok: false, error: 'no-wallet', reason: 'unit has no wallet attribute' } satisfies AssertResponse,
+      { ok: false, error: 'no-wallet', reason: 'actor has no wallet attribute' } satisfies AssertResponse,
       { status: 400 },
     )
   }

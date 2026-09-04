@@ -18,7 +18,7 @@ async function getDecayStats() {
   const edges = await readParsed(`
     match $e (source: $from, target: $to) isa path,
       has strength $s, has resistance $r;
-    $from has uid $fid; $to has uid $tid;
+    $from has aid $fid; $to has aid $tid;
     select $fid, $tid, $s, $r;
   `).catch(() => [])
 

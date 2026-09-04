@@ -54,7 +54,7 @@ export function PasskeyButton({ mode, redirect = '/app', onSuccess, onError }: P
       disabled={pending}
       aria-busy={pending}
       onClick={handle}
-      className="relative flex w-full items-center justify-center gap-2.5 rounded-xl bg-white px-4 py-3 text-sm font-medium text-black transition hover:bg-zinc-100 disabled:opacity-60"
+      className="relative flex w-full items-center justify-center gap-2.5 rounded-xl bg-white px-4 py-3 text-sm font-medium text-black transition hover:bg-white/90 disabled:opacity-60"
     >
       {pending ? (
         <>
@@ -66,7 +66,7 @@ export function PasskeyButton({ mode, redirect = '/app', onSuccess, onError }: P
         </>
       ) : (
         <>
-          <span className="size-1.5 rounded-full bg-violet-500 animate-pulse" aria-hidden="true" />
+          <span className="size-1.5 rounded-full bg-secondary-bright animate-pulse" aria-hidden="true" />
           <span>Continue with Touch ID / Face ID</span>
         </>
       )}

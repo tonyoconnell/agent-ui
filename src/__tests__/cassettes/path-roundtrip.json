@@ -1,5 +1,5 @@
 {
-  "schema_hash": "df85fd9d0166",
+  "schema_hash": "5fb3f10ff831",
   "interactions": [
     {
       "id": "path-roundtrip-001",
@@ -7,7 +7,7 @@
         "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      insert $u isa unit, has uid \"vcr-src-1777183842743\", has name \"VCR Source\";\n    ",
+          "query": "\n      insert $u isa actor, has aid \"vcr-src-1777183842743\", has name \"VCR Source\";\n    ",
           "transactionType": "write",
           "commit": true
         }
@@ -200,7 +200,7 @@
         "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      insert $u isa unit, has uid \"vcr-tgt-1777183842743\", has name \"VCR Target\";\n    ",
+          "query": "\n      insert $u isa actor, has aid \"vcr-tgt-1777183842743\", has name \"VCR Target\";\n    ",
           "transactionType": "write",
           "commit": true
         }
@@ -393,7 +393,7 @@
         "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      match $a isa unit, has uid \"vcr-src-1777183842743\";\n            $b isa unit, has uid \"vcr-tgt-1777183842743\";\n      insert (source: $a, target: $b) isa path,\n        has strength 5.0,\n        has resistance 0.0;\n    ",
+          "query": "\n      match $a isa actor, has aid \"vcr-src-1777183842743\";\n            $b isa actor, has aid \"vcr-tgt-1777183842743\";\n      insert (source: $a, target: $b) isa path,\n        has strength 5.0,\n        has resistance 0.0;\n    ",
           "transactionType": "write",
           "commit": true
         }
@@ -802,7 +802,7 @@
         "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      match $a isa unit, has uid \"vcr-src-1777183842743\";\n            $b isa unit, has uid \"vcr-tgt-1777183842743\";\n            (source: $a, target: $b) isa path, has strength $s;\n      select $s;\n    ",
+          "query": "\n      match $a isa actor, has aid \"vcr-src-1777183842743\";\n            $b isa actor, has aid \"vcr-tgt-1777183842743\";\n            (source: $a, target: $b) isa path, has strength $s;\n      select $s;\n    ",
           "transactionType": "read",
           "commit": false
         }
@@ -1120,7 +1120,7 @@
         "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      match $a isa unit, has uid \"vcr-nonexistent-a-xyz\";\n            $b isa unit, has uid \"vcr-nonexistent-b-xyz\";\n            (source: $a, target: $b) isa path;\n      select $a;\n    ",
+          "query": "\n      match $a isa actor, has aid \"vcr-nonexistent-a-xyz\";\n            $b isa actor, has aid \"vcr-nonexistent-b-xyz\";\n            (source: $a, target: $b) isa path;\n      select $a;\n    ",
           "transactionType": "read",
           "commit": false
         }

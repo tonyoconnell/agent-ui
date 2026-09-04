@@ -207,7 +207,7 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
                   {walletCount}
                 </span>
                 {role && (
-                  <span className="rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-violet-300">
+                  <span className="rounded-full bg-[hsl(var(--color-secondary-bright)/0.2)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[hsl(var(--color-secondary-bright))]">
                     {role}
                   </span>
                 )}
@@ -273,14 +273,14 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
                   <button
                     type="button"
                     onClick={handleLock}
-                    className="block w-full px-3 py-1.5 text-left text-xs text-amber-300 hover:bg-amber-500/10"
+                    className="block w-full px-3 py-1.5 text-left text-xs text-[hsl(var(--color-gold))] hover:bg-[hsl(var(--color-gold)/0.1)]"
                   >
                     Lock
                   </button>
                   <button
                     type="button"
                     onClick={signOut}
-                    className="block w-full px-3 py-1.5 text-left text-xs text-red-300 hover:bg-red-500/10"
+                    className="block w-full px-3 py-1.5 text-left text-xs text-[hsl(var(--color-destructive))] hover:bg-[hsl(var(--color-destructive)/0.1)]"
                   >
                     Sign out
                   </button>
@@ -331,7 +331,7 @@ export function Header({ continueHref = '/u' }: HeaderProps) {
               {signInError && (
                 <span
                   role="alert"
-                  className="absolute left-0 right-0 top-14 mx-4 rounded-md border border-red-500/20 bg-red-950/80 px-3 py-2 text-[11px] text-red-300 backdrop-blur sm:static sm:mx-0 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none"
+                  className="absolute left-0 right-0 top-14 mx-4 rounded-md border border-[hsl(var(--color-destructive)/0.2)] bg-[hsl(var(--color-destructive)/0.1)] px-3 py-2 text-[11px] text-[hsl(var(--color-destructive)/0.8)] backdrop-blur sm:static sm:mx-0 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none"
                 >
                   {signInError}
                 </span>

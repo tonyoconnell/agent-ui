@@ -81,11 +81,11 @@ export function DevicesIsland() {
   const confirmIndex = confirmHex ? devices.findIndex((d) => credIdHex(d.credentialId) === confirmHex) : -1
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-white mb-1">Your Devices</h1>
-          <p className="text-slate-400 text-sm">
+          <h1 className="text-2xl font-semibold text-font mb-1">Your Devices</h1>
+          <p className="text-muted-foreground text-sm">
             Passkeys enrolled to access your wallet. Remove a device to revoke its access.
           </p>
         </div>
@@ -93,20 +93,20 @@ export function DevicesIsland() {
         {error && (
           <div
             role="alert"
-            className="rounded-lg border border-red-800/40 bg-red-950/30 px-4 py-3 text-red-400 text-sm"
+            className="rounded-lg border border-[hsl(var(--color-destructive)/0.4)] bg-[hsl(var(--color-destructive)/0.1)] px-4 py-3 text-destructive text-sm"
           >
             {error}
           </div>
         )}
 
-        {loading && <p className="text-slate-500 text-sm text-center py-8">Loading devices…</p>}
+        {loading && <p className="text-muted-foreground text-sm text-center py-8">Loading devices…</p>}
 
         {!loading && devices.length === 0 && (
-          <div className="rounded-xl border border-[#252538] bg-[#161622] px-6 py-10 text-center">
-            <p className="text-slate-400 text-sm mb-1">No passkeys enrolled</p>
-            <p className="text-slate-600 text-xs">
+          <div className="rounded-xl border border-border bg-card px-6 py-10 text-center">
+            <p className="text-muted-foreground text-sm mb-1">No passkeys enrolled</p>
+            <p className="text-muted-foreground text-xs">
               Enroll a passkey from the{' '}
-              <a href="/u/save" className="text-slate-400 underline underline-offset-2 hover:text-white">
+              <a href="/u/save" className="text-muted-foreground underline underline-offset-2 hover:text-font">
                 Save Wallet
               </a>{' '}
               page.
@@ -119,7 +119,7 @@ export function DevicesIsland() {
             {lastDevice && (
               <div
                 role="note"
-                className="rounded-lg border border-amber-800/40 bg-amber-950/20 px-4 py-3 text-amber-400 text-sm"
+                className="rounded-lg border border-[hsl(var(--color-gold)/0.2)] bg-[hsl(var(--color-gold)/0.1)] px-4 py-3 text-[hsl(var(--color-gold))] text-sm"
               >
                 This is your last device. Make sure you have your recovery phrase before revoking it.
               </div>
@@ -128,21 +128,21 @@ export function DevicesIsland() {
             {devices.map((device, index) => {
               const hex = credIdHex(device.credentialId)
               return (
-                <Card key={hex} className="bg-[#161622] border-[#252538] text-white">
+                <Card key={hex} className="bg-card border-border text-font">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">{device.label || `Device ${index + 1}`}</CardTitle>
                   </CardHeader>
                   <CardContent className="flex items-center justify-between gap-4">
                     <div className="space-y-1 min-w-0">
-                      <p className="text-slate-400 text-xs">Enrolled {formatDate(device.createdAt)}</p>
-                      <p className="font-mono text-slate-600 text-[10px] truncate">{hex.slice(0, 24)}…</p>
+                      <p className="text-muted-foreground text-xs">Enrolled {formatDate(device.createdAt)}</p>
+                      <p className="font-mono text-muted-foreground text-[10px] truncate">{hex.slice(0, 24)}…</p>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
                       disabled={revoking === hex}
                       onClick={() => setConfirmHex(hex)}
-                      className="shrink-0 border-[#252538] text-slate-300 hover:bg-red-950/30 hover:border-red-800/40 hover:text-red-400"
+                      className="shrink-0 border-border text-foreground hover:bg-destructive/10 hover:border-destructive/40 hover:text-destructive"
                     >
                       {revoking === hex ? 'Revoking…' : 'Revoke'}
                     </Button>
@@ -154,7 +154,7 @@ export function DevicesIsland() {
         )}
 
         <div className="pt-2 text-center">
-          <a href="/u" className="text-slate-500 text-xs hover:text-slate-300 underline underline-offset-2">
+          <a href="/u" className="text-muted-foreground text-xs hover:text-foreground underline underline-offset-2">
             Back to wallet
           </a>
         </div>
@@ -166,25 +166,27 @@ export function DevicesIsland() {
           if (!open) setConfirmHex(null)
         }}
       >
-        <AlertDialogContent className="bg-[#161622] border-[#252538] text-white">
+        <AlertDialogContent className="bg-card border-border text-font">
           <AlertDialogHeader>
             <AlertDialogTitle>Remove {confirmDevice?.label ?? `Device ${confirmIndex + 1}`}?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-muted-foreground">
               Remove this device? You&apos;ll need Touch ID on another device or your recovery phrase to regain access.
               {lastDevice && (
-                <span className="block mt-2 text-amber-400">Warning: this is your only enrolled device.</span>
+                <span className="block mt-2 text-[hsl(var(--color-gold))]">
+                  Warning: this is your only enrolled device.
+                </span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
-              className="bg-transparent border-[#252538] text-slate-300 hover:bg-[#252538] hover:text-white"
+              className="bg-transparent border-border text-foreground hover:bg-muted hover:text-foreground"
               onClick={() => setConfirmHex(null)}
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-700 text-white hover:bg-red-600"
+              className="bg-destructive text-background hover:opacity-90"
               onClick={() => confirmDevice && void handleRevoke(confirmDevice.credentialId)}
             >
               Remove device

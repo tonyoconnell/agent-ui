@@ -69,15 +69,15 @@ interface WalletInfo {
 // ===== CHAIN CONFIG =====
 
 const CHAINS: Record<string, { name: string; icon: string; color: string; symbol: string; usdPrice: number }> = {
-  eth: { name: 'Ethereum', icon: '⟠', color: 'from-blue-500 to-indigo-600', symbol: 'ETH', usdPrice: 3850 },
-  btc: { name: 'Bitcoin', icon: '₿', color: 'from-orange-400 to-orange-600', symbol: 'BTC', usdPrice: 98500 },
-  sol: { name: 'Solana', icon: '◎', color: 'from-purple-500 to-pink-500', symbol: 'SOL', usdPrice: 245 },
-  sui: { name: 'Sui', icon: '💧', color: 'from-cyan-400 to-blue-500', symbol: 'SUI', usdPrice: 4.12 },
-  base: { name: 'Base', icon: '🔵', color: 'from-blue-400 to-blue-600', symbol: 'ETH', usdPrice: 3850 },
-  arbitrum: { name: 'Arbitrum', icon: '🔷', color: 'from-blue-500 to-blue-700', symbol: 'ETH', usdPrice: 3850 },
-  polygon: { name: 'Polygon', icon: '💜', color: 'from-purple-400 to-purple-600', symbol: 'MATIC', usdPrice: 0.85 },
-  usdc: { name: 'USDC', icon: '💵', color: 'from-blue-400 to-blue-600', symbol: 'USDC', usdPrice: 1.0 },
-  one: { name: 'ONE', icon: '①', color: 'from-emerald-400 to-teal-600', symbol: 'ONE', usdPrice: 0.1 },
+  eth: { name: 'Ethereum', icon: '⟠', color: 'from-primary to-secondary', symbol: 'ETH', usdPrice: 3850 },
+  btc: { name: 'Bitcoin', icon: '₿', color: 'from-gold to-gold', symbol: 'BTC', usdPrice: 98500 },
+  sol: { name: 'Solana', icon: '◎', color: 'from-secondary to-secondary', symbol: 'SOL', usdPrice: 245 },
+  sui: { name: 'Sui', icon: '💧', color: 'from-primary to-primary', symbol: 'SUI', usdPrice: 4.12 },
+  base: { name: 'Base', icon: '🔵', color: 'from-primary to-primary', symbol: 'ETH', usdPrice: 3850 },
+  arbitrum: { name: 'Arbitrum', icon: '🔷', color: 'from-primary to-primary', symbol: 'ETH', usdPrice: 3850 },
+  polygon: { name: 'Polygon', icon: '💜', color: 'from-secondary to-secondary', symbol: 'MATIC', usdPrice: 0.85 },
+  usdc: { name: 'USDC', icon: '💵', color: 'from-primary to-primary', symbol: 'USDC', usdPrice: 1.0 },
+  one: { name: 'ONE', icon: '①', color: 'from-tertiary to-tertiary', symbol: 'ONE', usdPrice: 0.1 },
 }
 
 const CHAIN_COMPATIBILITY: Record<string, string[]> = {
@@ -416,9 +416,9 @@ export function SendPage() {
                 <div
                   className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition-all ${
                     step === s.num
-                      ? 'bg-primary text-primary-foreground scale-110 shadow-lg ring-4 ring-primary/20'
+                      ? 'bg-primary text-font scale-110 shadow-lg ring-4 ring-primary/20'
                       : s.num < step
-                        ? 'bg-green-500 text-white'
+                        ? 'bg-tertiary text-background'
                         : 'bg-muted text-muted-foreground'
                   }`}
                 >
@@ -432,7 +432,7 @@ export function SendPage() {
               </button>
               {i < steps.length - 1 && (
                 <div
-                  className={`w-12 h-0.5 mx-1 mt-[-16px] transition-all ${s.num < step ? 'bg-green-500' : 'bg-muted'}`}
+                  className={`w-12 h-0.5 mx-1 mt-[-16px] transition-all ${s.num < step ? 'bg-tertiary' : 'bg-muted'}`}
                 />
               )}
             </div>
@@ -442,7 +442,7 @@ export function SendPage() {
         {/* Step 1: Destination */}
         {step === 1 && (
           <Card className="overflow-hidden">
-            <div className="h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+            <div className="h-2 bg-gradient-to-r from-primary via-secondary to-destructive" />
             <CardContent className="p-6">
               <div className="text-center mb-6">
                 <div className="text-4xl mb-2">📍</div>
@@ -487,9 +487,9 @@ export function SendPage() {
                     className={`flex items-center gap-3 p-4 rounded-xl transition-all ${
                       detectedChainInfo
                         ? detectedChainInfo.confidence === 'high'
-                          ? 'bg-green-500/10 border border-green-500/20'
-                          : 'bg-amber-500/10 border border-amber-500/20'
-                        : 'bg-red-500/10 border border-red-500/20'
+                          ? 'bg-tertiary/10 border border-tertiary/20'
+                          : 'bg-gold/10 border border-gold/20'
+                        : 'bg-destructive/10 border border-destructive/20'
                     }`}
                   >
                     {detectedChainInfo ? (
@@ -503,7 +503,7 @@ export function SendPage() {
                           <div className="font-medium flex items-center gap-2">
                             {detectedChainInfo.chainData.name} Address
                             {detectedChainInfo.confidence === 'high' && (
-                              <span className="text-green-500 text-sm">✓ Verified</span>
+                              <span className="text-tertiary text-sm">✓ Verified</span>
                             )}
                           </div>
                           <div className="text-sm text-muted-foreground">
@@ -512,7 +512,7 @@ export function SendPage() {
                         </div>
                       </>
                     ) : (
-                      <div className="flex items-center gap-2 text-red-500">
+                      <div className="flex items-center gap-2 text-destructive">
                         <span>⚠</span>
                         <span>Invalid address format</span>
                       </div>
@@ -539,7 +539,12 @@ export function SendPage() {
         {/* Step 2: Amount (USD) */}
         {step === 2 && detectedChainInfo && (
           <Card className="overflow-hidden">
-            <div className={`h-2 bg-gradient-to-r ${detectedChainInfo.chainData.color}`} />
+            <div
+              className={`h-2 bg-gradient-to-r ${detectedChainInfo.chainData.color}`}
+              style={{
+                background: `linear-gradient(to right, hsl(var(--color-primary)), hsl(var(--color-secondary)))`,
+              }}
+            />
             <CardContent className="p-6">
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl mb-6">
                 <div
@@ -589,7 +594,7 @@ export function SendPage() {
                 )}
 
                 {exceedsState1Cap && (
-                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-sm text-amber-600 dark:text-amber-400">
+                  <div className="p-4 bg-gold/10 border border-gold/20 rounded-xl text-sm text-gold">
                     <strong>Wallet limit:</strong> {ERROR_COPY['state1-cap']}
                   </div>
                 )}
@@ -659,8 +664,8 @@ export function SendPage() {
                 scopedWalletData &&
                 userAddress &&
                 scopedWalletData.owner !== userAddress && (
-                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm">
-                    <div className="text-blue-600 dark:text-blue-400 font-medium">
+                  <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg text-sm">
+                    <div className="text-primary font-medium">
                       Cap set by <span className="font-bold">{selectedWallet.name || 'Agent'}</span>
                     </div>
                     <div className="text-muted-foreground mt-1">
@@ -674,7 +679,7 @@ export function SendPage() {
             {compatibleWallets.length === 0 ? (
               <Card className="p-8 text-center">
                 <div
-                  className={`w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br ${detectedChainInfo.chainData.color} flex items-center justify-center text-white text-4xl opacity-50`}
+                  className={`w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br ${detectedChainInfo.chainData.color} flex items-center justify-center text-foreground text-4xl opacity-50`}
                 >
                   {detectedChainInfo.chainData.icon}
                 </div>
@@ -718,7 +723,7 @@ export function SendPage() {
                             <code className="text-sm text-muted-foreground">{formatAddress(wallet.address)}</code>
                           </div>
                           <div className="text-right">
-                            <div className={`text-xl font-bold ${hasEnough ? '' : 'text-red-500'}`}>
+                            <div className={`text-xl font-bold ${hasEnough ? '' : 'text-destructive'}`}>
                               {parseFloat(wallet.balance).toLocaleString(undefined, { maximumFractionDigits: 4 })}
                             </div>
                             <div className="text-sm text-muted-foreground">{chain.symbol}</div>
@@ -730,12 +735,12 @@ export function SendPage() {
                           )}
                         </div>
                         {!hasEnough && (
-                          <div className="mt-3 text-sm text-red-500 flex items-center gap-1">
+                          <div className="mt-3 text-sm text-destructive flex items-center gap-1">
                             <span>⚠</span> Insufficient balance (need {amountSui.toFixed(4)} {chain.symbol})
                           </div>
                         )}
                         {needsPasskey && (
-                          <div className="mt-3 text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                          <div className="mt-3 text-sm text-gold flex items-center gap-1">
                             <span>🔐</span>{' '}
                             <a href="/u/keys" className="underline hover:no-underline">
                               Save wallet first to enable Touch ID signing
@@ -751,7 +756,7 @@ export function SendPage() {
 
             {/* Error */}
             {sendError && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-600 dark:text-red-400">
+              <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-sm text-destructive">
                 {sendError}
               </div>
             )}
@@ -785,9 +790,9 @@ export function SendPage() {
         {/* Step 4: Success */}
         {step === 4 && detectedChainInfo && (
           <Card className="overflow-hidden text-center">
-            <div className={`h-2 bg-gradient-to-r ${detectedChainInfo.chainData.color}`} />
+            <div className={`h-2 bg-gradient-to-r ${detectedChainInfo.chainData.color}`}></div>
             <CardContent className="p-8">
-              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-green-500/10 flex items-center justify-center">
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-tertiary/10 flex items-center justify-center">
                 <span className="text-6xl">✅</span>
               </div>
 
@@ -811,7 +816,7 @@ export function SendPage() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground text-sm">Status</span>
-                    <span className="text-green-500 font-medium text-sm">Confirmed</span>
+                    <span className="text-tertiary font-medium text-sm">Confirmed</span>
                   </div>
                 </div>
               )}

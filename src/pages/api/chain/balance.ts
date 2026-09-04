@@ -2,7 +2,7 @@
  * GET /api/chain/balance?chain=eth&address=0x...
  *
  * Returns native token balance for address on chain.
- * Delegates to BlockchainService via substrate bridge unit.
+ * Delegates to BlockchainService via substrate bridge actor.
  */
 import type { APIRoute } from 'astro'
 import { getBalance } from '@/lib/chains'

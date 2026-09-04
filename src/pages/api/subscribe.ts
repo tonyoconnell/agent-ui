@@ -1,5 +1,5 @@
 /**
- * Subscribe a unit to tags — Stage 12 of lifecycle-one.md
+ * Subscribe a actor to tags — Stage 12 of lifecycle-one.md
  *
  * POST /api/subscribe { uid, tags: string[], scope?: 'private' | 'public' }
  *   → { ok: true, uid, subscriptions: [{ tag, scope }] }

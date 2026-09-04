@@ -5,7 +5,7 @@
  * syncs to TypeDB (+ Sui if configured), optionally creates chairman membership.
  *
  * Body: { role: string, owner?: string, markdown?: string }
- * Returns: { unit: { uid, wallet, skills }, paths: [] }
+ * Returns: { actor: { uid, wallet, skills }, paths: [] }
  */
 import type { APIRoute } from 'astro'
 import { type AgentSpec, parse, syncAgentWithIdentity } from '@/engine/agent-md'
@@ -66,7 +66,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const uid = spec.group ? `${spec.group}:${spec.name}` : spec.name
   const groupId = spec.group ?? spec.name
 
-  // Wire recursive hire handlers onto this unit in the singleton world
+  // Wire recursive hire handlers onto this actor in the singleton world
   const net = await getNet()
   registerChairman(net)
 
@@ -74,13 +74,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (owner) {
     await writeSilent(`
       match $g isa group, has gid "${groupId}";
-            $u isa unit, has uid "${owner}";
+            $u isa actor, has aid "${owner}";
       insert (group: $g, member: $u) isa membership, has member-role "chairman";
     `).catch(() => {})
   }
 
   return Response.json({
-    unit: {
+    actor: {
       uid,
       wallet: spec.wallet ?? null,
       skills: spec.skills?.map((s) => s.name) ?? [],

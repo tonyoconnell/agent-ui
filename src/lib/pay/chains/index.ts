@@ -205,13 +205,13 @@ export function buildPaymentUriSui(address: string, amount: number): string {
   return `sui:${address}?amount=${mist}`
 }
 
-/** EIP-681 Ethereum payment URI. amount in ETH units (non-wei). */
+/** EIP-681 Ethereum payment URI. amount in ETH actors (non-wei). */
 export function buildPaymentUriEvm(address: string, amount: number): string {
   const wei = BigInt(Math.round(amount * 1e18))
   return `ethereum:${address}?value=${wei.toString()}`
 }
 
-/** Solana Pay URI. amount in SOL units. */
+/** Solana Pay URI. amount in SOL actors. */
 export function buildPaymentUriSol(address: string, amount: number): string {
   return `solana:${address}?amount=${amount}`
 }

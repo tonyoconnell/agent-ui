@@ -16,8 +16,8 @@
 # sprint                            group (group-type: "sprint")
 # epic                              group (group-type: "epic")
 # story / bug / spike / chore       task (task-type: ...)
-# role (PO, SM, Dev, QA, Ops)       unit (unit-kind: "human")
-# AI pair (Claude)                  unit (unit-kind: "agent")
+# role (PO, SM, Dev, QA, Ops)       unit (actor-type: "human")
+# AI pair (Claude)                  unit (actor-type: "agent")
 # handoff                           signal
 # trust                             path.strength
 # friction                          path.alarm
@@ -82,7 +82,7 @@ entity chore sub task,
 
 
 # =============================================================================
-# SCRUM ROLES — unit-kind values, not separate types
+# SCRUM ROLES — actor-type values, not separate types
 # =============================================================================
 #
 # Roles are NOT separate entity types. They're units with a role attribute.
@@ -100,7 +100,7 @@ relation role-assignment,
 entity sprint,
     plays role-assignment:sprint-context;
 
-entity unit,                      # already defined in one.tql
+entity actor,                      # already defined in one.tql
     plays role-assignment:role-holder;
 
 
@@ -234,7 +234,7 @@ fun blockers() -> { task }:
 fun impediments($sprint_id: string) -> { signal }:
     match
         $sp isa sprint, has gid $sprint_id;
-        $sm isa unit;
+        $sm isa actor;
         (sprint-context: $sp, role-holder: $sm) isa role-assignment,
             has scrum-role "sm";
         $sig (receiver: $sm) isa signal, has data $d;
@@ -285,7 +285,7 @@ fun org_chart_drift($sprint_id: string) -> { string, string, double }:
 # ── Who should pick up this story? ──
 # Route by trail strength, not by assignment.
 
-fun best_for_story($story_id: string) -> unit:
+fun best_for_story($story_id: string) -> actor:
     match
         $s isa story, has tid $story_id;
         (provider: $u, skill: $s) isa capability;
@@ -336,7 +336,7 @@ fun retro_explore($sprint_id: string) -> { string, string }:
 fun claude_load($sprint_id: string) -> { string, integer }:
     match
         $sp isa sprint, has gid $sprint_id;
-        $claude isa unit, has unit-kind "agent";
+        $claude isa actor, has actor-type "agent";
         $sig (sender: $from, receiver: $claude) isa signal, has data $d;
         (group: $sp, member: $from) isa membership;
         $from has name $fn;

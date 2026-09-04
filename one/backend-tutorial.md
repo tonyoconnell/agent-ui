@@ -1008,7 +1008,7 @@ Set scopes when minting restricted keys for embedded clients.
 |-----|---------------|
 | [quickstart-baas.md](quickstart-baas.md) | 5-minute first signal |
 | [quickstart-workers.md](quickstart-workers.md) | 3-command CF Workers deploy |
-| [auth.md](auth.md) | API key flows, wallet derivation, governance |
+| [auth.md](one-ie/dev.one.ie/one/auth.md) | API key flows, wallet derivation, governance |
 | [pricing.md](pricing.md) | Tier math, cost per developer |
 | [dictionary.md](dictionary.md) | Canonical names — signal/mark/warn/fade/follow/harden |
 | [DSL.md](DSL.md) | Signal grammar |

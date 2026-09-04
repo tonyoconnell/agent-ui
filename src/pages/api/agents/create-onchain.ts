@@ -1,10 +1,10 @@
 /**
- * POST /api/agents/create-onchain — Create on-chain Sui Unit object
+ * POST /api/agents/create-onchain — Create on-chain Sui Actor object
  *
  * Body: { uid: string, name?: string, kind?: string }
  *
  * Funds the wallet via testnet faucet, waits for confirmation,
- * creates a Move Unit object, and stores the objectId in TypeDB.
+ * creates a Move Actor object, and stores the objectId in TypeDB.
  *
  * Returns: { ok, uid, address, objectId, digest }
  */
@@ -78,19 +78,19 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
-    // Now create the on-chain Unit object
+    // Now create the on-chain Actor object
     const result = await createUnit(uid, name || uid, kind || 'agent')
 
     // Store objectId + wallet in TypeDB
     if (result.objectId) {
       writeSilent(`
-        match $u isa unit, has uid "${uid}";
+        match $u isa actor, has aid "${uid}";
         insert $u has sui-unit-id "${result.objectId}";
       `)
     }
     if (result.address) {
       writeSilent(`
-        match $u isa unit, has uid "${uid}";
+        match $u isa actor, has aid "${uid}";
         insert $u has wallet "${result.address}";
       `)
     }

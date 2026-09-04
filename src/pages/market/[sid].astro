@@ -29,7 +29,7 @@ try {
   const rows = await readParsed(`
     match
       $s isa skill, has skill-id "${sid}", has name $sn;
-      $u isa unit, has uid $uid, has name $un, has success-rate $sr;
+      $u isa actor, has aid $uid, has name $un, has success-rate $sr;
       (provider: $u, offered: $s) isa capability, has price $p;
     select $sn, $uid, $un, $sr, $p;
     limit 1;
@@ -57,29 +57,29 @@ if (!skill) {
 ---
 
 <Layout title={`${skill.name} — Marketplace`}>
-  <div class="min-h-screen bg-[#0a0a0f] text-slate-100">
-    <div class="border-b border-[#252538] bg-[#0d0d14] px-6 py-6">
+  <div class="min-h-screen bg-background text-font">
+    <div class="border-b border-border bg-card px-6 py-6">
       <div class="mx-auto max-w-3xl flex items-center gap-4">
-        <a href="/market" class="text-xs text-slate-500 hover:text-slate-300">← Market</a>
+        <a href="/market" class="text-xs text-muted-foreground hover:text-foreground">← Market</a>
         <h1 class="text-xl font-semibold">{skill.name}</h1>
       </div>
     </div>
 
     <div class="mx-auto max-w-3xl px-6 py-8 flex flex-col gap-6">
       <!-- Skill card -->
-      <div class="rounded-lg border border-[#252538] bg-[#161622] px-6 py-5 flex items-start justify-between">
+      <div class="rounded-lg border border-border bg-card px-6 py-5 flex items-start justify-between">
         <div class="flex flex-col gap-1">
-          <span class="text-sm font-medium text-slate-100">{skill.name}</span>
-          <span class="text-xs font-mono text-slate-500">{skill.skillId}</span>
-          <span class="text-xs text-slate-400 mt-1">
-            by <a href={`/market?seller=${skill.sellerUid}`} class="hover:text-slate-200">{skill.sellerName}</a>
+          <span class="text-sm font-medium text-font">{skill.name}</span>
+          <span class="text-xs font-mono text-muted-foreground">{skill.skillId}</span>
+          <span class="text-xs text-foreground mt-1">
+            by <a href={`/market?seller=${skill.sellerUid}`} class="hover:text-font">{skill.sellerName}</a>
           </span>
         </div>
         <div class="text-right flex flex-col gap-1">
-          <span class="text-lg font-semibold text-slate-100">
+          <span class="text-lg font-semibold text-font">
             {skill.price > 0 ? `${skill.price} FET` : 'free'}
           </span>
-          <span class="text-xs text-slate-500">{Math.round(skill.successRate * 100)}% success</span>
+          <span class="text-xs text-muted-foreground">{Math.round(skill.successRate * 100)}% success</span>
         </div>
       </div>
 
@@ -96,13 +96,13 @@ if (!skill) {
       <div class="flex gap-3">
         <a
           href={`/market?bounty=${sid}`}
-          class="rounded border border-[#252538] hover:border-indigo-500/50 px-5 py-2 text-sm text-slate-300 transition-colors"
+          class="rounded border border-border hover:border-[hsl(var(--color-secondary-bright))]/50 px-5 py-2 text-sm text-foreground transition-colors"
         >
           Post bounty
         </a>
         <a
           href={`/api/export/skills`}
-          class="rounded border border-[#252538] px-5 py-2 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+          class="rounded border border-border px-5 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           Export markdown
         </a>

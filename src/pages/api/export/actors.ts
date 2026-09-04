@@ -1,5 +1,5 @@
 /**
- * GET /api/export/units.json — List all units with stats
+ * GET /api/export/actors.json — List all actors with stats
  *
  * Returns: { id, uid, name, aliases, model, generation, successRate, balance, lastSignalAt, group }
  * Caching: 1s
@@ -7,7 +7,7 @@
 import type { APIRoute } from 'astro'
 import { readParsed } from '@/lib/typedb'
 
-type UnitExport = {
+type ActorExport = {
   id: string
   uid: string
   name: string
@@ -26,16 +26,16 @@ export const GET: APIRoute = async () => {
   try {
     const results = await readParsed(`
       match
-        $u isa unit,
-          has uid $id,
+        $u isa actor,
+          has aid $id,
           has name $n,
-          has unit-kind $k,
+          has actor-type $k,
           has success-rate $sr,
           has generation $g;
       select $id, $n, $k, $sr, $g;
     `)
 
-    const units: UnitExport[] = results.map((r) => ({
+    const actors: ActorExport[] = results.map((r) => ({
       id: r.id as string,
       uid: r.id as string,
       name: r.n as string,
@@ -45,7 +45,7 @@ export const GET: APIRoute = async () => {
       status: 'active',
     }))
 
-    return Response.json(units, {
+    return Response.json(actors, {
       headers: { 'Cache-Control': 'public, max-age=1' },
     })
   } catch {

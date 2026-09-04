@@ -56,7 +56,7 @@ function TokenRow({ label, value, onChange }: TokenRowProps) {
         <Label className="w-24 shrink-0 text-sm capitalize text-foreground">{label}</Label>
         <div
           className="h-6 w-6 shrink-0 rounded border border-border"
-          style={{ background: `hsl(${h} ${s}% ${l}%)` }}
+          style={{ background: `hsl(${h} ${s}% ${l}%)` }} /* theme-ok: user-defined hsl */
         />
       </div>
       <div className="flex flex-col gap-1 pl-1">

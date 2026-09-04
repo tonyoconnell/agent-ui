@@ -69,7 +69,9 @@ export function SkinSwitcher({ variant = 'full', className }: SkinSwitcherProps)
           onClick={() => setSkin(s.id)}
           className={cn(
             'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-            skinId === s.id ? 'text-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+            skinId === s.id
+              ? 'text-foreground shadow-lg'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted',
           )}
           style={{
             backgroundColor: skinId === s.id ? `${s.colors.primary}30` : undefined,

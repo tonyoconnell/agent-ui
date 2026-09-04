@@ -95,18 +95,18 @@ export function WalletsPage() {
 
         {/* State 1 CTA */}
         {!hasPasskey && (
-          <Card className="border-amber-500/40 bg-amber-500/5">
+          <Card className="border-gold/40 bg-gold/5">
             <CardContent className="pt-5 pb-4">
               <div className="flex items-start gap-3">
                 <span className="text-2xl">🔓</span>
                 <div className="flex-1">
-                  <p className="font-semibold text-amber-600 dark:text-amber-400 mb-1">Save your wallet</p>
+                  <p className="font-semibold text-gold mb-1">Save your wallet</p>
                   <p className="text-sm text-muted-foreground mb-3">
                     Your wallet exists in this browser only. Add Touch ID so you can restore it on any device.
                   </p>
                   <Button
                     size="sm"
-                    className="bg-amber-500 hover:bg-amber-600 text-white"
+                    className="bg-gold hover:bg-gold/90 text-background"
                     onClick={() => {
                       emitClick('ui:wallets:save-cta')
                       window.location.href = '/u/save'
@@ -201,7 +201,7 @@ export function WalletsPage() {
           </CardHeader>
           <CardContent>
             {wallet.wrappings.some((w) => w.type === 'bip39-shown') ? (
-              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+              <div className="flex items-center gap-2 text-tertiary-bright">
                 <span>✓</span>
                 <span className="text-sm">Phrase shown and confirmed</span>
               </div>

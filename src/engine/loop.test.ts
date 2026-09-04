@@ -12,7 +12,7 @@ import { world as createWorld } from './world'
 
 describe('loop.ts — growth tick', () => {
   describe('L1+L2: signal selection and pheromone marking', () => {
-    it('should select a unit when paths are marked', () => {
+    it('should select a actor when paths are marked', () => {
       const net = createWorld()
       net.add('alice').on('default', () => 'ok')
       net.add('bob').on('default', () => 'ok')
@@ -23,7 +23,7 @@ describe('loop.ts — growth tick', () => {
       net.mark('entry→bob', 5)
       net.mark('entry→charlie', 20)
 
-      // Select should return a unit id
+      // Select should return a actor id
       const selected = net.select()
       expect(selected).toBeTruthy()
       expect(['alice', 'bob', 'charlie']).toContain(selected)
@@ -55,11 +55,11 @@ describe('loop.ts — growth tick', () => {
       expect(after).toBe(3)
     })
 
-    it('should track pheromone separately from unit execution', () => {
+    it('should track pheromone separately from actor execution', () => {
       const net = createWorld()
       net.add('alice').on('default', () => 'ok')
 
-      // Pheromone is independent of unit execution
+      // Pheromone is independent of actor execution
       // Mark multiple times
       net.mark('entry→alice', 5)
       net.mark('entry→alice', 5)
@@ -69,10 +69,10 @@ describe('loop.ts — growth tick', () => {
       expect(strength).toBe(15) // marks accumulate
     })
 
-    it('should handle missing units gracefully', async () => {
+    it('should handle missing actors gracefully', async () => {
       const net = createWorld()
 
-      // Ask on a missing unit should dissolve (not throw)
+      // Ask on a missing actor should dissolve (not throw)
       const outcome = await net.ask({ receiver: 'missing' }, 'entry', 100)
       expect(outcome.dissolved).toBe(true)
     })
@@ -278,7 +278,7 @@ describe('loop.ts — growth tick', () => {
   describe('queue: FIFO + priority ordering', () => {
     it('should queue signals for delivery', () => {
       const net = createWorld()
-      net.enqueue({ receiver: 'future-unit:task' })
+      net.enqueue({ receiver: 'future-actor:task' })
 
       const queued = net.pending()
       expect(queued).toBe(1)
@@ -372,8 +372,8 @@ describe('loop.ts — growth tick', () => {
     it('should route quickly with large networks', () => {
       const net = createWorld()
       for (let i = 0; i < 100; i++) {
-        net.add(`unit${i}`).on('default', () => 'ok')
-        net.mark(`a→unit${i}`, Math.random() * 50)
+        net.add(`actor${i}`).on('default', () => 'ok')
+        net.mark(`a→actor${i}`, Math.random() * 50)
       }
 
       const start = performance.now()
@@ -432,7 +432,7 @@ describe('loop.ts — growth tick', () => {
     })
   })
 
-  describe('loop:feedback unit — return-path pheromone', () => {
+  describe('loop:feedback actor — return-path pheromone', () => {
     /**
      * These tests prove the feedback signal closes the learning loop.
      * Golden work on [engine, P0] tags → tag:engine + tag:P0 paths strengthen.
@@ -551,7 +551,7 @@ describe('loop.ts — growth tick', () => {
   })
 
   describe('L5: evolution trigger gate', () => {
-    it('unit needs evolution when success-rate < 0.5 AND sample-count >= 20', () => {
+    it('actor needs evolution when success-rate < 0.5 AND sample-count >= 20', () => {
       // This mirrors the TypeDB function needs_evolution($u):
       //   match $u has success-rate $sr, has sample-count $sc;
       //   $sr < 0.50; $sc >= 20;
@@ -808,9 +808,9 @@ describe('loop.ts — growth tick', () => {
       expect(step2Done).toBe(true)
     })
 
-    it('should dissolve on missing receiver unit', async () => {
+    it('should dissolve on missing receiver actor', async () => {
       const net = createWorld()
-      // No unit added for 'missing'
+      // No actor added for 'missing'
       const outcome = await net.ask({ receiver: 'missing:task' }, 'entry', 100)
       expect(outcome.dissolved).toBe(true)
       expect(outcome.result).toBeUndefined()
@@ -937,7 +937,7 @@ describe('loop.ts — growth tick', () => {
   })
 
   describe('L5: evolution trigger (success-rate < 0.5 + sample >= 20)', () => {
-    it('should identify units needing evolution by success rate and sample count', () => {
+    it('should identify actors needing evolution by success rate and sample count', () => {
       // Simulate the TypeDB gate: $sr < 0.50 AND $sc >= 20
       const gateCheck = (sr: number, sc: number) => sr < 0.5 && sc >= 20
 
@@ -948,7 +948,7 @@ describe('loop.ts — growth tick', () => {
       expect(gateCheck(0.0, 15)).toBe(false) // cold-start: too few samples
     })
 
-    it('should protect cold-start units from evolving', () => {
+    it('should protect cold-start actors from evolving', () => {
       const gateCheck = (sr: number, sc: number) => sr < 0.5 && sc >= 20
 
       // Even 0% success should not trigger evolution with < 20 samples
@@ -958,7 +958,7 @@ describe('loop.ts — growth tick', () => {
       expect(gateCheck(0.0, 20)).toBe(true) // exactly 20 unlocks it
     })
 
-    it('should prefer units with lowest success rate for evolution priority', () => {
+    it('should prefer actors with lowest success rate for evolution priority', () => {
       // Simulate priority ordering: lower success-rate first
       const candidates = [
         { id: 'agent-a', sr: 0.3, sc: 25 },
@@ -1032,8 +1032,8 @@ describe('loop.ts — growth tick', () => {
   describe('L1b: tag-filtered task routing', () => {
     /**
      * Tests for the L1b block (lines ~196-230 of loop.ts):
-     * When previousTarget exists (a unit just succeeded), tag-filtered
-     * TypeDB query fires first — matching unit tags to task tags.
+     * When previousTarget exists (a actor just succeeded), tag-filtered
+     * TypeDB query fires first — matching actor tags to task tags.
      * Falls back to global priority if no tagged match.
      *
      * These tests verify the routing logic in isolation:
@@ -1146,13 +1146,13 @@ describe('loop.ts — growth tick', () => {
     })
 
     it('tag match prefers relevant tasks: same priority, tagged wins', () => {
-      // When a unit has tags and a task shares those tags, the tag-filtered
+      // When a actor has tags and a task shares those tags, the tag-filtered
       // query fires first. If it returns results, global fallback is skipped.
       // This means a lower-priority tagged task beats a higher-priority untagged one.
       const taggedTask = { id: 'tagged-task', name: 'build API', p: 5, tags: ['engine', 'api'] }
       const untaggedTask = { id: 'untagged-task', name: 'write docs', p: 10, tags: ['docs'] }
 
-      // Tag-filtered query returns taggedTask (unit tags match task tags)
+      // Tag-filtered query returns taggedTask (actor tags match task tags)
       const tagFilteredResults = [taggedTask]
       // Global query would return untaggedTask (higher priority)
       const globalResults = [untaggedTask]
@@ -1243,7 +1243,7 @@ describe('loop.ts — growth tick', () => {
       net.mark('agent→skill-a', 10)
       // skill-b through skill-e are untouched (4 of 5)
 
-      // Get all units that appear in any edge
+      // Get all actors that appear in any edge
       const explored = new Set<string>()
       for (const edge of Object.keys(net.strength)) {
         const [from, to] = edge.split('→')
@@ -1285,7 +1285,7 @@ describe('loop.ts — growth tick', () => {
     it('should filter frontiers by minimum activity threshold', () => {
       const net = createWorld()
 
-      // Simulate two units: one active, one inactive
+      // Simulate two actors: one active, one inactive
       // 'active' involved in 5+ edges
       for (let i = 0; i < 5; i++) {
         net.mark(`active→skill-${i}`, 1)

@@ -29,7 +29,7 @@ describe('Signal Permission Gates', () => {
 
   // Stage 1: Lifecycle Gate
   describe('Stage 1 — Lifecycle Gate', () => {
-    it('should reject signals to retired units with 410 status', async () => {
+    it('should reject signals to retired actors with 410 status', async () => {
       const mockReadParsed = readParsed as any
       mockReadParsed.mockResolvedValueOnce([{ st: 'retired' }])
 
@@ -39,7 +39,7 @@ describe('Signal Permission Gates', () => {
 
       if (adlStatus === 'retired') {
         const response = JSON.stringify({
-          error: 'Unit is retired or deprecated',
+          error: 'Actor is retired or deprecated',
           code: 'UNIT_INACTIVE',
           adlStatus,
         })
@@ -47,7 +47,7 @@ describe('Signal Permission Gates', () => {
       }
     })
 
-    it('should reject signals to deprecated units with 410 status', async () => {
+    it('should reject signals to deprecated actors with 410 status', async () => {
       const mockReadParsed = readParsed as any
       mockReadParsed.mockResolvedValueOnce([{ st: 'deprecated' }])
 
@@ -56,7 +56,7 @@ describe('Signal Permission Gates', () => {
 
       if (adlStatus === 'deprecated') {
         const response = JSON.stringify({
-          error: 'Unit is retired or deprecated',
+          error: 'Actor is retired or deprecated',
           code: 'UNIT_INACTIVE',
           adlStatus,
         })
@@ -64,7 +64,7 @@ describe('Signal Permission Gates', () => {
       }
     })
 
-    it('should allow signals to active units', async () => {
+    it('should allow signals to active actors', async () => {
       const mockReadParsed = readParsed as any
       mockReadParsed.mockResolvedValueOnce([{ st: 'active' }])
 
@@ -327,7 +327,7 @@ describe('Permission Cache', () => {
     }
 
     const cache = new Map<string, CacheEntry>()
-    const receiver = 'test-unit'
+    const receiver = 'test-actor'
 
     // Status cache
     cache.set(`${receiver}:status`, { adlStatus: 'active', timestamp: Date.now() })
@@ -351,7 +351,7 @@ describe('Permission Cache', () => {
     }
 
     const cache = new Map<string, CacheEntry>()
-    const receiver = 'test-unit'
+    const receiver = 'test-actor'
 
     cache.set(`${receiver}:status`, { adlStatus: 'active', timestamp: Date.now() })
     cache.set(`${receiver}:network`, { permNetwork: { allowed_hosts: [] }, timestamp: Date.now() })
@@ -422,7 +422,7 @@ describe('Signal Permission Integration', () => {
   })
 
   it('should short-circuit on gate 1 failure', () => {
-    const gate1Fail = false // Retired unit
+    const gate1Fail = false // Retired actor
     let gate2Checked = false
     let gate3Checked = false
 

@@ -30,7 +30,7 @@ syncs_with: sdk-todo.md, auth-todo.md, mcp-todo.md, cli-todo.md, lifecycle-todo.
 > [lifecycle.md](lifecycle.md) — substrate-view sibling (REGISTER → HARDEN arc),
 > [api.md](api.md) — current endpoint catalog (≈180 routes, grouped by dimension),
 > [sdk.md](sdk.md) — SDK contract (`SubstrateClient` methods + React hooks),
-> [auth.md](auth.md) — current auth flows + the six open gaps,
+> [auth.md](one-ie/dev.one.ie/one/auth.md) — current auth flows + the six open gaps,
 > [dictionary.md](dictionary.md) — canonical names, 6 verbs, stage tags vocabulary,
 > [rubrics.md](rubrics.md) — fit/form/truth/taste scoring (W4),
 > [DSL.md](DSL.md) — signal grammar,
@@ -138,7 +138,7 @@ one for the gate matrix (every audit log entry accounted for).
 | [lifecycle.md](lifecycle.md) | Substrate arc, trade-lifecycle nesting, hardening |
 | [api.md](api.md) | Current route catalog (≈180) — baseline surface to extend |
 | [sdk.md](sdk.md) | SDK contract, hooks, outcome types, streaming |
-| [auth.md](auth.md) | Current flows, six open gaps, claim protocol |
+| [auth.md](one-ie/dev.one.ie/one/auth.md) | Current flows, six open gaps, claim protocol |
 | [dictionary.md](dictionary.md) | Canonical names, 6 verbs, stage vocabulary |
 | [rubrics.md](rubrics.md) | fit/form/truth/taste + ≥ 0.65 gate |
 | [DSL.md](DSL.md) | Signal grammar |
@@ -724,7 +724,7 @@ Cycle-level average ≥ 0.65 is the gate; any dim < 0.65 triggers a W4 re-loop.
 - [lifecycle.md](lifecycle.md) — substrate-view sibling
 - [api.md](api.md) — endpoint catalog
 - [sdk.md](sdk.md) — SDK contract
-- [auth.md](auth.md) — auth flows + gaps
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — auth flows + gaps
 - [dictionary.md](dictionary.md) — canonical names + stage tags vocabulary
 - [rubrics.md](rubrics.md) — fit/form/truth/taste scoring
 - [TODO-governance.md](TODO-governance.md) — Role × Pheromone permission matrix

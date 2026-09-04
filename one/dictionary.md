@@ -69,11 +69,11 @@ restrict what `data` can carry.
 
 ## The Receiver
 
-A signal needs somewhere to land. That's a **unit**.
+A signal needs somewhere to land. That's a **actor**.
 
-A unit is anything that can receive a signal and do something with it.
+An actor is anything that can receive a signal and do something with it.
 A person. An AI agent. A sensor. A database. If it can listen and act,
-it's a unit.
+it's an actor.
 
 ```
            signal arrives
@@ -91,17 +91,17 @@ it's a unit.
           does its work
                 │
                 ▼
-           emits signal ──→ next unit
+           emits signal ──→ next actor
 ```
 
-A unit has **tasks** — named things it knows how to do. Send a signal to
+An actor has **tasks** — named things it knows how to do. Send a signal to
 `"scout"` and it runs the default task. Send to `"scout:observe"` and it
 runs the `observe` task specifically.
 
 `world:` is also a legal receiver — it means "substrate, you choose the
-unit." See [signals.md](signals.md) for the three-mode grammar.
+actor." See [signals.md](signals.md) for the three-mode grammar.
 
-### What a Unit Knows
+### What an Actor Knows
 
 | Field | What it is | Example |
 |-------|-----------|---------|
@@ -111,17 +111,17 @@ unit." See [signals.md](signals.md) for the three-mode grammar.
 | `system-prompt` | Its instructions | `"You analyze data..."` |
 | `generation` | How many times it rewrote itself | `3` |
 
-A human unit has no model or prompt. It just has tasks.
-An AI unit has both. The system watches its performance.
+A human actor has no model or prompt. It just has tasks.
+An AI actor has both. The system watches its performance.
 When it struggles, it rewrites its own instructions. Generation goes up.
 
 ---
 
 ## The Name
 
-A unit appears differently to different people. The substrate maintains four
+An actor appears differently to different people. The substrate maintains four
 layers of identity so each viewer sees what's right for them, and the owner
-controls how the unit is represented everywhere.
+controls how the actor is represented everywhere.
 
 ### The Four Layers
 
@@ -137,16 +137,16 @@ Each layer has a different owner and scope:
 | Layer | Owner | Scope | Where it lives | When to use |
 |-------|-------|-------|----------------|------------|
 | `id` | System | Global, immutable | TypeDB id field | Never changes. Substrate's reference. |
-| `name` | Unit owner | Global, public | TypeDB name field | Default display. Everyone sees it. |
-| `alias[skin]` | Unit owner | Per-metaphor | TypeDB aliases map | Ant-skin calls it "colony", brain-skin calls it "neuron" |
+| `name` | Actor owner | Global, public | TypeDB name field | Default display. Everyone sees it. |
+| `alias[skin]` | Actor owner | Per-metaphor | TypeDB aliases map | Ant-skin calls it "colony", brain-skin calls it "neuron" |
 | `nickname` | Viewer | Personal | KV per-viewer cache | "My team calls it 'scout' but docs call it 'pathfinder'" |
 
 ### Resolution Chain
 
-When code needs to display a unit to a viewer, it resolves in this order:
+When code needs to display an actor to a viewer, it resolves in this order:
 
 ```
-    displayName(unit, viewer, skin) →
+    displayName(actor, viewer, skin) →
         viewer.nicknames[unit.id] ??
         unit.aliases[skin] ??
         unit.name ??
@@ -170,7 +170,7 @@ If not: fall back to the immutable id (shouldn't happen).
 **Name** — Owner's public identity:
 
 ```
-    // Scout unit's owner sets name once
+    // Scout actor's owner sets name once
     unit('scout-42', { name: 'pathfinder' })
     
     // Everyone sees "pathfinder" unless they override it
@@ -180,7 +180,7 @@ If not: fall back to the immutable id (shouldn't happen).
 **Alias** — Owner defines metaphor variants:
 
 ```
-    // Scout unit owner configures skins
+    // Scout actor owner configures skins
     unit('scout-42', {
       name: 'pathfinder',
       aliases: {
@@ -205,9 +205,9 @@ If not: fall back to the immutable id (shouldn't happen).
 
 ### Worked Examples
 
-**Scenario: One Unit, Three Viewers, Two Skins**
+**Scenario: One Actor, Three Viewers, Two Skins**
 
-Unit `scout-42`:
+Actor `scout-42`:
 - id: `"scout-42"`
 - name: `"pathfinder"`
 - aliases: `{ "ant-skin": "scout", "brain-skin": "sensory" }`
@@ -236,7 +236,7 @@ Results:
 Without the four-layer model, this happens:
 
 ```
-    Year 1: unit created, everyone calls it "scout"
+    Year 1: actor created, everyone calls it "scout"
     Year 2: owner renames it to "pathfinder"
             → Everyone's code breaks looking for "scout"
             → Personal scripts with hardcoded names stop working
@@ -250,7 +250,7 @@ Without the four-layer model, this happens:
 With four layers:
 
 ```
-    Year 1: unit created
+    Year 1: actor created
       id: "scout-42"
       name: "scout"
       aliases: {}
@@ -279,8 +279,8 @@ The four layers decouple change:
 ### TypeDB Schema
 
 ```typeql
-# The unit entity
-entity unit has uid,
+# The actor entity
+entity actor has aid,
          has name,
          has aliases,     # map<skin, string>
          has tag,
@@ -288,7 +288,7 @@ entity unit has uid,
          has system-prompt,
          has generation;
 
-# Viewer's personal nicknames stored in KV, indexed by unit id
+# Viewer's personal nicknames stored in KV, indexed by actor id
 # Key: viewer:{viewer-id}/nicknames
 # Value: { "{unit-id}": "nickname", ... }
 ```
@@ -314,7 +314,7 @@ the id never changes. Old references still work. New owner sets new name.
 Viewers keep their nicknames.
 
 **Survives API evolution** — Name can change without breaking integrations
-that use id. Aliases let you serve different metaphors from the same unit.
+that use id. Aliases let you serve different metaphors from the same actor.
 Nicknames let individual teams use their own vocabulary.
 
 **Survives multi-year deployments** — No drift between code, docs, and cache.
@@ -399,7 +399,7 @@ The verb is the intent; the noun is the scope. Five verbs × 2–9 nouns = the c
 
 ## The Path
 
-When a signal travels from one unit to another, it leaves a trail.
+When a signal travels from one actor to another, it leaves a trail.
 That trail is called a **path**.
 
 ```
@@ -471,9 +471,9 @@ and **resistance**.
 
 ## The World
 
-Units don't exist alone. They live in a **world**.
+Actors don't exist alone. They live in a **world**.
 
-A world is where signals move. It holds all the units,
+A world is where signals move. It holds all the actors,
 all the paths, all the memory. It's the petri dish. The soil.
 The network that connects everything.
 
@@ -495,8 +495,8 @@ The network that connects everything.
 
 | Method | What it does |
 |--------|-------------|
-| `add(id)` | Create a new unit |
-| `remove(id)` | Remove a unit (trails remain, fade naturally) |
+| `add(id)` | Create a new actor |
+| `remove(id)` | Remove an actor (trails remain, fade naturally) |
 | `signal(sig)` | Send a signal into the world |
 | `mark(path)` | Strengthen a path |
 | `warn(path)` | Weaken a path |
@@ -531,7 +531,7 @@ something you can build a platform on.
     │    6. Knowledge ─ what was learned           │
     │                                              │
     │    ┌──────────────────────────────────────┐  │
-    │    │     units + signals + paths          │  │
+    │    │     actors + signals + paths          │  │
     │    │     strength + resistance            │  │
     │    └──────────────────────────────────────┘  │
     │                                              │
@@ -545,7 +545,7 @@ The same dimension in three schemas. If these ever disagree, the bridge breaks.
 | # | Dimension | Ontology (`src/schema/one.tql`) | Runtime (`src/engine/world.ts`) | Move (`src/move/one/sources/one.move`) |
 |---|-----------|--------------------------------|--------------------------------|-----------------------------------------|
 | 1 | **Groups**   | `group`       | `group`       | `Colony` ⚠ *(pending rename)*          |
-| 2 | **Actors**   | `actor`       | `unit`        | `Unit`                                  |
+| 2 | **Actors**   | `actor`       | `unit` *(legacy fn name; rename pending)* | `Actor`                                  |
 | 3 | **Things**   | `thing`       | `skill`       | — *(TQL-only; classification layer)*    |
 | 4 | **Paths**    | `path`        | `path`        | `Path` → `Highway` on `harden()`        |
 | 5 | **Events**   | `signal`      | `signal`      | `Signal`                                |
@@ -562,7 +562,7 @@ The same dimension in three schemas. If these ever disagree, the bridge breaks.
 ### 1. Groups — Who Belongs Together
 
 A **group** is a container. A team. An org. A persona. A DAO.
-Units live inside groups. Groups can nest inside other groups.
+Actors live inside groups. Groups can nest inside other groups.
 
 ```
     Platform
@@ -583,19 +583,19 @@ It doesn't see Team B's. No middleware. No filtering. Built in.
 | `group-type` | `"persona"`, `"team"`, `"org"`, `"dao"`, `"owns"` (private ownership group for one agent) |
 | `purpose` | Why this group exists |
 
-**Relation:** `membership` — connects units to groups.
+**Relation:** `membership` — connects actors to groups.
 **Relation:** `hierarchy` — nests groups inside groups.
 
 ---
 
 ### 2. Actors — Who Can Act
 
-A **unit** is anyone or anything that receives signals. Already covered above.
-In the world layer, a unit gets richer:
+A **actor** is anyone or anything that receives signals. Already covered above.
+In the world layer, an actor gets richer:
 
 | Field | What it means |
 |-------|--------------|
-| `unit-kind` | `"human"`, `"agent"`, `"llm"`, `"system"` |
+| `actor-kind` | `"human"`, `"agent"`, `"llm"`, `"system"` |
 | `wallet` | Sui address (for payments) |
 | `balance` | How much they hold |
 | `reputation` | Earned from successful paths |
@@ -603,7 +603,7 @@ In the world layer, a unit gets richer:
 | `activity-score` | 0.0 to 100.0 — how busy they are |
 | `sample-count` | How many interactions measured |
 
-The system classifies units automatically:
+The system classifies actors automatically:
 
 ```
     ┌─────────────────────────────────────────────┐
@@ -645,7 +645,7 @@ Examples: `loop-close:1:r1` (cycle 1 recon #1) · `loop-close:3:e2.b` (variant B
 |-------|------|
 | `"plan"` | A 5-cycle work program. Has `goal`, `cycles-planned`, `escape-condition`. |
 | `"cycle"` | One W0→W4 sandwich within a plan. `containment` links plan→cycle. |
-| `"task"` | Atomic work unit. Has `task-wave`, `task-status`, `task-variant`. `containment` links cycle→task. |
+| `"task"` | Atomic work actor. Has `task-wave`, `task-status`, `task-variant`. `containment` links cycle→task. |
 | `"skill"` | Verified capability. Created when a task reaches `verified` + rubric ≥ 0.65. |
 | `"service"` | Priced skill. `price > 0` = service automatically. |
 | `"token"` | On-chain asset mirror. |
@@ -660,7 +660,7 @@ Examples: `loop-close:1:r1` (cycle 1 recon #1) · `loop-close:3:e2.b` (variant B
 | `"done"` | Result returned; awaiting W4 verify | mark(+depth) |
 | `"verified"` | Rubric ≥ 0.65; may promote skill | mark(score×5) |
 | `"failed"` | No result, not timeout | warn(1) |
-| `"dissolved"` | Missing unit or capability | warn(0.5) |
+| `"dissolved"` | Missing actor or capability | warn(0.5) |
 
 **Task-wave → model routing:**
 
@@ -680,7 +680,7 @@ Tasks get classified by pheromone too:
     ready      ── everything else (default)
 ```
 
-**Relation:** `capability` — which unit offers which skill, at what price.
+**Relation:** `capability` — which actor offers which skill, at what price.
 **Relation:** `containment` — plan→cycle→task hierarchy (replaces `assignment`).
 **Relation:** `production` — task→skill when task reaches `verified`.
 **Relation:** `blocks` — task dependency (replaces `dependency`).
@@ -692,7 +692,7 @@ Tasks get classified by pheromone too:
 Two kinds of weighted connections:
 
 ```
-    PATH ──── unit to unit
+    PATH ──── actor to actor
               "scout works well with analyst"
 
     TRAIL ─── task to task
@@ -701,7 +701,7 @@ Two kinds of weighted connections:
 
 Both carry the same dual weight: strength and resistance.
 
-**Path** (unit-to-unit):
+**Path** (actor-to-actor):
 
 | Status | When |
 |--------|------|
@@ -793,7 +793,7 @@ From seed to world, layer by layer:
     │         │                                               │
     │         ▼                                               │
     │   world()                      the substrate            │
-    │     .add(id)                   create units              │
+    │     .add(id)                   create actors              │
     │     .signal(sig)               send signals              │
     │     .mark() / .warn()          leave trails              │
     │     .fade()                    let time pass             │
@@ -845,9 +845,9 @@ Routes tasks to agents. Learns from outcomes. Falls back gracefully:
 The orchestrator gets dumber over time. Not because it breaks —
 because the world learns the routes and the LLM is no longer needed.
 
-### LLM — Language Model as Unit
+### LLM — Language Model as Actor
 
-Any AI model, wrapped as a unit. Same interface as everything else.
+Any AI model, wrapped as an actor. Same interface as everything else.
 
 ```
     llm('claude', anthropic(key))
@@ -870,13 +870,13 @@ Bridge into the main substrate world so pheromone is shared:
 ```typescript
 import { bridgeAgentverse } from '@/engine/agentverse-bridge'
 const av = await bridgeAgentverse(net, fetchFn, AV_API_KEY)
-// Creates 'av:address' proxy units in net
+// Creates 'av:address' proxy actors in net
 // net.signal({ receiver: 'av:discover', data: { domain: 'translate', task } })
 ```
 
-### API Unit — HTTP Endpoint as Unit
+### API Actor — HTTP Endpoint as Actor
 
-Any external HTTP API wrapped as a substrate unit. `null` return → `warn()` fires automatically.
+Any external HTTP API wrapped as a substrate actor. `null` return → `warn()` fires automatically.
 
 ```typescript
 import { apiUnit, github, slack, mailchimp } from '@/engine'
@@ -892,7 +892,7 @@ net.units['xero'] = apiUnit('xero', { base: 'https://api.xero.com', auth: `Beare
 
 STAN penalises slow APIs via `latencyPenalty`. Rate-limited or failing APIs accumulate resistance and eventually dissolve — same as any bad path, zero configuration.
 
-### Human Unit — Person as Unit
+### Human Actor — Person as Actor
 
 A human in the loop. Routed identically to an LLM. Same formula. Same pheromone.
 
@@ -927,9 +927,9 @@ await resolveAsk(env, askId, { text: 'approved', from: telegramUser })
 
 Reply endpoint: `POST /api/ask/reply` — accepts `{ id, result }` from any external system.
 
-### Federation — Another World as Unit
+### Federation — Another World as Actor
 
-Mount another ONE substrate as a unit. Signal chains cross world boundaries transparently. Pheromone tracks which worlds are reliable.
+Mount another ONE substrate as an actor. Signal chains cross world boundaries transparently. Pheromone tracks which worlds are reliable.
 
 ```typescript
 import { federate } from '@/engine/federation'
@@ -1093,14 +1093,14 @@ Because money leaves a trail.
 
 ## Continuations
 
-Instead of each unit deciding where to emit, you can declare the chain once:
+Instead of each actor deciding where to emit, you can declare the chain once:
 
 ```
     .on('observe', ({ tick }) => ({ data: tick }))
     .then('observe', result => ({ receiver: 'analyst', data: result }))
 ```
 
-`.then()` fires after the task returns. The unit doesn't call `emit`.
+`.then()` fires after the task returns. The actor doesn't call `emit`.
 The continuation carries the signal forward automatically.
 
 Define once. Runs forever.
@@ -1111,7 +1111,7 @@ Define once. Runs forever.
 
 The most important rule: **no errors**.
 
-A signal arrives at a unit that doesn't exist? Nothing happens.
+A signal arrives at an actor that doesn't exist? Nothing happens.
 A task isn't defined? Nothing happens.
 An agent has nothing to say? Nothing happens.
 
@@ -1176,8 +1176,8 @@ The brain. Not storage — the signal relay, the router, the decision-maker.
 
 | Function | What it returns |
 |----------|----------------|
-| `suggest_route(from, task)` | Top 5 units by path strength |
-| `optimal_route(from, task)` | Single best unit |
+| `suggest_route(from, task)` | Top 5 actors by path strength |
+| `optimal_route(from, task)` | Single best actor |
 | `cheapest_provider(task)` | Lowest price with capability |
 | `highways(threshold, min)` | All strong paths |
 
@@ -1187,10 +1187,10 @@ The brain. Not storage — the signal relay, the router, the decision-maker.
 |----------|----------------|
 | `path_status(path)` | `"highway"` `"fresh"` `"active"` `"fading"` `"toxic"` |
 | `trail_status(trail)` | `"proven"` `"fresh"` `"active"` `"fading"` `"dead"` |
-| `unit_classification(unit)` | `"proven"` `"active"` `"at-risk"` |
+| `unit_classification(actor)` | `"proven"` `"active"` `"at-risk"` |
 | `is_attractive(task)` | Strong trail + no blockers |
 | `is_repelled(task)` | Resistance > trail pheromone |
-| `needs_evolution(unit)` | Success < 50%, samples >= 20 |
+| `needs_evolution(actor)` | Success < 50%, samples >= 20 |
 | `is_action_ready(hypothesis)` | Confirmed + p-value <= 0.05 + observations >= 50 |
 
 ### Queries
@@ -1201,9 +1201,9 @@ The brain. Not storage — the signal relay, the router, the decision-maker.
 | `attractive_tasks()` | Tasks ants swarm toward |
 | `repelled_tasks()` | Tasks ants avoid |
 | `exploratory_tasks()` | Ready tasks with no trail yet |
-| `proven_units()` | Consistently successful actors |
-| `at_risk_units()` | Struggling actors |
-| `collaborators(unit)` | Peers in the same group |
+| `proven_actors()` | Consistently successful actors |
+| `at_risk_actors()` | Struggling actors |
+| `collaborators(actor)` | Peers in the same group |
 | `actionable_hypotheses()` | Confirmed and statistically significant |
 | `promising_frontiers()` | Unexplored with high expected value |
 | `total_contribution(name)` | Sum of impact scores |
@@ -1219,7 +1219,7 @@ Same system. Different words. The world doesn't care.
     ┌──────────┬────────┬─────────┬────────┬────────┬─────────┬─────────┐
     │ ONE      │ Ant    │ Brain   │ Team   │ Mail   │ Water   │ Radio   │
     ├──────────┼────────┼─────────┼────────┼────────┼─────────┼─────────┤
-    │ unit     │ ant    │ neuron  │ agent  │ mailbox│ pool    │ receiver│
+    │ actor     │ ant    │ neuron  │ agent  │ mailbox│ pool    │ receiver│
     │ world    │ nest   │ network │ team   │ office │watershed│ network │
     │ signal   │ scent  │ spike   │ task   │ letter │ drop    │ signal  │
     │ emit     │ forage │ fire    │delegate│ deliver│ flow    │ transmit│
@@ -1244,11 +1244,11 @@ Only the words humans use to describe it.
 
 | Name | File | Lines | What |
 |------|------|------:|------|
-| Signal, Unit, World | `src/engine/world.ts` | 226 | The substrate |
+| Signal, Actor, World | `src/engine/world.ts` | 226 | The substrate |
 | World + Persist | `src/engine/persist.ts` | 259 | 6 dimensions + TypeDB |
 | Tick | `src/engine/loop.ts` | 165 | Growth cycle |
 | Boot | `src/engine/boot.ts` | 41 | Hydrate from TypeDB |
-| LLM | `src/engine/llm.ts` | 40 | AI as unit |
+| LLM | `src/engine/llm.ts` | 40 | AI as actor |
 | Schema | `src/schema/world.tql` | 463 | TypeDB truth |
 | Escrow proxy | `src/pages/api/sui/escrow/[id].ts` | — | SSR `viewEscrow()` — keeps `@mysten/sui` out of client bundle |
 | Trade lifecycle | `src/components/marketplace/useTradeLifecycle.ts` | — | 10-stage reducer hook, emits `ui:marketplace:transition:*` |
@@ -1266,7 +1266,7 @@ From atom to organism:
     UNIT ──────────── receives signals, runs tasks
        │
        ▼
-    WORLD ─────────── units + paths + strength + resistance
+    WORLD ─────────── actors + paths + strength + resistance
        │
        ▼
     TYPEDB ────────── persist + route + classify
@@ -1288,7 +1288,7 @@ Worlds don't know about ticks. But together they produce intelligence.
 
 ## The Whole Story in One Breath
 
-A signal carries two fields. It lands on a unit. The unit does its work
+A signal carries two fields. It lands on an actor. The actor does its work
 and emits the next signal. The path between them gets marked. Do it a
 thousand times and highways emerge. Highways attract traffic. Traffic
 generates revenue. Revenue is pheromone. Struggling agents rewrite
@@ -1355,7 +1355,7 @@ The ontology IS the auth model. No separate ACL table. No permissions database. 
 | chairman | everything | bypass gates (chairman is per-group; owner is substrate-wide) |
 | board | read highways/revenue/toxic | write anything |
 | ceo | hire/fire/commend/flag, tune sensitivity | appoint roles |
-| operator | add units, mark/warn | remove units, tune |
+| operator | add actors, mark/warn | remove actors, tune |
 | agent | mark/warn own paths only | add/remove/read revenue |
 | auditor | read highways/revenue/toxic | write anything |
 
@@ -1400,7 +1400,7 @@ These were renamed or removed. Using them causes schema/query drift.
 | `dependency` *(relation)* | `blocks` | v2.0 (2026-04-20) |
 | `knowledge` | `hypothesis` | pre-v1 |
 | `connections` | `path` | pre-v1 |
-| `node` | `unit` / `actor` | pre-v1 |
+| `node` | `actor` / `actor` | pre-v1 |
 | `scent` | `strength` | pre-v1 |
 | `alarm` | `resistance` | pre-v1 |
 | `trail` | `path` | pre-v1 |

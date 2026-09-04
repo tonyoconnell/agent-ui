@@ -59,9 +59,9 @@ export function diffById<T extends { id: string }>(
 export function diffStyle(state: 'added' | 'removed' | 'unchanged'): React.CSSProperties {
   if (state === 'added')
     return {
-      boxShadow: '0 0 0 3px rgba(16,185,129,0.6)',
+      boxShadow: '0 0 0 3px hsl(var(--color-tertiary-bright) / 0.6)',
       animation: 'pulse 1.4s infinite',
     }
-  if (state === 'removed') return { boxShadow: '0 0 0 3px rgba(239,68,68,0.6)', opacity: 0.5 }
+  if (state === 'removed') return { boxShadow: '0 0 0 3px hsl(var(--color-destructive) / 0.6)', opacity: 0.5 }
   return {}
 }

@@ -15,7 +15,7 @@
 # VERIFY:
 #   > transaction one read
 #   > match let $t in ready_tasks(); $t has name $n; select $n;
-#   > match let $u in proven_units(); $u has name $n; select $n;
+#   > match let $u in proven_actors(); $u has name $n; select $n;
 #   > match let $f in promising_frontiers(); $f has fid $id; select $id;
 #
 # =============================================================================
@@ -333,11 +333,11 @@ insert $f isa frontier, has fid "frontier-sui-speed",
 # → "TypeDB Cloud instance"
 #   (only W-1 has no blockers — everything else is blocked)
 #
-# match let $u in proven_units(); $u has name $n; select $n;
+# match let $u in proven_actors(); $u has name $n; select $n;
 # → "Substrate", "Claude", "Scout", "Translator"
 #   (sr >= 0.75, as >= 70, sc >= 50)
 #
-# match let $u in at_risk_units(); $u has name $n; select $n;
+# match let $u in at_risk_actors(); $u has name $n; select $n;
 # → (none — no unit has sr < 0.40 with as >= 25 and sc >= 30)
 #
 # match let $trail in superhighway_trails();

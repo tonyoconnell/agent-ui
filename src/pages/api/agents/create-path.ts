@@ -1,5 +1,5 @@
 /**
- * POST /api/agents/create-path — Create on-chain Sui Path between two units
+ * POST /api/agents/create-path — Create on-chain Sui Path between two actors
  *
  * Body: { signer: string, sourceObjectId: string, targetObjectId: string }
  *

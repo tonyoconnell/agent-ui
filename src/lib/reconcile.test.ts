@@ -75,7 +75,7 @@ describe('Act 1: matching balances', () => {
     mockGetClient.mockReturnValue(makeSuiClient(BALANCE))
     stubLedger(BALANCE, 0n)
 
-    const result = await reconcileWallet('unit:alice', '0xabc')
+    const result = await reconcileWallet('actor:alice', '0xabc')
 
     expect(result.status).toBe('ok')
     expect(result.onChainMist).toBe(BALANCE)
@@ -89,7 +89,7 @@ describe('Act 1: matching balances', () => {
     mockGetClient.mockReturnValue(makeSuiClient(BALANCE))
     stubLedger(LEDGER, 0n)
 
-    const result = await reconcileWallet('unit:bob', '0xdef')
+    const result = await reconcileWallet('actor:bob', '0xdef')
 
     expect(result.status).toBe('ok')
     expect(result.delta).toBe(MIST_DUST_THRESHOLD)
@@ -100,7 +100,7 @@ describe('Act 1: matching balances', () => {
     mockGetClient.mockReturnValue(makeSuiClient(BALANCE))
     stubLedger(BALANCE, 0n)
 
-    await reconcileWallet('unit:charlie', '0x123')
+    await reconcileWallet('actor:charlie', '0x123')
 
     // writeSilent should not have been called with pause-related content
     const pauseCalls = mockWriteSilent.mock.calls.filter((args) => String(args[0]).includes('agent:paused'))
@@ -119,7 +119,7 @@ describe('Act 2: mismatch over threshold', () => {
     mockGetClient.mockReturnValue(makeSuiClient(ON_CHAIN))
     stubLedger(LEDGER, 0n)
 
-    const result = await reconcileWallet('unit:eve', '0x456')
+    const result = await reconcileWallet('actor:eve', '0x456')
 
     expect(result.status).toBe('mismatch')
     expect(result.onChainMist).toBe(ON_CHAIN)
@@ -131,7 +131,7 @@ describe('Act 2: mismatch over threshold', () => {
     mockGetClient.mockReturnValue(makeSuiClient(10_000_000n))
     stubLedger(8_000_000n, 0n)
 
-    await reconcileWallet('unit:eve', '0x456')
+    await reconcileWallet('actor:eve', '0x456')
 
     // Confirm writeSilent was called with agent:paused signal content
     const allCalls = mockWriteSilent.mock.calls.map((args) => String(args[0]))
@@ -143,7 +143,7 @@ describe('Act 2: mismatch over threshold', () => {
     mockGetClient.mockReturnValue(makeSuiClient(10_000_000n))
     stubLedger(8_000_000n, 0n)
 
-    await reconcileWallet('unit:frank', '0x789')
+    await reconcileWallet('actor:frank', '0x789')
 
     const allCalls = mockWriteSilent.mock.calls.map((args) => String(args[0]))
     const hasHypothesis = allCalls.some((q) => q.includes('reconcile-mismatch') && q.includes('hypothesis'))
@@ -156,7 +156,7 @@ describe('Act 2: mismatch over threshold', () => {
     mockGetClient.mockReturnValue(makeSuiClient(ON_CHAIN))
     stubLedger(LEDGER, 0n)
 
-    const result = await reconcileWallet('unit:grace', '0xaaa')
+    const result = await reconcileWallet('actor:grace', '0xaaa')
 
     expect(result.status).toBe('mismatch')
     expect(result.delta).toBe(ON_CHAIN - LEDGER) // negative
@@ -170,7 +170,7 @@ describe('Act 2: mismatch over threshold', () => {
     mockGetClient.mockReturnValue(makeSuiClient(ON_CHAIN))
     stubLedger(FUND, SPEND)
 
-    const result = await reconcileWallet('unit:henry', '0xbbb')
+    const result = await reconcileWallet('actor:henry', '0xbbb')
 
     expect(result.status).toBe('ok')
     expect(result.expectedMist).toBe(FUND - SPEND)
@@ -187,7 +187,7 @@ describe('Act 3: RPC error', () => {
       getBalance: vi.fn().mockRejectedValue(new Error('connection refused')),
     } as unknown as ReturnType<typeof getClient>)
 
-    const result = await reconcileWallet('unit:ivan', '0xccc')
+    const result = await reconcileWallet('actor:ivan', '0xccc')
 
     expect(result.status).toBe('error')
     expect(result.errorMessage).toContain('connection refused')
@@ -199,7 +199,7 @@ describe('Act 3: RPC error', () => {
       .mockResolvedValueOnce([{ w: '5000000' }]) // fund: ok
       .mockRejectedValueOnce(new Error('typedb timeout')) // spend: fails
 
-    const result = await reconcileWallet('unit:judy', '0xddd')
+    const result = await reconcileWallet('actor:judy', '0xddd')
 
     expect(result.status).toBe('error')
     expect(result.errorMessage).toContain('typedb timeout')
@@ -210,7 +210,7 @@ describe('Act 3: RPC error', () => {
       getBalance: vi.fn().mockRejectedValue(new Error('network unreachable')),
     } as unknown as ReturnType<typeof getClient>)
 
-    await reconcileWallet('unit:karen', '0xeee')
+    await reconcileWallet('actor:karen', '0xeee')
 
     const pauseCalls = mockWriteSilent.mock.calls.filter((args) => String(args[0]).includes('agent:paused'))
     expect(pauseCalls).toHaveLength(0)
@@ -221,7 +221,7 @@ describe('Act 3: RPC error', () => {
       getBalance: vi.fn().mockRejectedValue(new Error('rpc down')),
     } as unknown as ReturnType<typeof getClient>)
 
-    const result = await reconcileWallet('unit:leo', '0xfff')
+    const result = await reconcileWallet('actor:leo', '0xfff')
 
     expect(result.onChainMist).toBe(0n)
     expect(result.expectedMist).toBe(0n)

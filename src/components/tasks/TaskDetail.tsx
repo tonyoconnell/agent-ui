@@ -44,7 +44,7 @@ const PRIORITY_PILL: Record<'P0' | 'P1' | 'P2' | 'P3', string> = {
 }
 
 function waveColor(wave: string): string {
-  return WAVES.find((w) => w.key === wave)?.color ?? '#64748b'
+  return WAVES.find((w) => w.key === wave)?.color ?? 'hsl(var(--color-foreground) / 0.4)'
 }
 
 /** Render a 5-dot scale (filled vs hollow). */
@@ -199,7 +199,9 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
           {task.rubric ? (
             <div className="relative">
               <RubricRadar rubric={task.rubric} />
-              <span className="absolute top-0 right-0 text[10px] font-mono text-muted-foreground">avg {avg.toFixed(2)}</span>
+              <span className="absolute top-0 right-0 text[10px] font-mono text-muted-foreground">
+                avg {avg.toFixed(2)}
+              </span>
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-border px-4 py-3 text-xs text-muted-foreground italic">
@@ -236,7 +238,9 @@ export function TaskDetail({ task, onClose, onAction }: Props) {
         {/* 6. Exit condition */}
         {task.exit_condition && (
           <section>
-            <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Exit condition</h3>
+            <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Exit condition
+            </h3>
             <pre className="rounded-lg bg-background border border-border px-3 py-2 font-mono text-[11px] text-muted-foreground whitespace-pre-wrap break-words">
               {task.exit_condition}
             </pre>

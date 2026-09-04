@@ -173,76 +173,76 @@ export const evolveLoop = (net: PersistentWorld, complete: Complete) =>
     {
       sense: struggling(net),
       select: byNeed(),
-      act: async (unit) => {
+      act: async (actor) => {
         // Skip profitable agents (unless critically bad)
         const revenueRows = await readParsed(`
-        match $e (source: $f, target: $t) isa path; $t isa unit, has uid "${unit.id}";
+        match $e (source: $f, target: $t) isa path; $t isa actor, has aid "${actor.id}";
         $e has revenue $rev; $rev > 0.0; select $rev;
       `).catch(() => [])
         const totalRevenue = revenueRows.reduce((sum, r) => sum + (r.rev as number), 0)
-        if (totalRevenue > REVENUE_SKIP_THRESHOLD && unit.successRate > REVENUE_MIN_SUCCESS) {
+        if (totalRevenue > REVENUE_SKIP_THRESHOLD && actor.successRate > REVENUE_MIN_SUCCESS) {
           return { result: 'skipped-profitable' }
         }
 
-        // Fetch known patterns for this unit
-        const knownPatterns = await net.recall(unit.id).catch(() => [])
+        // Fetch known patterns for this actor
+        const knownPatterns = await net.recall(actor.id).catch(() => [])
         const insights = knownPatterns
           .filter((k) => k.confidence > 0.7)
           .map((k) => k.pattern)
           .join('; ')
 
-        return { result: { unit, insights } }
+        return { result: { actor, insights } }
       },
       mark: () => {}, // Mark happens after merge
     },
     // Spawn consultation loop for advice
-    (unit) => consultLoop(net, unit),
+    (actor) => consultLoop(net, actor),
     // Merge parent + child outcomes, trigger prompt rewrite
     async (parentOutcome, childOutcomes) => {
       if (!parentOutcome.result || parentOutcome.result === 'skipped-profitable') {
         return parentOutcome
       }
 
-      const { unit, insights } = parentOutcome.result as { unit: StrugglingUnit; insights: string }
+      const { actor, insights } = parentOutcome.result as { actor: StrugglingUnit; insights: string }
       const advice = childOutcomes
         .filter((o) => o.result)
         .map((o) => String(o.result))
         .join('\n')
 
       // Synthesize: LLM rewrites prompt with failures + patterns + advice
-      const skillInfo = unit.skills.join(', ')
-      const focusHint = unit.weakDim
-        ? `\nFocus: the "${unit.weakDim}" dimension has the lowest rubric score — prioritize improving it.`
+      const skillInfo = actor.skills.join(', ')
+      const focusHint = actor.weakDim
+        ? `\nFocus: the "${actor.weakDim}" dimension has the lowest rubric score — prioritize improving it.`
         : ''
       const newPrompt = await complete(
-        `Agent "${unit.id}" has ${(unit.successRate * 100).toFixed(0)}% success over ${unit.sampleCount} tasks (gen ${unit.generation}).
+        `Agent "${actor.id}" has ${(actor.successRate * 100).toFixed(0)}% success over ${actor.sampleCount} tasks (gen ${actor.generation}).
 Skills: ${skillInfo}
 Known patterns: ${insights || 'none'}
 Advisor feedback: ${advice || 'none'}${focusHint}
 
 Rewrite its prompt to improve:
 
-${unit.prompt}`,
+${actor.prompt}`,
       ).catch(() => null)
 
       if (!newPrompt) return { dissolved: true }
 
       // Save old prompt as hypothesis (for rollback)
       writeSilent(`
-      insert $h isa hypothesis, has hid "evolve-${unit.id}-gen${unit.generation}",
-        has statement "gen ${unit.generation} prompt for ${unit.id}: ${unit.prompt.slice(0, 200).replace(/"/g, "'")}",
+      insert $h isa hypothesis, has hid "evolve-${actor.id}-gen${actor.generation}",
+        has statement "gen ${actor.generation} prompt for ${actor.id}: ${actor.prompt.slice(0, 200).replace(/"/g, "'")}",
         has hypothesis-status "testing", has observations-count 0, has p-value 1.0;
     `).catch(() => {})
 
-      // Update unit with new prompt
+      // Update actor with new prompt
       writeSilent(`
-      match $u isa unit, has uid "${unit.id}", has system-prompt $sp, has generation $g;
+      match $u isa actor, has aid "${actor.id}", has system-prompt $sp, has generation $g;
       delete $sp of $u; delete $g of $u;
-      insert $u has system-prompt "${newPrompt.replace(/"/g, '\\"')}", has generation (${unit.generation} + 1),
+      insert $u has system-prompt "${newPrompt.replace(/"/g, '\\"')}", has generation (${actor.generation} + 1),
              has last-evolved ${new Date().toISOString().replace('Z', '')};
     `).catch(() => {})
 
-      return { result: { evolved: unit.id, generation: unit.generation + 1 } }
+      return { result: { evolved: actor.id, generation: actor.generation + 1 } }
     },
   )
 
@@ -302,8 +302,8 @@ export const knowLoop = (net: PersistentWorld, cycle: number) =>
 
       // LC-1: Knowledge → Evolution coupling
       for (const i of insights.filter((i) => i.confidence >= 0.8)) {
-        const units = i.pattern.split('→').map((s) => s.split(':')[0])
-        priorityEvolve.push(...units)
+        const actors = i.pattern.split('→').map((s) => s.split(':')[0])
+        priorityEvolve.push(...actors)
       }
 
       return { result: { hardened: insights.length, hypotheses: hypoCount } }
@@ -325,7 +325,7 @@ export const getPriorityEvolve = () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Frontier loop: detect unexplored tag clusters and unit gaps.
+ * Frontier loop: detect unexplored tag clusters and actor gaps.
  */
 export const frontierLoop = (net: PersistentWorld, cycle: number) =>
   loop<{ action: 'know' }>(
@@ -347,13 +347,13 @@ export const frontierLoop = (net: PersistentWorld, cycle: number) =>
         frontierCount++
       }
 
-      // Unit gaps
+      // Actor gaps
       const gaps = unitGaps(net, 3)()
       for (const { unitA, unitB } of gaps) {
         writeSilent(`
         insert $f isa frontier, has fid "gap-${unitA}-${unitB}-${cycle}",
-          has frontier-type "unit-gap",
-          has frontier-description "active units ${unitA} and ${unitB} never connected",
+          has frontier-type "actor-gap",
+          has frontier-description "active actors ${unitA} and ${unitB} never connected",
           has expected-value 0.5, has frontier-status "unexplored";
       `).catch(() => {})
         frontierCount++

@@ -3,6 +3,7 @@ import { renderBrand, resolveBrand } from "@/engine/brand"
 import { Header } from "@/components/Header"
 import { Sidebar } from "@/components/Sidebar"
 import { CookieBanner } from "@/components/legal/CookieBanner"
+import { PasskeyUpgradePrompt } from "@/components/auth/PasskeyUpgradePrompt"
 
 interface Props {
 	title: string
@@ -160,6 +161,7 @@ if (!brandStyle) {
 			</nav>
 		</footer>
 		<CookieBanner client:idle countryCode={cfCountry} />
+		<PasskeyUpgradePrompt client:idle />
 		{import.meta.env.PROD && import.meta.env.CF_ANALYTICS_TOKEN && (
 			<script defer src='https://static.cloudflareinsights.com/beacon.min.js'
 				data-cf-beacon={`{"token": "${import.meta.env.CF_ANALYTICS_TOKEN}"}`}></script>

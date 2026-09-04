@@ -21,7 +21,7 @@ status: DRAFT
 > scoped permission for agents to act on their behalf, and signals route
 > across groups under the Role × Pheromone rule — with zero net-new primitives.
 >
-> **Source of truth:** [auth.md](auth.md) — identity flow,
+> **Source of truth:** [auth.md](one-ie/dev.one.ie/one/auth.md) — identity flow,
 > [TODO-governance.md](TODO-governance.md) — role matrix + scope attrs,
 > [DSL.md](one/DSL.md) — signal language,
 > [dictionary.md](dictionary.md) — canonical names,
@@ -329,7 +329,7 @@ Maximum parallelism within every wave. Sequential only between waves.
 
 ## Source of Truth
 
-**[auth.md](auth.md)** — current flow: BetterAuth session + `/api/auth/agent`
+**[auth.md](one-ie/dev.one.ie/one/auth.md)** — current flow: BetterAuth session + `/api/auth/agent`
 **[TODO-governance.md](TODO-governance.md)** — role matrix, scope attrs, pheromone gate
 **[DSL.md](one/DSL.md)** — signal grammar, `{ receiver, data }`, mark/warn
 **[dictionary.md](dictionary.md)** — canonical names: actor/unit/path/signal/group
@@ -349,7 +349,7 @@ Maximum parallelism within every wave. Sequential only between waves.
 **Files:** [`src/lib/auth.ts`](../src/lib/auth.ts),
 [`src/lib/api-auth.ts`](../src/lib/api-auth.ts),
 [`src/pages/api/auth/agent.ts`](../src/pages/api/auth/agent.ts) *(extract helper only, no behavior change)*,
-[`docs/auth.md`](auth.md) *(doc, W2-W3 parallel per documentation-first rule)*
+[`docs/auth.md`](one-ie/dev.one.ie/one/auth.md) *(doc, W2-W3 parallel per documentation-first rule)*
 
 **Why first:** Every downstream route needs "who is this caller, what unit are
 they, what role do they hold?" in one cheap call. Shipping this as a reuse
@@ -474,7 +474,7 @@ curl -sS -b cookies.txt /api/me/agents                                          
 [`src/pages/api/agents/[id]/authorize.ts`](../src/pages/api/agents/[id]/authorize.ts) *(new)*,
 [`src/pages/api/mark.ts`](../src/pages/api/mark.ts),
 [`src/pages/api/warn.ts`](../src/pages/api/warn.ts) *(may be new)*,
-[`docs/auth.md`](auth.md)
+[`docs/auth.md`](one-ie/dev.one.ie/one/auth.md)
 
 **Depends on:** Cycle 1 complete. `resolveUnitFromSession` available; without
 it every route in this cycle is blocked.
@@ -686,7 +686,7 @@ cost the same as one Haiku reading ten — in 1/10 the wall-time.
 
 ## See Also
 
-- [auth.md](auth.md) — current identity flow (BetterAuth + `/api/auth/agent`)
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — current identity flow (BetterAuth + `/api/auth/agent`)
 - [TODO-governance.md](TODO-governance.md) — role matrix, scope attrs, pheromone gate
 - [DSL.md](one/DSL.md) — signal grammar (always loaded in W2)
 - [dictionary.md](dictionary.md) — canonical names (always loaded in W2)

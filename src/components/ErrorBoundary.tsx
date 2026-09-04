@@ -49,7 +49,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return <div className="text-red-400 p-4">Something went wrong. Refresh to try again.</div>
+      return <div className="text-[hsl(var(--color-destructive))] p-4">Something went wrong. Refresh to try again.</div>
     }
     return this.props.children
   }

@@ -115,11 +115,13 @@ export function UHeader({ onAddWallet, currentPath = '' }: UHeaderProps) {
               }}
               className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
                 !isTestnet
-                  ? 'bg-gradient-to-r from-green-500/20 to-green-500/10 text-green-600 border border-green-500/30'
+                  ? 'bg-gradient-to-r from-[hsl(var(--color-tertiary-bright))/0.2] to-[hsl(var(--color-tertiary-bright))/0.1] text-[hsl(var(--color-tertiary-bright))] border border-[hsl(var(--color-tertiary-bright))/0.3]'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <span className={`w-2 h-2 rounded-full ${!isTestnet ? 'bg-green-500' : 'bg-muted-foreground'}`} />
+              <span
+                className={`w-2 h-2 rounded-full ${!isTestnet ? 'bg-[hsl(var(--color-tertiary-bright))]' : 'bg-muted-foreground'}`}
+              />
               Live
             </button>
           </div>

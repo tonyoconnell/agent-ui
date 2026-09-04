@@ -5,7 +5,7 @@
  * Requires auth via resolveUnitFromSession.
  *
  * Body: { uid: string, role?: string }
- *   uid  — the unit to invite
+ *   uid  — the actor to invite
  *   role — member-role to assign (defaults to "operator")
  *
  * Writes a membership relation to TypeDB.
@@ -65,7 +65,7 @@ export const POST: APIRoute = async ({ request, locals, params }) => {
   try {
     await write(`
       match $g isa group, has gid "${safeGid}";
-            $u isa unit, has uid "${safeUid}";
+            $u isa actor, has aid "${safeUid}";
       insert (group: $g, member: $u) isa membership, has member-role "${safeRole}";
     `)
   } catch (err: unknown) {

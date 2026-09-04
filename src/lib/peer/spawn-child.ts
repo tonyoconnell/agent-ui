@@ -132,7 +132,7 @@ export async function spawnChild(args: SpawnChildArgs): Promise<SpawnChildResult
 /**
  * Resolve a parent agent's ScopedWallet object ID from TypeDB.
  *
- * Looks for a `scoped-wallet-id` attribute on the unit. If none recorded,
+ * Looks for a `scoped-wallet-id` attribute on the actor. If none recorded,
  * falls back to wallet attribute for further indexing.
  *
  * Returns null if no wallet is found.
@@ -144,7 +144,7 @@ async function resolveParentScopedWallet(parentUid: string, _parentAddress: stri
 
     // Prefer scoped-wallet-id if stored
     const rows = await readParsed(`
-      match $u isa unit, has uid "${parentUid}", has scoped-wallet-id $sid;
+      match $u isa actor, has aid "${parentUid}", has scoped-wallet-id $sid;
       select $sid;
     `).catch(() => [] as Array<{ sid: unknown }>)
 

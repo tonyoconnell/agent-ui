@@ -35,7 +35,7 @@ describe('auditSkills', () => {
 
   it('strips invalid tags and acquires when all are stripped', async () => {
     // SQL-injection-style tag — function returns early, no DB call
-    const result = await auditSkills(["'; DROP TABLE units; --"])
+    const result = await auditSkills(["'; DROP TABLE actors; --"])
     expect(result.recommendation).toBe('acquire')
     expect(result.tags).toHaveLength(0)
   })

@@ -10,8 +10,8 @@ export const GET: APIRoute = async () => {
   // Get all paths with revenue
   const edges = await readParsed(`
     match
-      $from isa unit, has uid $from_id;
-      $to isa unit, has uid $to_id;
+      $from isa actor, has aid $from_id;
+      $to isa actor, has aid $to_id;
       $e (source: $from, target: $to) isa path,
         has revenue $rev, has strength $str, has traversals $t;
       $rev > 0;
@@ -21,8 +21,8 @@ export const GET: APIRoute = async () => {
   // Get payment signals for time-series data
   const signals = await readParsed(`
     match
-      $from isa unit, has uid $from_id;
-      $to isa unit, has uid $to_id;
+      $from isa actor, has aid $from_id;
+      $to isa actor, has aid $to_id;
       $sig (sender: $from, receiver: $to) isa signal,
         has amount $amt, has ts $ts;
       $amt > 0;

@@ -53,13 +53,13 @@ function StatsBar({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) {
         <div className="flex items-center gap-2">
           <a
             href="/"
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-3 py-1.5 bg-card hover:bg-card/80 text-white text-sm font-medium rounded-lg transition-colors"
           >
             Agents
           </a>
           <a
             href="/world"
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg transition-colors"
+            className="px-3 py-1.5 bg-card hover:bg-card/80 text-white text-sm font-medium rounded-lg transition-colors"
           >
             Graph
           </a>
@@ -72,7 +72,7 @@ function StatsBar({ actors, flows }: { actors: ActorData[]; flows: Edge[] }) {
           </a>
         </div>
 
-        <div className="h-5 w-px bg-slate-700" />
+        <div className="h-5 w-px bg-border/50" />
 
         {/* Stats */}
         <div className="flex items-center gap-3 text-sm">

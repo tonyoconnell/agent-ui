@@ -47,7 +47,7 @@ describe('Act 1: Cold Start — an empty world receives a signal', () => {
     w = world()
   })
 
-  it('signal to missing unit dissolves silently — 0ms, $0', () => {
+  it('signal to missing actor dissolves silently — 0ms, $0', () => {
     const t0 = performance.now()
     w.signal({ receiver: 'analyst', data: { query: 'analyze this' } })
     const ms = performance.now() - t0
@@ -57,7 +57,7 @@ describe('Act 1: Cold Start — an empty world receives a signal', () => {
     expect(ms).toBeLessThan(1 * PERF) // <1ms — no LLM, no network, no cost
   })
 
-  it('ask() returns dissolved immediately for missing units', async () => {
+  it('ask() returns dissolved immediately for missing actors', async () => {
     const t0 = performance.now()
     const outcome = await w.ask({ receiver: 'analyst', data: {} })
     const ms = performance.now() - t0
@@ -105,7 +105,7 @@ describe('Act 2: First agent — queued signals fire, trails appear', () => {
     expect(ms).toBeLessThan(1 * PERF) // <1ms to route and mark
   })
 
-  it('"analyst:process" resolves to unit=analyst, task=process', async () => {
+  it('"analyst:process" resolves to actor=analyst, task=process', async () => {
     let taskName = ''
     w.add('analyst').on('process', (data) => {
       taskName = 'process'
@@ -379,7 +379,7 @@ describe('Act 6: Four outcomes — every call teaches the system', () => {
 
   // TODO: Failure outcome tests
   // When task throws or returns null/undefined, should return { failure: true }
-  // Currently, error handling is in place in unit code (.catch handler)
+  // Currently, error handling is in place in actor code (.catch handler)
   // But reply signal routing needs debugging to ensure failure response reaches ask()
 })
 
@@ -563,7 +563,7 @@ describe('Act 9: Chain depth — the platform discovers pipelines', () => {
     expect(chainWeight).toBeGreaterThan(singleWeight)
     // chain=3 deposits 1+3=4. single deposits 1.
     // A 5-agent pipeline that succeeds deposits 5× on the final edge.
-    // At AgentVerse: the platform learns "analyst→reporter→editor" as a unit.
+    // At AgentVerse: the platform learns "analyst→reporter→editor" as a actor.
   })
 })
 
@@ -859,7 +859,7 @@ describe('Act 14: Introspection — has, list, get, remove', () => {
     w = world()
   })
 
-  it('has() returns false for missing unit', () => {
+  it('has() returns false for missing actor', () => {
     expect(w.has('ghost')).toBe(false)
   })
 
@@ -868,7 +868,7 @@ describe('Act 14: Introspection — has, list, get, remove', () => {
     expect(w.has('scout')).toBe(true)
   })
 
-  it('list() returns all unit IDs', () => {
+  it('list() returns all actor IDs', () => {
     w.add('scout')
     w.add('analyst')
     expect(w.list()).toContain('scout')
@@ -876,13 +876,13 @@ describe('Act 14: Introspection — has, list, get, remove', () => {
     expect(w.list().length).toBe(2)
   })
 
-  it('get() returns the unit', () => {
+  it('get() returns the actor', () => {
     const _scout = w.add('scout')
     expect(w.get('scout')).toBeDefined()
     expect(w.get('scout')?.id).toBe('scout')
   })
 
-  it('get() returns undefined for missing unit', () => {
+  it('get() returns undefined for missing actor', () => {
     expect(w.get('ghost')).toBeUndefined()
   })
 
@@ -892,7 +892,7 @@ describe('Act 14: Introspection — has, list, get, remove', () => {
     expect(w.has('scout')).toBe(false)
   })
 
-  it('remove() does not crash on missing unit', () => {
+  it('remove() does not crash on missing actor', () => {
     expect(() => w.remove('ghost')).not.toThrow()
   })
 })
@@ -937,8 +937,8 @@ describe('Act 15: Speed Benchmarks — the claims from speed.md', () => {
   it('select from 100 paths: <1ms', () => {
     // Build 100 paths
     for (let i = 0; i < 100; i++) {
-      w.add(`unit${i}`)
-      w.mark(`a→unit${i}`, Math.random() * 50)
+      w.add(`actor${i}`)
+      w.mark(`a→actor${i}`, Math.random() * 50)
     }
     const t0 = performance.now()
     for (let i = 0; i < 1000; i++) {

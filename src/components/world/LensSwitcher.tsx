@@ -67,7 +67,7 @@ export function LensSwitcher({ className, onLensChange }: LensSwitcherProps) {
           onClick={() => handleLensClick(lens)}
           className={cn(
             'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-            currentLens === lens ? 'text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5',
+            currentLens === lens ? 'text-font shadow-lg' : 'text-muted-foreground hover:text-font hover:bg-white/5',
           )}
           style={{
             backgroundColor: currentLens === lens ? `${skin.colors.primary}30` : undefined,

@@ -59,7 +59,7 @@ The runtime handles task lifecycle. TypeDB handles memory + intelligence.
 ## Entity Types
 
 - **group** — groups of units (scope, isolation, hierarchy)
-- **unit** — actors (human, agent, llm, system) with `model`, `system-prompt`, `generation`
+- **actor** — humans, agents, animals, worlds with `model`, `prompt`, `generation` (replaces legacy `unit` term)
 - **skill** — what units can do, with optional x402 price (capability)
 - **hypothesis/frontier/objective** — emergent knowledge
 - **contribution** — impact tracking

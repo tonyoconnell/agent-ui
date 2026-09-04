@@ -4,11 +4,11 @@ import { SpeedtestDashboard } from "@/components/speedtest/SpeedtestDashboard"
 ---
 
 <Layout title="Speed Benchmarks">
-  <main class="min-h-screen bg-slate-950 p-8">
+  <main class="min-h-screen bg-background p-8">
     <div class="max-w-6xl mx-auto">
       <SpeedtestDashboard client:load />
-      <footer class="mt-8 text-xs text-slate-500 text-center">
-        See the full signal journey at <a class="text-cyan-500 hover:underline" href="/speed">/speed</a>.
+      <footer class="mt-8 text-xs text-muted-foreground text-center">
+        See the full signal journey at <a class="text-primary-bright hover:underline" href="/speed">/speed</a>.
       </footer>
     </div>
   </main>
@@ -16,6 +16,6 @@ import { SpeedtestDashboard } from "@/components/speedtest/SpeedtestDashboard"
 
 <style is:global>
   body {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    background: linear-gradient(135deg, hsl(var(--color-background)) 0%, hsl(var(--color-background)) 100%);
   }
 </style>

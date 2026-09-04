@@ -3,13 +3,13 @@
  *
  * When an agent boots:
  *   1. Derives its Sui wallet address from its uid via addressFor(uid)
- *   2. Queries TypeDB for its unit's scoped-wallet-id attribute (if set)
+ *   2. Queries TypeDB for its actor's scoped-wallet-id attribute (if set)
  *   3. Verifies on-chain ScopedWallet scope matches the derived address
  *      → mismatch: returns false (agent refuses to run)
  *      → no scope set: passes (unrestricted agent)
  *
  * TypeDB calls:
- *   readParsed(`match $u isa unit, has uid "…", has scoped-wallet-id $s; select $s;`)
+ *   readParsed(`match $u isa actor, has aid "…", has scoped-wallet-id $s; select $s;`)
  *   → one row with s = Move object ID string, or empty array when attribute absent
  *
  * Sui RPC calls:
@@ -42,15 +42,15 @@ function esc(s: string): string {
 }
 
 /**
- * Query TypeDB for the unit's scoped-wallet-id attribute.
+ * Query TypeDB for the actor's scoped-wallet-id attribute.
  * Returns the Move object ID string, or undefined if the attribute is absent.
  *
  * TypeQL:
- *   match $u isa unit, has uid "…", has scoped-wallet-id $s; select $s;
+ *   match $u isa actor, has aid "…", has scoped-wallet-id $s; select $s;
  */
 async function queryUnitScopedWallet(uid: string): Promise<string | undefined> {
   const rows = await readParsed(`
-    match $u isa unit, has uid "${esc(uid)}", has scoped-wallet-id $s;
+    match $u isa actor, has aid "${esc(uid)}", has scoped-wallet-id $s;
     select $s;
   `).catch(() => [])
 
@@ -99,7 +99,7 @@ async function readScopedWalletAgent(scopedWalletId: string): Promise<string | n
  * Boot an agent.
  *
  * 1. Derives the Sui wallet address for the uid.
- * 2. Queries TypeDB for the unit's scoped-wallet-id (optional attribute).
+ * 2. Queries TypeDB for the actor's scoped-wallet-id (optional attribute).
  * 3. Returns AgentBootConfig. Callers must call verifyScopeMatch() before
  *    letting the agent proceed.
  *

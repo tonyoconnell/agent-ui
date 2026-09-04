@@ -4,7 +4,7 @@
  * Coverage:
  *   (a) parse() extracts name/model/channels/skills/group from frontmatter
  *   (b) parse() extracts system prompt body
- *   (c) toTypeDB() emits correct unit insert
+ *   (c) toTypeDB() emits correct actor insert
  *   (d) toTypeDB() emits capability relations for each skill
  *   (e) tag extraction flows through
  *
@@ -190,23 +190,23 @@ describe('parse() — system prompt body extraction', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TEST SUITE C: toTypeDB() — Unit insert generation
+// TEST SUITE C: toTypeDB() — Actor insert generation
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('toTypeDB() — unit insert generation', () => {
-  it('generates unit insert with required attributes', () => {
+describe('toTypeDB() — actor insert generation', () => {
+  it('generates actor insert with required attributes', () => {
     const spec = parse(tutorMarkdown)
     const queries = toTypeDB(spec)
     const unitInsert = queries[0]
 
-    expect(unitInsert).toContain('insert $u isa unit')
-    expect(unitInsert).toContain('has uid "spanish-tutor"')
+    expect(unitInsert).toContain('insert $u isa actor')
+    expect(unitInsert).toContain('has aid "spanish-tutor"')
     expect(unitInsert).toContain('has name "spanish-tutor"')
     expect(unitInsert).toContain('has model "claude-sonnet-4-20250514"')
-    expect(unitInsert).toContain('has unit-kind "agent"')
+    expect(unitInsert).toContain('has actor-type "agent"')
   })
 
-  it('includes system-prompt in unit insert', () => {
+  it('includes system-prompt in actor insert', () => {
     const spec = parse(tutorMarkdown)
     const queries = toTypeDB(spec)
     const unitInsert = queries[0]
@@ -228,7 +228,7 @@ describe('toTypeDB() — unit insert generation', () => {
     const queries = toTypeDB(spec)
     const unitInsert = queries[0]
 
-    expect(unitInsert).toContain('has uid "marketing:creative"')
+    expect(unitInsert).toContain('has aid "marketing:creative"')
   })
 
   it('includes ADL attributes when present', () => {
@@ -274,7 +274,7 @@ describe('toTypeDB() — capability relations for skills', () => {
     const spec = parse(tutorMarkdown)
     const queries = toTypeDB(spec)
 
-    // Should have: 1 unit insert + 1 group membership + (3 skills + 3 capabilities)
+    // Should have: 1 actor insert + 1 group membership + (3 skills + 3 capabilities)
     // = 1 + 1 + 6 = 8 queries
     expect(queries.length).toBeGreaterThanOrEqual(6)
   })
@@ -285,7 +285,7 @@ describe('toTypeDB() — capability relations for skills', () => {
     const skillQueries = queries.filter((q) => q.includes('insert $s isa skill'))
 
     expect(skillQueries.length).toBe(4) // 3 explicit + 1 auto-injected 'hire'
-    // skill-id is prefixed with the unit's uid so two agents offering the
+    // skill-id is prefixed with the actor's uid so two agents offering the
     // same skill name don't collide on the @unique(skill-id) constraint.
     expect(skillQueries[0]).toContain('has skill-id "spanish-tutor:lesson"')
     expect(skillQueries[0]).toContain('has name "lesson"')
@@ -301,7 +301,7 @@ describe('toTypeDB() — capability relations for skills', () => {
     expect(skillQueries[0]).toContain('has tag "spanish"')
   })
 
-  it('creates capability relation between unit and skill', () => {
+  it('creates capability relation between actor and skill', () => {
     const spec = parse(tutorMarkdown)
     const queries = toTypeDB(spec)
     const capabilityQueries = queries.filter((q) => q.includes('isa capability'))
@@ -349,12 +349,12 @@ describe('tag extraction flow', () => {
     expect(skillInsert).toContain('has tag "language"')
   })
 
-  it('includes unit-level tags in unit insert', () => {
+  it('includes actor-level tags in actor insert', () => {
     const spec = parse(groupedAgentMarkdown)
     const queries = toTypeDB(spec)
     const unitInsert = queries[0]
 
-    // Unit tags: from spec.tags + group tag
+    // Actor tags: from spec.tags + group tag
     expect(unitInsert).toContain('has tag "agent"')
     expect(unitInsert).toContain('has tag "creative"')
     expect(unitInsert).toContain('has tag "marketing"') // group becomes a tag

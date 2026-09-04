@@ -40,7 +40,7 @@ async function sendSignal(receiver: string, data: unknown, sender = 'ui:world'):
 }
 
 /**
- * GESTURE 1: Drag to move units
+ * GESTURE 1: Drag to move actors
  * POST /api/signal { receiver: 'world:move', data: { id, x, y } }
  */
 export async function signalMove(id: string, x: number, y: number) {
@@ -48,7 +48,7 @@ export async function signalMove(id: string, x: number, y: number) {
 }
 
 /**
- * GESTURE 2: Rename unit (inline edit)
+ * GESTURE 2: Rename actor (inline edit)
  * POST /api/signal { receiver: 'world:rename', data: { id, name } }
  */
 export async function signalRename(id: string, name: string) {
@@ -80,7 +80,7 @@ export async function signalWarn(from: string, to: string) {
 }
 
 /**
- * GESTURE 6: Delete unit
+ * GESTURE 6: Delete actor
  * POST /api/signal { receiver: 'world:remove', data: { id } }
  */
 export async function signalRemove(id: string) {
@@ -89,16 +89,16 @@ export async function signalRemove(id: string) {
 
 /**
  * GESTURE 7: Create group
- * POST /api/signal { receiver: 'world:group', data: { units: [ids], name } }
+ * POST /api/signal { receiver: 'world:group', data: { actors: [ids], name } }
  */
-export async function signalGroup(units: string[], name: string) {
-  return sendSignal('world:group', { units, name })
+export async function signalGroup(actors: string[], name: string) {
+  return sendSignal('world:group', { actors, name })
 }
 
 /**
  * Run a task (signal for GESTURE to be added later)
- * POST /api/signal { receiver: 'world:run-task', data: { unitId, taskName } }
+ * POST /api/signal { receiver: 'world:run-task', data: { actorId, taskName } }
  */
-export async function signalRunTask(unitId: string, taskName: string) {
-  return sendSignal('world:run-task', { unitId, taskName })
+export async function signalRunTask(actorId: string, taskName: string) {
+  return sendSignal('world:run-task', { actorId, taskName })
 }

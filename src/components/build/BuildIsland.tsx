@@ -98,7 +98,7 @@ function Step1({ name, setName, template, setTemplate, onNext }: Step1Props) {
     <div className="space-y-6">
       {/* Template grid */}
       <div className="space-y-2">
-        <Label className="text-slate-300 text-sm font-medium">Template</Label>
+        <Label className="text-foreground text-sm font-medium">Template</Label>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {TEMPLATE_ORDER.map((id) => {
             const t = AGENT_TEMPLATES[id]
@@ -114,10 +114,10 @@ function Step1({ name, setName, template, setTemplate, onNext }: Step1Props) {
                 }}
                 className={cn(
                   'flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--color-primary-bright))]',
                   active
-                    ? 'border-cyan-700/60 bg-[#1a2535] text-white ring-1 ring-cyan-700/40'
-                    : 'border-[#252538] bg-[#161622] text-slate-400 hover:border-[#353550] hover:text-slate-300',
+                    ? 'border-[hsl(var(--color-primary-mid))/0.6] bg-card text-font ring-1 ring-[hsl(var(--color-primary-mid))/0.4]'
+                    : 'border-border bg-card text-muted-foreground hover:border-border hover:text-foreground',
                 )}
                 aria-pressed={active}
               >
@@ -131,9 +131,9 @@ function Step1({ name, setName, template, setTemplate, onNext }: Step1Props) {
                 </div>
                 <div className="min-w-0">
                   <div className="font-medium text-sm">{t.name}</div>
-                  {t.description && <div className="text-xs text-slate-500 truncate">{t.description}</div>}
+                  {t.description && <div className="text-xs text-muted-foreground truncate">{t.description}</div>}
                 </div>
-                <Badge variant="outline" className="ml-auto shrink-0 text-[10px] border-[#353550] text-slate-500">
+                <Badge variant="outline" className="ml-auto shrink-0 text-[10px] border-border text-muted-foreground">
                   {meta.badge}
                 </Badge>
               </button>
@@ -144,7 +144,7 @@ function Step1({ name, setName, template, setTemplate, onNext }: Step1Props) {
 
       {/* Name input */}
       <div className="space-y-1.5">
-        <Label htmlFor="build-name" className="text-slate-300 text-sm font-medium">
+        <Label htmlFor="build-name" className="text-foreground text-sm font-medium">
           Agent name
         </Label>
         <Input
@@ -154,11 +154,11 @@ function Step1({ name, setName, template, setTemplate, onNext }: Step1Props) {
           placeholder="e.g. market-watcher"
           autoComplete="off"
           spellCheck={false}
-          className="bg-[#161622] border-[#252538] text-white placeholder:text-slate-600 focus:border-cyan-700 focus:ring-cyan-700/30"
+          className="bg-card border-border text-font placeholder:text-muted-foreground focus:border-[hsl(var(--color-primary-mid))] focus:ring-[hsl(var(--color-primary-mid))/0.3]"
         />
         {name && (
-          <p className="text-slate-600 text-xs pl-1">
-            slug: <span className="font-mono text-slate-500">{slug || '…'}</span>
+          <p className="text-muted-foreground text-xs pl-1">
+            slug: <span className="font-mono text-muted-foreground">{slug || '…'}</span>
           </p>
         )}
       </div>
@@ -170,7 +170,7 @@ function Step1({ name, setName, template, setTemplate, onNext }: Step1Props) {
           onNext()
         }}
         disabled={!slug}
-        className="w-full bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40"
+        className="w-full bg-[hsl(var(--color-primary-bright))] hover:bg-[hsl(var(--color-primary-bright)/0.8)] text-white disabled:opacity-40"
       >
         Next
         <ArrowRight className="w-4 h-4 ml-2" />
@@ -193,11 +193,11 @@ function Step2({ template, prompt, setPrompt, onBack, onNext }: Step2Props) {
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="build-prompt" className="text-slate-300 text-sm font-medium">
+        <Label htmlFor="build-prompt" className="text-foreground text-sm font-medium">
           System prompt
         </Label>
         {defaultPrompt && !prompt && (
-          <p className="text-slate-500 text-xs">Leave blank to use the template default, or customise below.</p>
+          <p className="text-muted-foreground text-xs">Leave blank to use the template default, or customise below.</p>
         )}
         <textarea
           id="build-prompt"
@@ -206,9 +206,9 @@ function Step2({ template, prompt, setPrompt, onBack, onNext }: Step2Props) {
           rows={12}
           placeholder={defaultPrompt || 'Describe what this agent does and how it should behave…'}
           className={cn(
-            'w-full rounded-md border bg-[#161622] px-3 py-2 text-sm text-white',
-            'placeholder:text-slate-600 border-[#252538]',
-            'focus:border-cyan-700 focus:ring-2 focus:ring-cyan-700/30 focus:outline-none',
+            'w-full rounded-md border bg-card px-3 py-2 text-sm text-font',
+            'placeholder:text-muted-foreground border-border',
+            'focus:border-[hsl(var(--color-primary-mid))] focus:ring-2 focus:ring-[hsl(var(--color-primary-mid))/0.3] focus:outline-none',
             'resize-y min-h-[200px]',
           )}
         />
@@ -216,7 +216,7 @@ function Step2({ template, prompt, setPrompt, onBack, onNext }: Step2Props) {
           <button
             type="button"
             onClick={() => setPrompt(defaultPrompt)}
-            className="text-xs text-cyan-500 hover:text-cyan-400 underline underline-offset-2"
+            className="text-xs text-[hsl(var(--color-primary-bright))] hover:text-[hsl(var(--color-primary-bright)/0.8)] underline underline-offset-2"
           >
             Use template default
           </button>
@@ -231,7 +231,7 @@ function Step2({ template, prompt, setPrompt, onBack, onNext }: Step2Props) {
             emitClick('ui:build:step-back')
             onBack()
           }}
-          className="flex-1 border-[#252538] text-slate-300 hover:bg-[#1e1e2a]"
+          className="flex-1 border-border text-foreground hover:bg-muted"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
@@ -242,7 +242,7 @@ function Step2({ template, prompt, setPrompt, onBack, onNext }: Step2Props) {
             emitClick('ui:build:step-next')
             onNext()
           }}
-          className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white"
+          className="flex-1 bg-[hsl(var(--color-primary-bright))] hover:bg-[hsl(var(--color-primary-bright)/0.8)] text-white"
         >
           Next
           <ArrowRight className="w-4 h-4 ml-2" />
@@ -270,47 +270,47 @@ function Step3({ name, template, prompt, isPending, result, onBack, onDeploy }: 
   return (
     <div className="space-y-5">
       {/* Summary card */}
-      <div className="rounded-xl border border-[#252538] bg-[#161622] px-5 py-4 space-y-3">
-        <p className="text-xs text-slate-500 uppercase tracking-widest">Summary</p>
+      <div className="rounded-xl border border-border bg-card px-5 py-4 space-y-3">
+        <p className="text-xs text-muted-foreground uppercase tracking-widest">Summary</p>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-400">Name</span>
+          <span className="text-muted-foreground">Name</span>
           <span className="font-mono text-white">{slug}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-400">Template</span>
-          <Badge variant="outline" className="text-xs border-[#353550] text-slate-400">
+          <span className="text-muted-foreground">Template</span>
+          <Badge variant="outline" className="text-xs border-border text-muted-foreground">
             {t.name}
           </Badge>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-400">Prompt</span>
-          <span className="text-slate-500 text-xs">{finalPrompt ? `${finalPrompt.slice(0, 40)}…` : 'none'}</span>
+          <span className="text-muted-foreground">Prompt</span>
+          <span className="text-muted-foreground text-xs">{finalPrompt ? `${finalPrompt.slice(0, 40)}…` : 'none'}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-400">Endpoint</span>
-          <span className="font-mono text-cyan-400 text-xs">pay.one.ie/{slug}</span>
+          <span className="text-muted-foreground">Endpoint</span>
+          <span className="font-mono text-primary-bright text-xs">pay.one.ie/{slug}</span>
         </div>
       </div>
 
       {/* Live in < 1 min indicator */}
       {isPending && (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-slate-400 text-sm">
-            <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="w-4 h-4 animate-spin text-primary-bright" />
             Deploying to TypeDB…
           </div>
-          <div className="w-full bg-[#161622] rounded-full h-1.5 overflow-hidden">
-            <div className="h-1.5 bg-gradient-to-r from-cyan-600 to-blue-500 rounded-full animate-pulse w-3/4" />
+          <div className="w-full bg-card rounded-full h-1.5 overflow-hidden">
+            <div className="h-1.5 bg-gradient-to-r from-[hsl(var(--color-primary-bright))] to-[hsl(var(--color-primary-mid))] rounded-full animate-pulse w-3/4" />
           </div>
-          <p className="text-slate-600 text-xs">Live in &lt;1 min</p>
+          <p className="text-muted-foreground text-xs">Live in &lt;1 min</p>
         </div>
       )}
 
       {/* Success */}
       {result?.ok && (
-        <Card className="border-emerald-800/40 bg-emerald-950/20">
+        <Card className="border-[hsl(var(--color-tertiary-mid))/0.4] bg-[hsl(var(--color-tertiary-bright))/0.1]">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardTitle className="text-sm text-emerald-300 flex items-center gap-2">
+            <CardTitle className="text-sm text-[hsl(var(--color-tertiary-bright))] flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" />
               Agent deployed
             </CardTitle>
@@ -318,15 +318,15 @@ function Step3({ name, template, prompt, isPending, result, onBack, onDeploy }: 
           <CardContent className="px-4 pb-4 space-y-2">
             {result.uid && (
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-500">UID</span>
-                <span className="font-mono text-slate-300">{result.uid}</span>
+                <span className="text-muted-foreground">UID</span>
+                <span className="font-mono text-foreground">{result.uid}</span>
               </div>
             )}
             <a
               href={`https://pay.one.ie/${slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-[hsl(var(--color-primary-bright))] hover:text-[hsl(var(--color-primary-bright)/0.8)] transition-colors"
               onClick={() => emitClick('ui:build:open-paylink')}
             >
               <ExternalLink className="w-3.5 h-3.5 shrink-0" />
@@ -340,7 +340,7 @@ function Step3({ name, template, prompt, isPending, result, onBack, onDeploy }: 
       {result && !result.ok && (
         <div
           role="alert"
-          className="flex items-center gap-2 rounded-lg border border-red-800/40 bg-red-950/30 px-4 py-3 text-red-400 text-sm"
+          className="flex items-center gap-2 rounded-lg border border-[hsl(var(--color-destructive))/0.4] bg-[hsl(var(--color-destructive))/0.1] px-4 py-3 text-[hsl(var(--color-destructive))] text-sm"
         >
           <AlertCircle className="w-4 h-4 shrink-0" />
           {result.error ?? 'Deploy failed'}
@@ -358,7 +358,7 @@ function Step3({ name, template, prompt, isPending, result, onBack, onDeploy }: 
               onBack()
             }}
             disabled={isPending}
-            className="flex-1 border-[#252538] text-slate-300 hover:bg-[#1e1e2a] disabled:opacity-40"
+            className="flex-1 border-border text-foreground hover:bg-muted disabled:opacity-40"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
@@ -370,7 +370,7 @@ function Step3({ name, template, prompt, isPending, result, onBack, onDeploy }: 
               onDeploy()
             }}
             disabled={isPending}
-            className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40"
+            className="flex-1 bg-[hsl(var(--color-primary-bright))] hover:bg-[hsl(var(--color-primary-bright)/0.8)] text-white disabled:opacity-40"
           >
             {isPending ? (
               <>
@@ -393,14 +393,14 @@ function Step3({ name, template, prompt, isPending, result, onBack, onDeploy }: 
             type="button"
             onClick={() => window.location.assign('/u/agents/new')}
             variant="outline"
-            className="flex-1 border-[#252538] text-slate-300 hover:bg-[#1e1e2a]"
+            className="flex-1 border-border text-foreground hover:bg-muted"
           >
             Create another
           </Button>
           <Button
             type="button"
             onClick={() => emitClick('ui:build:view-fleet')}
-            className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white"
+            className="flex-1 bg-[hsl(var(--color-primary-bright))] hover:bg-[hsl(var(--color-primary-bright)/0.8)] text-white"
             asChild
           >
             <a href="/u/fleet">View fleet</a>
@@ -446,12 +446,14 @@ export function BuildIsland() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] px-4 py-12">
+    <div className="min-h-screen bg-background px-4 py-12">
       <div className="w-full max-w-xl mx-auto space-y-8">
         {/* ── header ── */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Build an Agent</h1>
-          <p className="text-slate-400 text-sm">Live in &lt;1 minute. Deployed to Cloudflare, remembered in TypeDB.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-font mb-2">Build an Agent</h1>
+          <p className="text-muted-foreground text-sm">
+            Live in &lt;1 minute. Deployed to Cloudflare, remembered in TypeDB.
+          </p>
         </div>
 
         {/* ── step indicator ── */}
@@ -462,24 +464,26 @@ export function BuildIsland() {
                 className={cn(
                   'w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0',
                   step === i
-                    ? 'bg-cyan-600 text-white'
+                    ? 'bg-[hsl(var(--color-primary-bright))] text-white'
                     : step > i
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-[#252538] text-slate-500',
+                      ? 'bg-[hsl(var(--color-tertiary-bright))] text-white'
+                      : 'bg-muted text-muted-foreground',
                 )}
               >
                 {step > i ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
               </div>
-              <span className={cn('text-xs hidden sm:block', step === i ? 'text-white' : 'text-slate-500')}>
+              <span className={cn('text-xs hidden sm:block', step === i ? 'text-font' : 'text-muted-foreground')}>
                 {label}
               </span>
-              {i < STEPS.length - 1 && <div className={cn('w-8 h-px', step > i ? 'bg-emerald-600' : 'bg-[#252538]')} />}
+              {i < STEPS.length - 1 && (
+                <div className={cn('w-8 h-px', step > i ? 'bg-[hsl(var(--color-tertiary-bright))]' : 'bg-muted')} />
+              )}
             </div>
           ))}
         </div>
 
         {/* ── step content ── */}
-        <div className="rounded-2xl border border-[#252538] bg-[#0f0f17] p-6">
+        <div className="rounded-2xl border border-border bg-card p-6">
           {step === 0 && (
             <Step1
               name={name}

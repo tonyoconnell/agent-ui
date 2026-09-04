@@ -4,7 +4,7 @@
  * Body: { gid: string, uid: string, role: 'chairman'|'board'|'ceo'|'operator'|'agent'|'auditor' }
  *
  * - Requires Authorization header + appoint_role permission (chairman only per role-check.ts).
- * - 404 if target unit is not already a member of gid; use POST /api/me/groups/:gid/invite to
+ * - 404 if target actor is not already a member of gid; use POST /api/me/groups/:gid/invite to
  *   create a fresh membership.
  * - Updates member-role via delete-then-insert (canonical pattern from invite.ts).
  */
@@ -51,7 +51,7 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const memberRows = await readParsed(`
       match
-        $u isa unit, has uid "${safeUid}";
+        $u isa actor, has aid "${safeUid}";
         $g isa group, has gid "${safeGid}";
         (member: $u, group: $g) isa membership, has member-role $r;
       select $r;
@@ -60,7 +60,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (memberRows.length === 0) {
       return Response.json(
         {
-          error: `unit ${body.uid} is not a member of ${body.gid}`,
+          error: `actor ${body.uid} is not a member of ${body.gid}`,
           hint: `use POST /api/me/groups/${body.gid}/invite to create membership`,
         },
         { status: 404 },
@@ -80,7 +80,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     await write(`
       match
-        $u isa unit, has uid "${safeUid}";
+        $u isa actor, has aid "${safeUid}";
         $g isa group, has gid "${safeGid}";
         $m (member: $u, group: $g) isa membership, has member-role $old;
       delete $old of $m;

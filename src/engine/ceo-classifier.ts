@@ -4,7 +4,7 @@
  * The Chairman→CEO→Director→Specialist chain is zero-LLM on the hot path.
  * When NO pheromone edge exists for a tag AND the deterministic classifier
  * is unsure (confidence < 0.4), the CEO calls this module ONCE to pick a
- * director from the list of available units. The CEO then `mark()`s the
+ * director from the list of available actors. The CEO then `mark()`s the
  * edge so the next request with the same tag routes without an LLM call.
  *
  * Bootstrap cost: one LLM call per new topic, ever.

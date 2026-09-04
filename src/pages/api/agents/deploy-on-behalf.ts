@@ -3,7 +3,7 @@
  *
  * Stage 5b (3rd lane) — Trust Inheritance.
  *
- * Deploys a new agent unit on behalf of an existing owner, inheriting
+ * Deploys a new agent actor on behalf of an existing owner, inheriting
  * half-strength copies of the owner's top-5 outbound paths.
  *
  * Body:
@@ -64,7 +64,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Query owner's top-5 outbound paths by strength
     const pathRows = await readParsed(`
       match $p isa path, has from $f, has to $t, has strength $s;
-      $u isa unit, has uid "${owner}"; $f = $u;
+      $u isa actor, has aid "${owner}"; $f = $u;
       sort $s desc; limit 5;
       select $f, $t, $s;
     `)
@@ -78,11 +78,11 @@ export const POST: APIRoute = async ({ request }) => {
       )
     }
 
-    // Derive the new unit's uid: owner-namespaced
+    // Derive the new actor's uid: owner-namespaced
     const newUid = `${owner}:${specName}`
 
-    // Write the new unit to TypeDB (tagged with owner for lineage)
-    await writeSilent(`insert $u isa unit, has uid "${newUid}", has name "${specName}", has tag "${owner}";`)
+    // Write the new actor to TypeDB (tagged with owner for lineage)
+    await writeSilent(`insert $u isa actor, has aid "${newUid}", has name "${specName}", has tag "${owner}";`)
 
     // Inherit half-strength copies of owner's top-5 paths
     const inheritedPaths: { from: string; to: string; strength: number }[] = []
@@ -95,7 +95,7 @@ export const POST: APIRoute = async ({ request }) => {
       if (!toUid) continue
 
       await writeSilent(`
-        match $u isa unit, has uid "${newUid}"; $t isa unit, has uid "${toUid}";
+        match $u isa actor, has aid "${newUid}"; $t isa actor, has aid "${toUid}";
         insert (from: $u, to: $t) isa path, has strength ${halfStrength};
       `)
 

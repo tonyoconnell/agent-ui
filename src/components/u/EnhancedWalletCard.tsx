@@ -306,7 +306,7 @@ export function EnhancedWalletCard({ wallet, chain, onDelete, onViewMnemonic, on
               </code>
               <div className="shrink-0 flex items-center gap-1">
                 {copied ? (
-                  <span className="text-green-500 text-xs font-medium flex items-center gap-1">
+                  <span className="text-[hsl(var(--color-tertiary-bright))] text-xs font-medium flex items-center gap-1">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
@@ -347,7 +347,7 @@ export function EnhancedWalletCard({ wallet, chain, onDelete, onViewMnemonic, on
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 h-10 font-medium transition-all duration-200 hover:bg-green-500/10 hover:border-green-500/50 hover:text-green-600 dark:hover:text-green-400"
+              className="flex-1 h-10 font-medium transition-all duration-200 hover:bg-[hsl(var(--color-tertiary-bright)/0.1)] hover:border-[hsl(var(--color-tertiary-bright)/0.5)] hover:text-[hsl(var(--color-tertiary-bright))]"
               onClick={(e) => {
                 e.stopPropagation()
                 setShowSendDialog(true)
@@ -361,7 +361,7 @@ export function EnhancedWalletCard({ wallet, chain, onDelete, onViewMnemonic, on
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 h-10 font-medium transition-all duration-200 hover:bg-blue-500/10 hover:border-blue-500/50 hover:text-blue-600 dark:hover:text-blue-400"
+              className="flex-1 h-10 font-medium transition-all duration-200 hover:bg-[hsl(var(--color-primary-bright)/0.1)] hover:border-[hsl(var(--color-primary-bright)/0.5)] hover:text-[hsl(var(--color-primary-bright))]"
               onClick={(e) => {
                 e.stopPropagation()
                 setShowReceiveDialog(true)
@@ -441,8 +441,8 @@ export function EnhancedWalletCard({ wallet, chain, onDelete, onViewMnemonic, on
               <>
                 {/* Error Message */}
                 {sendError && (
-                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-                    <p className="text-sm text-red-600 dark:text-red-400">
+                  <div className="p-4 rounded-xl bg-[hsl(var(--color-destructive)/0.1)] border border-[hsl(var(--color-destructive)/0.2)]">
+                    <p className="text-sm text-[hsl(var(--color-destructive))]">
                       <strong>Error:</strong> {sendError}
                     </p>
                   </div>
@@ -624,7 +624,7 @@ export function EnhancedWalletCard({ wallet, chain, onDelete, onViewMnemonic, on
                 <code className="text-xs font-mono break-all leading-relaxed block">{wallet.address}</code>
                 <div className="flex justify-center mt-3">
                   <span
-                    className={`text-xs font-medium ${copied ? 'text-green-500' : 'text-muted-foreground group-hover:text-primary'} transition-colors`}
+                    className={`text-xs font-medium ${copied ? 'text-[hsl(var(--color-tertiary-bright))]' : 'text-muted-foreground group-hover:text-primary'} transition-colors`}
                   >
                     {copied ? '✓ Copied to clipboard!' : 'Click to copy'}
                   </span>

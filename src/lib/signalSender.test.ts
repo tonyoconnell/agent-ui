@@ -56,11 +56,11 @@ describe('signalSender — shape', () => {
     expect(receivers).toEqual(['world:rename', 'world:link', 'world:mark', 'world:warn'])
   })
 
-  test('signalGroup serializes units array', async () => {
+  test('signalGroup serializes actors array', async () => {
     const { signalGroup } = await import('./signalSender')
     await signalGroup(['a', 'b', 'c'], 'squad')
     const body = await lastBody()
-    expect(JSON.parse(body.data)).toEqual({ units: ['a', 'b', 'c'], name: 'squad' })
+    expect(JSON.parse(body.data)).toEqual({ actors: ['a', 'b', 'c'], name: 'squad' })
   })
 })
 

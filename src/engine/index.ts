@@ -23,8 +23,8 @@ export { anthropic, asi1, cerebras, llm, openai, openrouter } from './llm'
 export { md, parse } from './md'
 export type { Insight, MemoryCard, PersistentWorld, TaskMatch } from './persist'
 export { isToxic, world } from './persist'
-export type { Edge, Emit, Signal, Unit, World } from './world'
-export { unit, world as createWorld } from './world'
+export type { Actor, Edge, Emit, Signal, World } from './world'
+export { actor, world as createWorld } from './world'
 
 // DocItem, VerifiedItem — import directly from "./doc-scan" (uses Node.js APIs)
 

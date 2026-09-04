@@ -1,14 +1,24 @@
 /**
  * POST /api/loop/mark-dims — deposit rubric dimension scores as tagged pheromone
  *
- * Body: { edge: string, fit: number, form: number, truth: number, taste: number }
- *   edge   — base edge label, e.g. 'entry→builder:verify' or a task id
- *   fit    — does it solve the stated problem? (0–1)
- *   form   — is code clean, tests passing? (0–1)
- *   truth  — are claims accurate? (0–1)
- *   taste  — is style consistent? (0–1)
+ * Two rubrics (see one/do-guide.md §4.2):
  *
- * Each dimension emits a tagged edge: edge:fit, edge:form, edge:truth, edge:taste
+ *   msg  (default): { edge, fit, form, truth, taste }
+ *     fit    — does it solve the stated problem? (0–1)
+ *     form   — is code clean, tests passing? (0–1)
+ *     truth  — are claims accurate? (0–1)
+ *     taste  — is style consistent? (0–1)
+ *
+ *   code (kind: "code"): { edge, kind: "code", security, stability, simplicity, speed }
+ *     security   — zero vulnerabilities, boundaries validated, no secrets (0–1)
+ *     stability  — tests pass, zero type errors, handlers close their loops (0–1)
+ *     simplicity — minimum code for maximum feature (0–1)
+ *     speed      — Lighthouse 100, bundle ≤ W0, tokens lean (0–1)
+ *
+ * Each dimension emits a tagged edge: `${edge}:${dim}`. Callers control namespace
+ * via the edge prefix — e.g. pass 'loop:msg:wave4' or 'loop:code:cycle' to keep
+ * the two rubrics' pheromone independent.
+ *
  *   score >= 0.5 → mark()   path strengthens
  *   score <  0.5 → warn()   path resists
  *
@@ -18,7 +28,7 @@
  * Authenticated callers are metered and rate-limited.
  */
 import type { APIRoute } from 'astro'
-import { DEFAULT_WEIGHTS, markDims } from '@/engine/rubric'
+import { CODE_WEIGHTS, MSG_WEIGHTS, markCodeDims, markDims } from '@/engine/rubric'
 import { resolveUnitFromSession } from '@/lib/api-auth'
 import { getD1 } from '@/lib/cf-env'
 import { getUsage, recordCall } from '@/lib/metering'
@@ -39,26 +49,61 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const body = (await request.json().catch(() => ({}))) as {
     edge?: string
+    kind?: 'msg' | 'code'
+    // msg rubric
     fit?: number
     form?: number
     truth?: number
     taste?: number
+    // code rubric
+    security?: number
+    stability?: number
+    simplicity?: number
+    speed?: number
   }
 
+  const kind = body.kind ?? 'msg'
   const edge = body.edge ?? 'entry→builder:verify'
+  const net = await getNet()
+
+  if (kind === 'code') {
+    const scores = {
+      security: body.security ?? 0.5,
+      stability: body.stability ?? 0.5,
+      simplicity: body.simplicity ?? 0.5,
+      speed: body.speed ?? 0.5,
+    }
+    markCodeDims(net, edge, scores)
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        kind,
+        edge,
+        scores,
+        marks: Object.entries(scores).map(([dim, s]) => ({
+          edge: `${edge}:${dim}`,
+          action: s >= 0.5 ? 'mark' : 'warn',
+          strength:
+            s >= 0.5
+              ? s * CODE_WEIGHTS[dim as keyof typeof CODE_WEIGHTS]
+              : (1 - s) * CODE_WEIGHTS[dim as keyof typeof CODE_WEIGHTS],
+        })),
+      }),
+      { headers: { 'Content-Type': 'application/json' } },
+    )
+  }
+
   const scores = {
     fit: body.fit ?? 0.5,
     form: body.form ?? 0.5,
     truth: body.truth ?? 0.5,
     taste: body.taste ?? 0.5,
   }
-
-  const net = await getNet()
   markDims(net, edge, scores)
-
   return new Response(
     JSON.stringify({
       ok: true,
+      kind,
       edge,
       scores,
       marks: Object.entries(scores).map(([dim, s]) => ({
@@ -66,8 +111,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         action: s >= 0.5 ? 'mark' : 'warn',
         strength:
           s >= 0.5
-            ? s * DEFAULT_WEIGHTS[dim as keyof typeof DEFAULT_WEIGHTS]
-            : (1 - s) * DEFAULT_WEIGHTS[dim as keyof typeof DEFAULT_WEIGHTS],
+            ? s * MSG_WEIGHTS[dim as keyof typeof MSG_WEIGHTS]
+            : (1 - s) * MSG_WEIGHTS[dim as keyof typeof MSG_WEIGHTS],
       })),
     }),
     { headers: { 'Content-Type': 'application/json' } },

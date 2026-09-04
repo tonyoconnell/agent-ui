@@ -114,12 +114,12 @@ export function KeyRotationPanel() {
   }
 
   return (
-    <Card className="bg-[#0f0f14] border-[#1e293b]">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-3 flex flex-row items-center justify-between gap-4 flex-wrap">
-        <CardTitle className="text-sm font-medium text-slate-300 flex items-center gap-2">
+        <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
           Owner-key versions
           {!loading && !error && (
-            <Badge variant="outline" className="text-xs border-[#1e293b] text-slate-500">
+            <Badge variant="outline" className="text-xs border-border text-muted-foreground">
               {versions.length}
             </Badge>
           )}
@@ -131,40 +131,40 @@ export function KeyRotationPanel() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-xs border-[#252538] text-slate-400 hover:text-white hover:border-[#1e293b]"
+                className="h-7 text-xs border-border text-muted-foreground hover:text-white hover:border-border"
                 onClick={() => emitClick('ui:owner:key-register-open')}
                 aria-label="Register new key version"
               >
                 + New version
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="bg-[#0f0f14] border-[#252538] text-white">
+            <AlertDialogContent className="bg-card border-border text-white">
               <AlertDialogHeader>
                 <AlertDialogTitle>Register new key version</AlertDialogTitle>
-                <AlertDialogDescription className="text-slate-400 text-sm space-y-2">
+                <AlertDialogDescription className="text-muted-foreground text-sm space-y-2">
                   <span className="block">
                     Browser-side derivation is required to register a new owner key version. This panel cannot perform
                     the Touch ID / WebAuthn PRF ceremony.
                   </span>
                   <span className="block mt-2">
                     Use the{' '}
-                    <a href="/u/keys/rotate" className="text-blue-400 underline hover:text-blue-300">
+                    <a href="/u/keys/rotate" className="text-primary-bright underline hover:text-primary-bright/80">
                       /u/keys/rotate
                     </a>{' '}
                     page, which runs the full biometric ceremony and POSTs the derived key hash to{' '}
-                    <code className="font-mono text-xs text-slate-300">/api/auth/owner-key-versions</code>.
+                    <code className="font-mono text-xs text-foreground">/api/auth/owner-key-versions</code>.
                   </span>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel
-                  className="border-[#252538] text-slate-400 hover:text-white hover:bg-[#1e293b]"
+                  className="border-border text-muted-foreground hover:text-white hover:bg-muted"
                   onClick={() => emitClick('ui:owner:key-register-cancel')}
                 >
                   Cancel
                 </AlertDialogCancel>
                 <AlertDialogAction
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-[hsl(var(--color-primary))] hover:bg-[hsl(var(--color-primary)/0.9)] text-white"
                   onClick={() => {
                     emitClick('ui:owner:key-register-goto-rotate')
                     window.location.href = '/u/keys/rotate'
@@ -179,7 +179,7 @@ export function KeyRotationPanel() {
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 text-xs text-slate-400 hover:text-white"
+            className="h-7 text-xs text-muted-foreground hover:text-font"
             onClick={() => {
               emitClick('ui:owner:keys-refresh')
               void load()
@@ -202,12 +202,12 @@ export function KeyRotationPanel() {
             <span className="sr-only">Loading key versions</span>
             {[0, 1, 2].map((i) => (
               <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-4 w-10 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-16 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-20 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-24 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-16 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-16 bg-[#1e293b]" />
+                <Skeleton className="h-4 w-10 bg-muted" />
+                <Skeleton className="h-4 w-16 bg-muted" />
+                <Skeleton className="h-4 w-20 bg-muted" />
+                <Skeleton className="h-4 w-24 bg-muted" />
+                <Skeleton className="h-4 w-16 bg-muted" />
+                <Skeleton className="h-4 w-16 bg-muted" />
               </div>
             ))}
           </div>
@@ -215,13 +215,13 @@ export function KeyRotationPanel() {
 
         {/* Error state */}
         {error && !loading && (
-          <div className="bg-red-500/5 border border-red-500/20 rounded-md p-4 space-y-3">
-            <p className="text-sm text-red-400">{error}</p>
+          <div className="bg-[hsl(var(--color-destructive)/0.05)] border border-[hsl(var(--color-destructive)/0.2)] rounded-md p-4 space-y-3">
+            <p className="text-sm text-[hsl(var(--color-destructive))]">{error}</p>
             <Button
               ref={retryButtonRef}
               size="sm"
               variant="outline"
-              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+              className="border-[hsl(var(--color-destructive)/0.3)] text-[hsl(var(--color-destructive))] hover:bg-[hsl(var(--color-destructive)/0.1)]"
               onClick={handleRetry}
               aria-label="Retry loading key versions"
             >
@@ -232,7 +232,7 @@ export function KeyRotationPanel() {
 
         {/* Empty state */}
         {!loading && !error && versions.length === 0 && (
-          <p className="text-sm text-slate-500 py-4 text-center">No owner-key versions registered.</p>
+          <p className="text-sm text-muted-foreground py-4 text-center">No owner-key versions registered.</p>
         )}
 
         {/* Key rows */}
@@ -242,7 +242,7 @@ export function KeyRotationPanel() {
               <table className="w-full text-xs font-mono">
                 <caption className="sr-only">Owner key versions</caption>
                 <thead>
-                  <tr className="text-slate-500 border-b border-[#1e293b]">
+                  <tr className="text-muted-foreground border-b border-border">
                     <th scope="col" className="text-left py-2 px-2 font-medium">
                       Version
                     </th>
@@ -268,22 +268,22 @@ export function KeyRotationPanel() {
                 </thead>
                 <tbody>
                   {versions.map((v) => (
-                    <tr key={v.key_hash} className="border-b border-[#1e293b]/50 hover:bg-[#161622] transition-colors">
+                    <tr key={v.key_hash} className="border-b border-border/50 hover:bg-muted transition-colors">
                       <td className="py-2.5 px-2">
-                        <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400">
+                        <Badge variant="outline" className="text-xs border-primary/30 text-primary-bright">
                           v{v.version}
                         </Badge>
                       </td>
                       <td className="py-2.5 px-2">
-                        <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-400">
+                        <Badge variant="outline" className="text-xs border-secondary/30 text-secondary-bright">
                           {v.role}
                         </Badge>
                       </td>
-                      <td className="py-2.5 px-2 text-slate-400">{v.group}</td>
+                      <td className="py-2.5 px-2 text-muted-foreground">{v.group}</td>
                       <td className="py-2.5 px-2">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-slate-500 cursor-default">{truncate(v.key_hash)}</span>
+                            <span className="text-muted-foreground cursor-default">{truncate(v.key_hash)}</span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <span className="font-mono text-xs break-all">{v.key_hash}</span>
@@ -293,7 +293,7 @@ export function KeyRotationPanel() {
                       <td className="py-2.5 px-2">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-slate-400 cursor-default whitespace-nowrap">
+                            <span className="text-muted-foreground cursor-default whitespace-nowrap">
                               {relativeDate(v.issued_at)}
                             </span>
                           </TooltipTrigger>
@@ -308,14 +308,16 @@ export function KeyRotationPanel() {
                         {v.expires_at ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-slate-400 cursor-default">{relativeExpiry(v.expires_at)}</span>
+                              <span className="text-muted-foreground cursor-default">
+                                {relativeExpiry(v.expires_at)}
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent>
                               <span className="font-mono text-xs">{new Date(v.expires_at).toISOString()}</span>
                             </TooltipContent>
                           </Tooltip>
                         ) : (
-                          <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400">
+                          <Badge variant="outline" className="text-xs border-tertiary-bright/30 text-tertiary-bright">
                             active
                           </Badge>
                         )}
@@ -324,7 +326,7 @@ export function KeyRotationPanel() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-6 text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
+                          className="h-6 text-xs border-destructive/30 text-destructive hover:bg-destructive/10"
                           disabled={revoking === v.key_hash}
                           aria-label={`Force-revoke key version v${v.version}`}
                           onClick={() => {
@@ -342,9 +344,9 @@ export function KeyRotationPanel() {
           </TooltipProvider>
         )}
 
-        <p className="mt-4 text-xs text-slate-600">
+        <p className="mt-4 text-xs text-muted-foreground">
           To rotate: derive a new key client-side via Touch ID, then use the{' '}
-          <a href="/u/keys/rotate" className="text-blue-500 hover:text-blue-400">
+          <a href="/u/keys/rotate" className="text-primary-bright hover:text-primary-bright/80 underline">
             /u/keys/rotate
           </a>{' '}
           page.

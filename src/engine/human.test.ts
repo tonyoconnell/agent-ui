@@ -1,8 +1,8 @@
 /**
- * HUMAN — A person as a substrate unit
+ * HUMAN — A person as a substrate actor
  *
  * Routes signals to Telegram or Discord, waits for replies via durable ask.
- * Humans accumulate pheromone like any other unit:
+ * Humans accumulate pheromone like any other actor:
  *   - Fast, accurate humans become highways
  *   - Humans who ignore requests build resistance
  *   - Multi-channel (same human, two channels) works independently
@@ -24,10 +24,10 @@ vi.mock('./durable-ask', () => ({
 }))
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ACT 1: human(id, channel) creates unit with channel attribute
+// ACT 1: human(id, channel) creates actor with channel attribute
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('Act 1: human() factory — create unit with channel', () => {
+describe('Act 1: human() factory — create actor with channel', () => {
   const mockEnv = {
     D1: { prepare: vi.fn() },
   } as any
@@ -36,7 +36,7 @@ describe('Act 1: human() factory — create unit with channel', () => {
     vi.clearAllMocks()
   })
 
-  it('human(id, { telegram }) creates a unit with id', () => {
+  it('human(id, { telegram }) creates a actor with id', () => {
     const h = human('anthony', {
       env: mockEnv,
       telegram: 123456789,
@@ -55,7 +55,7 @@ describe('Act 1: human() factory — create unit with channel', () => {
     })
 
     expect(h.id).toBe('alice')
-    // Unit created; telegram stored in closure
+    // Actor created; telegram stored in closure
   })
 
   it('human() supports discord channel in options', () => {
@@ -103,7 +103,7 @@ describe('Act 2: human signal routing — signal queued and delivered', () => {
     vi.clearAllMocks()
   })
 
-  it('human unit has approve handler (task defined)', () => {
+  it('human actor has approve handler (task defined)', () => {
     const h = human('reviewer', {
       env: mockEnv,
       telegram: 555555555,
@@ -113,7 +113,7 @@ describe('Act 2: human signal routing — signal queued and delivered', () => {
     expect(h.has('approve')).toBe(true)
   })
 
-  it('human unit has review handler (task defined)', () => {
+  it('human actor has review handler (task defined)', () => {
     const h = human('critic', {
       env: mockEnv,
       telegram: 777777777,
@@ -123,7 +123,7 @@ describe('Act 2: human signal routing — signal queued and delivered', () => {
     expect(h.has('review')).toBe(true)
   })
 
-  it('human unit has choose handler (task defined)', () => {
+  it('human actor has choose handler (task defined)', () => {
     const h = human('decider', {
       env: mockEnv,
       telegram: 888888888,
@@ -133,7 +133,7 @@ describe('Act 2: human signal routing — signal queued and delivered', () => {
     expect(h.has('choose')).toBe(true)
   })
 
-  it('human unit has claim handler (task defined)', () => {
+  it('human actor has claim handler (task defined)', () => {
     const h = human('claimer', {
       env: mockEnv,
       telegram: 999999999,
@@ -175,9 +175,9 @@ describe('Act 3: pheromone accumulation — human→agent paths strengthen', () 
     w = world()
   })
 
-  // TODO(human-routing): times out because human() creates unit without a `route`
+  // TODO(human-routing): times out because human() creates actor without a `route`
   // closure; world's auto-reply via route?.() no-ops, so w.ask() never resolves.
-  // Fix needs route-injection on add(id, existing) or a setRoute() on Unit.
+  // Fix needs route-injection on add(id, existing) or a setRoute() on Actor.
   it.skip('ask on human receiver routes signal which marks pheromone', async () => {
     const h = human('mentor', {
       env: mockEnv,
@@ -302,7 +302,7 @@ describe('Act 4: multi-channel humans — same person, two channels', () => {
     // Both channels stored in closure
   })
 
-  it('separate units for same human via different channels isolate paths', async () => {
+  it('separate actors for same human via different channels isolate paths', async () => {
     const hTg = human('alice-tg', {
       env: mockEnv,
       telegram: 777777610,
@@ -413,7 +413,7 @@ describe('Act 5: human outcomes — result/timeout/dissolved/failure', () => {
 
     const edge = 'caller→invalid:nonexistent'
 
-    // Simulate dissolved (no handler on unit)
+    // Simulate dissolved (no handler on actor)
     w.warn(edge, 0.5)
 
     expect(w.danger(edge)).toBe(0.5)
@@ -497,7 +497,7 @@ describe('Act 6: bountyClaimSignal helper — factory for claim signals', () => 
     expect(sig.data).not.toHaveProperty('deliverable')
   })
 
-  it('bountyClaimSignal maps to receiver pattern unit:task', () => {
+  it('bountyClaimSignal maps to receiver pattern actor:task', () => {
     const sig = bountyClaimSignal('david', 'bty-001', true)
 
     expect(sig.receiver).toMatch(/^[a-z-]+:claim$/)

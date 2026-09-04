@@ -46,11 +46,11 @@ const TEMPLATE_ICONS: Record<TemplateId, React.ReactNode> = {
 }
 
 const TEMPLATE_COLORS: Record<TemplateId, string> = {
-  trader: 'border-cyan-800/60 bg-cyan-950/30 text-cyan-300',
-  researcher: 'border-violet-800/60 bg-violet-950/30 text-violet-300',
-  writer: 'border-amber-800/60 bg-amber-950/30 text-amber-300',
-  concierge: 'border-emerald-800/60 bg-emerald-950/30 text-emerald-300',
-  blank: 'border-slate-700 bg-slate-900/30 text-slate-300',
+  trader: 'border-primary-bright/60 bg-primary/10 text-primary-bright',
+  researcher: 'border-secondary-bright/60 bg-secondary/10 text-secondary-bright',
+  writer: 'border-gold/60 bg-gold/10 text-gold',
+  concierge: 'border-tertiary-bright/60 bg-tertiary/10 text-tertiary-bright',
+  blank: 'border-border bg-card/30 text-foreground',
 }
 
 // ─── helpers ───────────────────────────────────────────────────────────────────
@@ -179,18 +179,18 @@ export function NewAgentIsland() {
   const canSubmit = slug.length > 0 && !isPending
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] px-4 py-10">
+    <div className="min-h-screen bg-background px-4 py-10">
       <div className="w-full max-w-lg mx-auto space-y-8">
         {/* ── header ── */}
         <div>
           <h1 className="text-2xl font-semibold text-white mb-1">New Agent</h1>
-          <p className="text-slate-400 text-sm">Pick a template, give it a name, and deploy in seconds.</p>
+          <p className="text-muted-foreground text-sm">Pick a template, give it a name, and deploy in seconds.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* ── template picker ── */}
           <div className="space-y-2">
-            <Label className="text-slate-300 text-sm font-medium">Template</Label>
+            <Label className="text-foreground text-sm font-medium">Template</Label>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {TEMPLATE_ORDER.map((id) => {
                 const t = AGENT_TEMPLATES[id]
@@ -202,22 +202,22 @@ export function NewAgentIsland() {
                     onClick={() => selectTemplate(id)}
                     className={cn(
                       'flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition-all',
-                      'hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500',
+                      'hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-bright',
                       active
                         ? cn(
                             TEMPLATE_COLORS[id],
-                            'ring-2 ring-offset-1 ring-offset-[#0a0a0f]',
+                            'ring-2 ring-offset-1 ring-offset-background',
                             id === 'trader'
-                              ? 'ring-cyan-500'
+                              ? 'ring-primary-bright'
                               : id === 'researcher'
-                                ? 'ring-violet-500'
+                                ? 'ring-secondary-bright'
                                 : id === 'writer'
-                                  ? 'ring-amber-500'
+                                  ? 'ring-gold'
                                   : id === 'concierge'
-                                    ? 'ring-emerald-500'
-                                    : 'ring-slate-500',
+                                    ? 'ring-tertiary-bright'
+                                    : 'ring-muted-foreground',
                           )
-                        : 'border-[#252538] bg-[#161622] text-slate-400',
+                        : 'border-border bg-card text-muted-foreground',
                     )}
                     aria-pressed={active}
                   >
@@ -227,12 +227,12 @@ export function NewAgentIsland() {
                 )
               })}
             </div>
-            {template.description && <p className="text-slate-500 text-xs pl-1 pt-1">{template.description}</p>}
+            {template.description && <p className="text-muted-foreground text-xs pl-1 pt-1">{template.description}</p>}
           </div>
 
           {/* ── name input ── */}
           <div className="space-y-1.5">
-            <Label htmlFor="agent-name" className="text-slate-300 text-sm font-medium">
+            <Label htmlFor="agent-name" className="text-foreground text-sm font-medium">
               Agent name
             </Label>
             <Input
@@ -245,43 +245,43 @@ export function NewAgentIsland() {
               placeholder="e.g. my-trader"
               autoComplete="off"
               spellCheck={false}
-              className="bg-[#161622] border-[#252538] text-white placeholder:text-slate-600 focus:border-cyan-700 focus:ring-cyan-700/30"
+              className="bg-card border-border text-foreground placeholder:text-muted-foreground focus:border-primary-bright focus:ring-primary-bright/30"
             />
             {/* slug preview */}
             {name && (
-              <p className="text-slate-600 text-xs pl-1">
-                uid: <span className="font-mono text-slate-500">{slug || '…'}</span>
+              <p className="text-muted-foreground text-xs pl-1">
+                uid: <span className="font-mono text-muted-foreground">{slug || '…'}</span>
               </p>
             )}
           </div>
 
           {/* ── deterministic address card ── */}
           {slug && (
-            <div className="rounded-xl border border-[#252538] bg-[#161622] px-4 py-3 space-y-1">
-              <p className="text-xs text-slate-500 uppercase tracking-widest">Agent address</p>
+            <div className="rounded-xl border border-border bg-card px-4 py-3 space-y-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">Agent address</p>
               {addressLoading ? (
-                <div className="flex items-center gap-2 text-slate-500">
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span className="text-xs font-mono">deriving…</span>
                 </div>
               ) : agentAddress ? (
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-slate-300 truncate">{agentAddress}</span>
+                  <span className="font-mono text-xs text-foreground truncate">{agentAddress}</span>
                   <button
                     type="button"
                     onClick={copyAddress}
                     aria-label="Copy address"
-                    className="shrink-0 text-slate-500 hover:text-white transition-colors"
+                    className="shrink-0 text-muted-foreground hover:text-white transition-colors"
                   >
                     {copied ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-tertiary-bright" />
                     ) : (
                       <Copy className="w-3.5 h-3.5" />
                     )}
                   </button>
                 </div>
               ) : (
-                <span className="text-xs text-slate-600 font-mono">—</span>
+                <span className="text-xs text-muted-foreground font-mono">—</span>
               )}
             </div>
           )}
@@ -290,7 +290,7 @@ export function NewAgentIsland() {
           <Button
             type="submit"
             disabled={!canSubmit}
-            className="w-full bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40 transition-colors"
+            className="w-full bg-primary-bright text-background hover:opacity-90 text-white disabled:opacity-40 transition-colors"
           >
             {isPending ? (
               <>
@@ -308,9 +308,9 @@ export function NewAgentIsland() {
 
         {/* ── success state ── */}
         {result?.ok && (
-          <Card className="border-emerald-800/40 bg-emerald-950/20">
+          <Card className="border-tertiary-bright/40 bg-tertiary/20">
             <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-sm text-emerald-300 flex items-center gap-2">
+              <CardTitle className="text-sm text-tertiary-bright flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
                 Agent created
               </CardTitle>
@@ -318,14 +318,14 @@ export function NewAgentIsland() {
             <CardContent className="px-4 pb-4 space-y-3">
               {result.uid && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">UID</span>
-                  <span className="font-mono text-slate-300">{result.uid}</span>
+                  <span className="text-muted-foreground">UID</span>
+                  <span className="font-mono text-foreground">{result.uid}</span>
                 </div>
               )}
               {result.wallet && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Wallet</span>
-                  <span className="font-mono text-slate-300 truncate max-w-[200px]">{result.wallet}</span>
+                  <span className="text-muted-foreground">Wallet</span>
+                  <span className="font-mono text-foreground truncate max-w-[200px]">{result.wallet}</span>
                 </div>
               )}
               {slug && (
@@ -333,7 +333,7 @@ export function NewAgentIsland() {
                   href={`https://pay.one.ie/${slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+                  className="flex items-center gap-1.5 text-xs text-primary-bright hover:text-[hsl(var(--color-primary-bright))] transition-colors"
                   onClick={() => emitClick('ui:agents:new-open-paylink')}
                 >
                   <ExternalLink className="w-3.5 h-3.5 shrink-0" />
@@ -348,7 +348,7 @@ export function NewAgentIsland() {
         {result && !result.ok && (
           <div
             role="alert"
-            className="flex items-center gap-2 rounded-lg border border-red-800/40 bg-red-950/30 px-4 py-3 text-red-400 text-sm"
+            className="flex items-center gap-2 rounded-lg border border-[hsl(var(--color-destructive)_/_0.4)] bg-[hsl(var(--color-destructive)_/_0.15)] px-4 py-3 text-[hsl(var(--color-destructive))] text-sm"
           >
             <AlertCircle className="w-4 h-4 shrink-0" />
             {result.error ?? 'Agent creation failed'}
@@ -357,7 +357,7 @@ export function NewAgentIsland() {
 
         {/* ── back link ── */}
         <div className="text-center pt-2">
-          <a href="/u" className="text-slate-500 text-xs hover:text-slate-300 underline underline-offset-2">
+          <a href="/u" className="text-muted-foreground text-xs hover:text-foreground underline underline-offset-2">
             Back to wallet
           </a>
         </div>

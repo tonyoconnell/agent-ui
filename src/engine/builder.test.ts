@@ -1,7 +1,7 @@
 /**
- * builder.test.ts — Wave-aware builder unit
+ * builder.test.ts — Wave-aware builder actor
  *
- * Tests that registerBuilder wires recon→decide→edit→verify on the builder unit,
+ * Tests that registerBuilder wires recon→decide→edit→verify on the builder actor,
  * and that the full chain runs end-to-end with a mock complete function.
  */
 
@@ -27,7 +27,7 @@ function mockNet() {
 }
 
 describe('registerBuilder', () => {
-  it('registers a builder unit with recon/decide/edit/verify handlers', () => {
+  it('registers a builder actor with recon/decide/edit/verify handlers', () => {
     const { net } = mockNet()
     const complete = vi.fn().mockResolvedValue('mock response')
 
@@ -117,7 +117,7 @@ describe('registerBuilder', () => {
     expect(onDone).not.toHaveBeenCalled()
   })
 
-  it('returns unit with id "builder"', () => {
+  it('returns actor with id "builder"', () => {
     const { net } = mockNet()
     const u = registerBuilder(net, vi.fn().mockResolvedValue('ok'))
     expect(u.id).toBe('builder')

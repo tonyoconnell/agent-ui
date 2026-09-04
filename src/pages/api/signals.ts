@@ -37,8 +37,8 @@ export const GET: APIRoute = async ({ url }) => {
           has amount $amt,
           has success $ok,
           has ts $ts;
-        $from has uid $fid, has name $fn;
-        $to has uid $tid, has name $tn;
+        $from has aid $fid, has name $fn;
+        $to has aid $tid, has name $tn;
     `
 
     if (since) {

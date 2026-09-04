@@ -36,7 +36,7 @@ export const POST: APIRoute = async ({ request, params }) => {
   }
 
   // Verify agent exists
-  const agentRows = await readParsed(`match $a isa unit, has uid "${esc(agentId)}"; select $a;`).catch(() => [])
+  const agentRows = await readParsed(`match $a isa actor, has aid "${esc(agentId)}"; select $a;`).catch(() => [])
 
   if (agentRows.length === 0) {
     return Response.json({ error: `Agent "${agentId}" not found` }, { status: 404 })
@@ -48,8 +48,8 @@ export const POST: APIRoute = async ({ request, params }) => {
 
     try {
       await write(
-        `match $from isa unit, has uid "${esc(ctx.user)}"; ` +
-          `$to isa unit, has uid "${esc(agentId)}"; ` +
+        `match $from isa actor, has aid "${esc(ctx.user)}"; ` +
+          `$to isa actor, has aid "${esc(agentId)}"; ` +
           `$e (source: $from, target: $to) isa path, has strength $s; ` +
           `delete $s of $e; ` +
           `insert $e has strength ($s + ${strength});`,
@@ -57,8 +57,8 @@ export const POST: APIRoute = async ({ request, params }) => {
     } catch {
       // Path doesn't exist yet — insert fresh
       await write(
-        `match $from isa unit, has uid "${esc(ctx.user)}"; ` +
-          `$to isa unit, has uid "${esc(agentId)}"; ` +
+        `match $from isa actor, has aid "${esc(ctx.user)}"; ` +
+          `$to isa actor, has aid "${esc(agentId)}"; ` +
           `insert (source: $from, target: $to) isa path, ` +
           `has strength ${strength}, has resistance 0.0, has traversals 0, has revenue 0.0${scopeAttr};`,
       )
@@ -67,15 +67,15 @@ export const POST: APIRoute = async ({ request, params }) => {
     // If scope provided, update it on an existing path (best-effort)
     if (scope) {
       write(
-        `match $from isa unit, has uid "${esc(ctx.user)}"; ` +
-          `$to isa unit, has uid "${esc(agentId)}"; ` +
+        `match $from isa actor, has aid "${esc(ctx.user)}"; ` +
+          `$to isa actor, has aid "${esc(agentId)}"; ` +
           `$e (source: $from, target: $to) isa path, has scope $old; ` +
           `delete $old of $e; ` +
           `insert $e has scope "${esc(scope)}";`,
       ).catch(() =>
         writeSilent(
-          `match $from isa unit, has uid "${esc(ctx.user)}"; ` +
-            `$to isa unit, has uid "${esc(agentId)}"; ` +
+          `match $from isa actor, has aid "${esc(ctx.user)}"; ` +
+            `$to isa actor, has aid "${esc(agentId)}"; ` +
             `$e (source: $from, target: $to) isa path; ` +
             `insert $e has scope "${esc(scope)}";`,
         ),

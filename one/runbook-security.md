@@ -220,7 +220,7 @@ An incident that doesn't produce a new invariant or test is an incident we haven
 
 - [security.md](one/security.md) — the security plan
 - [TODO-security.md](TODO-security.md) — five cycles to land the plan
-- [auth.md](auth.md) — credential model
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — credential model
 - [groups.md](one/groups.md) — tenant isolation
 - `src/lib/sui.ts` — wallet rotation primitives
 - `src/lib/api-auth.ts` — key verification + cache invalidation

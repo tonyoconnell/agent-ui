@@ -143,7 +143,10 @@ export function GenerateWalletDialog({
                     {/* Status Badge */}
                     <div className="mt-2">
                       {count > 0 ? (
-                        <Badge variant="secondary" className="text-[10px] bg-green-500/10 text-green-600">
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] bg-[hsl(var(--color-tertiary-bright)_/_0.1)] text-[hsl(var(--color-tertiary-bright))]"
+                        >
                           {count} · + Add
                         </Badge>
                       ) : (

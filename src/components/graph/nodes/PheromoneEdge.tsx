@@ -13,10 +13,10 @@
  */
 
 const C = {
-  toxic: '#ef4444',
-  highway: '#f59e0b',
-  normal: '#334155',
-  pending: '#6b7280',
+  toxic: 'hsl(var(--color-destructive))',
+  highway: 'hsl(var(--color-gold))',
+  normal: 'hsl(var(--color-muted-foreground))',
+  pending: 'hsl(var(--color-muted-foreground)/0.5)',
 }
 
 export interface EdgeStyleOpts {

@@ -20,11 +20,11 @@ import type { Task } from './types'
 
 const WAVE_ORDER: Array<TaskWave | 'none'> = ['W1', 'W2', 'W3', 'W4', 'none']
 const WAVE_META: Record<TaskWave | 'none', { label: string; color: string; hint: string }> = {
-  W1: { label: 'W1 · Recon', color: '#67e8f9', hint: 'Haiku, parallel reads' },
-  W2: { label: 'W2 · Decide', color: '#c084fc', hint: 'Opus, sharded decisions' },
-  W3: { label: 'W3 · Edit', color: '#fbbf24', hint: 'Sonnet, one per file' },
-  W4: { label: 'W4 · Verify', color: '#4ade80', hint: 'Sonnet, rubric shard' },
-  none: { label: '—', color: '#94a3b8', hint: 'Unassigned wave' },
+  W1: { label: 'W1 · Recon', color: 'hsl(var(--color-primary-bright))', hint: 'Haiku, parallel reads' },
+  W2: { label: 'W2 · Decide', color: 'hsl(var(--color-secondary-bright))', hint: 'Opus, sharded decisions' },
+  W3: { label: 'W3 · Edit', color: 'hsl(var(--color-gold))', hint: 'Sonnet, one per file' },
+  W4: { label: 'W4 · Verify', color: 'hsl(var(--color-tertiary-bright))', hint: 'Sonnet, rubric shard' },
+  none: { label: '—', color: 'hsl(var(--color-muted-foreground))', hint: 'Unassigned wave' },
 }
 
 const UNASSIGNED = '—'
@@ -63,17 +63,19 @@ export function AgentLaneContainer({
   const maxCell = Math.max(0, ...Object.values(grid).map((v) => v.length))
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.01] overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/[0.05] flex items-center gap-2">
-        <span className="text-xs font-semibold text-white/70">Wave × Agent</span>
-        <span className="text-[10px] text-white/30">rows run in parallel · columns queue per agent</span>
+    <div className="rounded-lg border border-border bg-card/30 overflow-hidden">
+      <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+        <span className="text-xs font-semibold text-foreground/70">Wave × Agent</span>
+        <span className="text-[10px] text-muted-foreground/50">rows run in parallel · columns queue per agent</span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-white/[0.05]">
-              <th className="sticky left-0 bg-[#0a0a0f] text-left px-3 py-2 font-semibold text-white/40">wave</th>
+            <tr className="border-b border-border">
+              <th className="sticky left-0 bg-background text-left px-3 py-2 font-semibold text-muted-foreground/60">
+                wave
+              </th>
               {agents.map((a) => {
                 const colLoad = WAVE_ORDER.reduce((sum, w) => sum + (grid[`${w}|${a}`]?.length ?? 0), 0)
                 const isHot = colLoad > 0 && colLoad === maxCell * 2
@@ -82,12 +84,12 @@ export function AgentLaneContainer({
                     key={a}
                     className={cn(
                       'text-left px-3 py-2 font-mono font-normal text-[10px]',
-                      isHot ? 'text-amber-300' : 'text-white/40',
+                      isHot ? 'text-[hsl(var(--color-gold))]' : 'text-muted-foreground/60',
                     )}
                     title={`${colLoad} total queued to this agent`}
                   >
-                    {a === UNASSIGNED ? <span className="text-white/30">unassigned</span> : `@${a}`}
-                    {isHot && <span className="ml-1 text-amber-400/70">⚡</span>}
+                    {a === UNASSIGNED ? <span className="text-muted-foreground/40">unassigned</span> : `@${a}`}
+                    {isHot && <span className="ml-1 text-[hsl(var(--color-gold)/0.7)]">⚡</span>}
                   </th>
                 )
               })}
@@ -99,13 +101,13 @@ export function AgentLaneContainer({
               const rowTotal = agents.reduce((s, a) => s + (grid[`${wave}|${a}`]?.length ?? 0), 0)
               if (rowTotal === 0) return null
               return (
-                <tr key={wave} className="border-b border-white/[0.04] hover:bg-white/[0.01]">
-                  <th className="sticky left-0 bg-[#0a0a0f] text-left px-3 py-2 font-semibold" scope="row">
+                <tr key={wave} className="border-b border-border/50 hover:bg-muted/20">
+                  <th className="sticky left-0 bg-background text-left px-3 py-2 font-semibold" scope="row">
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.color }} />
                       <span style={{ color: meta.color }}>{meta.label}</span>
                     </div>
-                    <p className="text-[10px] text-white/30 mt-0.5 font-normal">{meta.hint}</p>
+                    <p className="text-[10px] text-muted-foreground/40 mt-0.5 font-normal">{meta.hint}</p>
                   </th>
                   {agents.map((a) => {
                     const cell = grid[`${wave}|${a}`] ?? []
@@ -132,7 +134,7 @@ export function AgentLaneContainer({
 
 function Cell({ count, color, max }: { count: number; color: string; max: number }) {
   if (count === 0) {
-    return <span className="text-white/10 text-[10px]">·</span>
+    return <span className="text-muted-foreground/20 text-[10px]">·</span>
   }
   const intensity = max > 0 ? count / max : 0
   return (

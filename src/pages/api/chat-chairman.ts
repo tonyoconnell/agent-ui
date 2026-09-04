@@ -62,7 +62,7 @@ async function loadChainEdges(net: PersistentWorld): Promise<void> {
     const remaining = Math.max(500, deadline - Date.now())
     return Promise.race([
       readParsed(
-        `match $e (source: $f, target: $t) isa path, has strength $s; $f has uid "${from.replace(/"/g, '\\"')}"; $t has uid $tid; select $tid, $s;`,
+        `match $e (source: $f, target: $t) isa path, has strength $s; $f has aid "${from.replace(/"/g, '\\"')}"; $t has aid $tid; select $tid, $s;`,
       ) as Promise<Array<{ tid?: unknown; s?: unknown }>>,
       new Promise<Array<{ tid?: unknown; s?: unknown }>>((resolve) => setTimeout(() => resolve([]), remaining)),
     ]).catch(() => [])
@@ -120,7 +120,7 @@ async function ensureChain(net: PersistentWorld): Promise<void> {
 /**
  * Per-request: register/upgrade each specialist's `.on('respond')` handler
  * to a leaf that streams into the provided onDelta. The last registration
- * wins because `net.add(uid)` overwrites the unit with a fresh one each time.
+ * wins because `net.add(uid)` overwrites the actor with a fresh one each time.
  * That's fine: concurrent sessions are keyed by their own `replyTo`, and
  * the leaf's LLM response is scoped per-call by closure.
  */
@@ -130,7 +130,7 @@ function wireSessionLeaves(
   onStart: (uid: string, chain: string[]) => void,
   complete?: Parameters<typeof leafHandler>[0]['complete'],
 ): void {
-  // Dynamic discovery: every unit that is a target of some pheromone edge
+  // Dynamic discovery: every actor that is a target of some pheromone edge
   // AND is not itself a router (no `:route` handler) is a specialist that
   // needs a streaming `respond` handler wired to THIS session's onDelta.
   // Also always include CEO since it's a self-fallback leaf.
@@ -148,7 +148,7 @@ function wireSessionLeaves(
 
   for (const uid of targets) {
     const u = net.has(uid) ? net.get(uid)! : net.add(uid)
-    // Every unit gets a streaming respond handler. Routers (directors, CEO)
+    // Every actor gets a streaming respond handler. Routers (directors, CEO)
     // also get one so their self-fallback path works when no sub-tag matches.
     const isCeo = uid === 'ceo'
     const isRouter = u.has('route')

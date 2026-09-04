@@ -133,8 +133,8 @@ export function SignalStrip({ onJourneyComplete }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-xl font-semibold tracking-tight text-slate-100">Signal Journey</h2>
-          <p className="text-sm text-slate-400">Watch one signal travel 9 stops through the substrate</p>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Signal Journey</h2>
+          <p className="text-sm text-muted-foreground">Watch one signal travel 9 stops through the substrate</p>
         </div>
         <button
           type="button"
@@ -143,8 +143,8 @@ export function SignalStrip({ onJourneyComplete }: Props) {
           className={cn(
             'px-5 py-2.5 rounded-lg font-medium text-sm transition-all',
             running
-              ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-              : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/20',
+              ? 'bg-muted text-muted-foreground cursor-not-allowed'
+              : 'bg-primary-bright hover:bg-primary-bright/80 text-black shadow-lg shadow-primary-bright/20',
           )}
         >
           {running ? 'Sending...' : totalMs !== null ? 'Send another signal' : 'Send a signal'}
@@ -152,10 +152,10 @@ export function SignalStrip({ onJourneyComplete }: Props) {
       </div>
 
       {/* Direction labels */}
-      <div className="flex items-center gap-3 text-xs text-slate-500">
-        <span className="text-cyan-400">OUTBOUND</span>
-        <span className="flex-1 border-t border-dashed border-slate-700" />
-        <span className="text-amber-400">RETURN</span>
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="text-primary-bright">OUTBOUND</span>
+        <span className="flex-1 border-t border-dashed border-border" />
+        <span className="text-gold">RETURN</span>
       </div>
 
       {/* Strip */}
@@ -168,17 +168,17 @@ export function SignalStrip({ onJourneyComplete }: Props) {
               {/* Divider between outbound and return */}
               {i === DIVIDER_INDEX + 1 && (
                 <div className="flex items-center gap-3 py-3">
-                  <span className="flex-1 border-t border-dashed border-slate-600" />
-                  <span className="text-xs text-slate-500 font-mono">return trip</span>
-                  <span className="flex-1 border-t border-dashed border-slate-600" />
+                  <span className="flex-1 border-t border-dashed border-border" />
+                  <span className="text-xs text-muted-foreground font-mono">return trip</span>
+                  <span className="flex-1 border-t border-dashed border-border" />
                 </div>
               )}
 
               <div
                 className={cn(
                   'flex items-center gap-4 px-4 py-3 rounded-lg mb-1 transition-all duration-300',
-                  s.status === 'active' && 'bg-slate-800/80 ring-1 ring-cyan-500/30',
-                  s.status === 'done' && 'bg-slate-800/40',
+                  s.status === 'active' && 'bg-muted/80 ring-1 ring-primary/30',
+                  s.status === 'done' && 'bg-muted/40',
                   s.status === 'waiting' && 'bg-transparent',
                 )}
               >
@@ -186,10 +186,10 @@ export function SignalStrip({ onJourneyComplete }: Props) {
                 <div
                   className={cn(
                     'w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono shrink-0 transition-colors',
-                    s.status === 'done' && !isReturn && 'bg-cyan-500/20 text-cyan-400',
-                    s.status === 'done' && isReturn && 'bg-amber-500/20 text-amber-400',
-                    s.status === 'active' && 'bg-cyan-500 text-white animate-pulse',
-                    s.status === 'waiting' && 'bg-slate-800 text-slate-500',
+                    s.status === 'done' && !isReturn && 'bg-primary/20 text-primary-bright',
+                    s.status === 'done' && isReturn && 'bg-gold/20 text-gold',
+                    s.status === 'active' && 'bg-primary-bright text-black animate-pulse',
+                    s.status === 'waiting' && 'bg-muted text-muted-foreground',
                   )}
                 >
                   {i}
@@ -199,13 +199,16 @@ export function SignalStrip({ onJourneyComplete }: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span
-                      className={cn('text-sm font-medium', s.status === 'done' ? 'text-slate-200' : 'text-slate-400')}
+                      className={cn(
+                        'text-sm font-medium',
+                        s.status === 'done' ? 'text-foreground' : 'text-muted-foreground',
+                      )}
                     >
                       {label.name}
                     </span>
-                    <span className="text-xs text-slate-600 font-mono">{label.vocab}</span>
+                    <span className="text-xs text-muted-foreground font-mono">{label.vocab}</span>
                   </div>
-                  {s.detail && <p className="text-xs text-slate-500 mt-0.5 truncate">{s.detail}</p>}
+                  {s.detail && <p className="text-xs text-muted-foreground mt-0.5 truncate">{s.detail}</p>}
                 </div>
 
                 {/* Timing badge */}
@@ -215,16 +218,16 @@ export function SignalStrip({ onJourneyComplete }: Props) {
                       variant="secondary"
                       className={cn(
                         'font-mono text-xs tabular-nums',
-                        s.ms < 1 && 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-                        s.ms >= 1 && s.ms < 50 && 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-                        s.ms >= 50 && 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                        s.ms < 1 && 'bg-tertiary/10 text-tertiary-bright border-tertiary/20',
+                        s.ms >= 1 && s.ms < 50 && 'bg-primary/10 text-primary-bright border-primary/20',
+                        s.ms >= 50 && 'bg-gold/10 text-gold border-gold/20',
                       )}
                     >
                       {formatMs(s.ms)}
                     </Badge>
                   )}
-                  {s.status === 'active' && <span className="text-xs text-cyan-400 animate-pulse">...</span>}
-                  {s.status === 'waiting' && <span className="text-xs text-slate-600">&mdash;</span>}
+                  {s.status === 'active' && <span className="text-xs text-primary-bright animate-pulse">...</span>}
+                  {s.status === 'waiting' && <span className="text-xs text-muted-foreground">&mdash;</span>}
                 </div>
               </div>
             </div>
@@ -234,9 +237,9 @@ export function SignalStrip({ onJourneyComplete }: Props) {
 
       {/* Total */}
       {totalMs !== null && (
-        <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-slate-800/60 border border-slate-700">
-          <span className="text-sm text-slate-300">Total journey</span>
-          <Badge className="font-mono text-sm bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+        <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-muted/60 border border-border">
+          <span className="text-sm text-foreground">Total journey</span>
+          <Badge className="font-mono text-sm bg-primary/10 text-primary-bright border-primary/20">
             {formatMs(totalMs)}
           </Badge>
         </div>

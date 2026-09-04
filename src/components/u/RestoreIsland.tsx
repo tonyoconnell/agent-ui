@@ -116,25 +116,27 @@ export function RestoreIsland() {
   const allFilled = words.every((w) => w.trim().length > 0)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-white mb-2">Restore your vault</h1>
-          <p className="text-slate-400 text-sm">Enter your 24-word recovery phrase to restore access on this device.</p>
+          <h1 className="text-2xl font-semibold text-foreground mb-2">Restore your vault</h1>
+          <p className="text-muted-foreground text-sm">
+            Enter your 24-word recovery phrase to restore access on this device.
+          </p>
         </div>
 
         {phase === 'restored' ? (
           /* Success state */
-          <div className="rounded-xl border border-emerald-800/40 bg-emerald-950/30 p-6 text-center space-y-4">
-            <div className="text-emerald-400 text-sm font-medium">Vault restored</div>
-            <p className="text-slate-400 text-xs">
+          <div className="rounded-xl border border-[hsl(var(--color-tertiary-bright)/0.15)] bg-[hsl(var(--color-tertiary-bright)/0.08)] p-6 text-center space-y-4">
+            <div className="text-[hsl(var(--color-tertiary-bright))] text-sm font-medium">Vault restored</div>
+            <p className="text-muted-foreground text-xs">
               Your vault is unlocked. Recreate your wallets in the dashboard — they&apos;ll have the same addresses as
               before.
             </p>
             <div className="flex flex-col gap-2 pt-2">
               <Button
-                className="w-full bg-white text-black hover:bg-slate-100 font-medium"
+                className="w-full bg-foreground text-background hover:opacity-90 font-medium"
                 onClick={() => {
                   window.location.href = '/u'
                 }}
@@ -143,7 +145,7 @@ export function RestoreIsland() {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full text-slate-500 hover:text-slate-300 text-xs"
+                className="w-full text-muted-foreground hover:text-foreground text-xs"
                 onClick={handleReset}
               >
                 Enter different words
@@ -157,7 +159,7 @@ export function RestoreIsland() {
             <div className="grid grid-cols-4 gap-1.5">
               {words.map((word, i) => (
                 <div key={i} className="relative">
-                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-slate-600 text-[10px] select-none w-4 text-right">
+                  <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px] select-none w-4 text-right">
                     {i + 1}
                   </span>
                   <Input
@@ -173,11 +175,11 @@ export function RestoreIsland() {
                     tabIndex={i + 1}
                     aria-label={`Word ${i + 1}`}
                     className={[
-                      'pl-6 pr-1 py-2 text-xs font-mono bg-[#161622] border text-white placeholder-slate-600',
-                      'focus:ring-1 focus:ring-white/20 focus:border-white/20',
+                      'pl-6 pr-1 py-2 text-xs font-mono bg-card border text-foreground placeholder-muted-foreground',
+                      'focus:ring-1 focus:ring-foreground/20 focus:border-foreground/20',
                       wordErrors[i]
-                        ? 'border-red-700/60 focus:border-red-600/60 focus:ring-red-600/20'
-                        : 'border-[#252538]',
+                        ? 'border-[hsl(var(--color-destructive)/0.3)] focus:border-[hsl(var(--color-destructive)/0.5)] focus:ring-[hsl(var(--color-destructive)/0.2)]'
+                        : 'border-border',
                     ].join(' ')}
                   />
                 </div>
@@ -185,13 +187,15 @@ export function RestoreIsland() {
             </div>
 
             {/* Paste hint */}
-            <p className="text-center text-slate-600 text-xs">You can paste all 24 words into the first field.</p>
+            <p className="text-center text-muted-foreground text-xs">
+              You can paste all 24 words into the first field.
+            </p>
 
             {/* Error message */}
             {phase === 'error' && errorMsg && (
               <div
                 role="alert"
-                className="rounded-lg border border-red-800/40 bg-red-950/30 px-4 py-3 text-red-400 text-sm text-center"
+                className="rounded-lg border border-[hsl(var(--color-destructive)/0.3)] bg-[hsl(var(--color-destructive)/0.1)] px-4 py-3 text-[hsl(var(--color-destructive))] text-sm text-center"
               >
                 {errorMsg}
               </div>
@@ -199,7 +203,7 @@ export function RestoreIsland() {
 
             {/* Submit */}
             <Button
-              className="w-full bg-white text-black hover:bg-slate-100 font-medium disabled:opacity-40"
+              className="w-full bg-foreground text-background hover:opacity-90 font-medium disabled:opacity-40"
               disabled={!allFilled || submitting}
               onClick={() => void handleSubmit()}
             >

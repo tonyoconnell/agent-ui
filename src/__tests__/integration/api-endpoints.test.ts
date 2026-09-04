@@ -119,7 +119,7 @@ describe('/api/health', () => {
     const data = (await response.json()) as any
     expect(data.status).toBe('healthy')
     expect(data.world).toBeDefined()
-    expect(data.world.units).toBeGreaterThan(0)
+    expect(data.world.actors).toBeGreaterThan(0)
     expect(data.version).toBe('0.6.0')
     expect(data.timestamp).toBeDefined()
   })
@@ -170,7 +170,7 @@ describe('/api/health', () => {
     const response = await GET(createMockAstroContext())
 
     const data = (await response.json()) as any
-    expect(data.world.units).toBe(3)
+    expect(data.world.actors).toBe(3)
     expect(data.world.agents).toBe(2) // only agent + llm kinds count
     expect(data.world.edges).toBe(1)
     expect(data.world.highways).toBe(1)
@@ -299,8 +299,8 @@ describe('/api/state', () => {
 
     expect(response.status).toBe(200)
     const data = (await response.json()) as any
-    expect(data.units).toBeDefined()
-    expect(Array.isArray(data.units)).toBe(true)
+    expect(data.actors).toBeDefined()
+    expect(Array.isArray(data.actors)).toBe(true)
     expect(data.edges).toBeDefined()
     expect(Array.isArray(data.edges)).toBe(true)
     expect(data.highways).toBeDefined()
@@ -319,8 +319,8 @@ describe('/api/state', () => {
     const response = await GET(createMockAstroContext())
 
     const data = (await response.json()) as any
-    expect(data.units).toHaveLength(1)
-    expect(data.units[0]).toMatchObject({
+    expect(data.actors).toHaveLength(1)
+    expect(data.actors[0]).toMatchObject({
       id: 'alice',
       name: 'Alice Agent',
       kind: 'agent',
@@ -381,9 +381,9 @@ describe('/api/state', () => {
 
     expect(response.status).toBe(200)
     const data = (await response.json()) as any
-    expect(data.units).toEqual([])
+    expect(data.actors).toEqual([])
     expect(data.edges).toEqual([])
-    expect(data.stats.units).toBe(0)
+    expect(data.stats.actors).toBe(0)
   })
 })
 

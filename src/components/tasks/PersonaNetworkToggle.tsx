@@ -4,8 +4,8 @@ import { cn } from '@/lib/utils'
 import type { Network, Persona } from './types'
 
 const NETWORKS: Array<{ value: Network; label: string; dot: string }> = [
-  { value: 'testnet', label: 'Testnet', dot: 'bg-amber-400' },
-  { value: 'mainnet', label: 'Mainnet', dot: 'bg-emerald-400' },
+  { value: 'testnet', label: 'Testnet', dot: 'bg-[hsl(var(--color-gold))]' },
+  { value: 'mainnet', label: 'Mainnet', dot: 'bg-[hsl(var(--color-tertiary-bright))]' },
 ]
 
 interface Props {

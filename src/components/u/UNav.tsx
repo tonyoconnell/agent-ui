@@ -71,7 +71,7 @@ export function UNav({ active }: UNavProps) {
                       ${
                         isActive
                           ? `bg-linear-to-br ${item.color} text-black dark:text-white shadow-md`
-                          : 'bg-gray-200 text-black dark:bg-zinc-800 dark:text-white group-hover:bg-gray-300 dark:group-hover:bg-zinc-700'
+                          : 'bg-muted text-black dark:bg-muted dark:text-white group-hover:bg-muted/80 dark:group-hover:bg-muted/60'
                       }
                     `}
                     >

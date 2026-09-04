@@ -3,37 +3,37 @@
  *
  * Pure runtime: no TypeDB, no mocks needed. Two fields. Dual strength. Queue.
  *
- * The story: signals move through units, pheromone accumulates on paths,
- * the queue holds work until a unit arrives. ask() wraps signal in a
+ * The story: signals move through actors, pheromone accumulates on paths,
+ * the queue holds work until a actor arrives. ask() wraps signal in a
  * promise that resolves to one of four outcomes.
  *
  * Run: bun vitest run src/engine/world.test.ts
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import { unit, world } from './world'
+import { actor, world } from './world'
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ACT 1: Unit factory
+// ACT 1: Actor factory
 //
-// unit(id) is a callable entity. Handlers (.on), continuations (.then),
+// actor(id) is a callable entity. Handlers (.on), continuations (.then),
 // context-bound roles (.role), and introspection (.has / .list).
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('Act 1: unit factory', () => {
-  it('creates a unit with the correct id', () => {
-    const u = unit('scout')
+describe('Act 1: actor factory', () => {
+  it('creates a actor with the correct id', () => {
+    const u = actor('scout')
     expect(u.id).toBe('scout')
   })
 
   it('.on(name, fn) registers a handler visible via .has()', () => {
-    const u = unit('scout').on('observe', async () => 'ok')
+    const u = actor('scout').on('observe', async () => 'ok')
     expect(u.has('observe')).toBe(true)
     expect(u.has('missing')).toBe(false)
   })
 
   it('.list() returns all registered handler names', () => {
-    const u = unit('scout')
+    const u = actor('scout')
       .on('observe', async () => null)
       .on('report', async () => null)
     const names = u.list()
@@ -43,7 +43,7 @@ describe('Act 1: unit factory', () => {
   })
 
   it('.then(name, template) registers a continuation (does not appear in .list())', () => {
-    const u = unit('scout')
+    const u = actor('scout')
       .on('observe', async (d) => d)
       .then('observe', (r) => ({ receiver: 'analyst', data: r }))
     // .then continuations are internal — not exposed via has/list
@@ -51,19 +51,19 @@ describe('Act 1: unit factory', () => {
   })
 
   it('.role(name, task, ctx) creates a context-bound handler', () => {
-    const u = unit('scout')
+    const u = actor('scout')
       .on('base', async (d: unknown) => (d as Record<string, unknown>).value)
       .role('alias', 'base', { value: 42 })
     expect(u.has('alias')).toBe(true)
   })
 
   it('.subscribe() and .subscribedTags() round-trip tags', () => {
-    const u = unit('scout').subscribe(['signal', 'path'])
+    const u = actor('scout').subscribe(['signal', 'path'])
     expect(u.subscribedTags()).toEqual(['signal', 'path'])
   })
 
-  it('calling a unit with a missing handler is a no-op (zero returns)', () => {
-    const u = unit('scout')
+  it('calling a actor with a missing handler is a no-op (zero returns)', () => {
+    const u = actor('scout')
     // No handler registered — should not throw
     expect(() => u({ receiver: 'scout:missing' })).not.toThrow()
   })
@@ -72,23 +72,23 @@ describe('Act 1: unit factory', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 2: World add / remove / introspection
 //
-// .add(id) creates a unit and wires routing. .remove(id) deletes the unit
+// .add(id) creates a actor and wires routing. .remove(id) deletes the actor
 // but leaves paths intact (they fade naturally). .get/.has/.list introspect.
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Act 2: world add / remove', () => {
-  it('.add(id) creates a unit and registers it', () => {
+  it('.add(id) creates a actor and registers it', () => {
     const net = world()
     net.add('scout')
     expect(net.has('scout')).toBe(true)
   })
 
-  it('.has(id) returns false for unknown unit', () => {
+  it('.has(id) returns false for unknown actor', () => {
     const net = world()
     expect(net.has('ghost')).toBe(false)
   })
 
-  it('.list() returns all unit ids', () => {
+  it('.list() returns all actor ids', () => {
     const net = world()
     net.add('a')
     net.add('b')
@@ -96,14 +96,14 @@ describe('Act 2: world add / remove', () => {
     expect(net.list()).toContain('b')
   })
 
-  it('.get(id) returns the unit', () => {
+  it('.get(id) returns the actor', () => {
     const net = world()
     net.add('scout')
     expect(net.get('scout')).toBeDefined()
     expect(net.get('scout')?.id).toBe('scout')
   })
 
-  it('.remove(id) removes the unit from routing', () => {
+  it('.remove(id) removes the actor from routing', () => {
     const net = world()
     net.add('scout')
     net.remove('scout')
@@ -119,10 +119,10 @@ describe('Act 2: world add / remove', () => {
     expect(net.sense('scout→analyst')).toBe(5)
   })
 
-  it('auto-drains queued signals when unit is added (default handler)', async () => {
+  it('auto-drains queued signals when actor is added (default handler)', async () => {
     const net = world()
     const received: unknown[] = []
-    // Enqueue a signal for a unit that doesn't exist yet
+    // Enqueue a signal for a actor that doesn't exist yet
     net.enqueue({ receiver: 'late', data: 'hello' })
     expect(net.pending()).toBe(1)
     // When added with a default handler registered first via .on(), auto-drain fires
@@ -133,7 +133,7 @@ describe('Act 2: world add / remove', () => {
       return d
     })
     // The auto-drain already fired during add() — but handler wasn't yet registered.
-    // Use drain() explicitly after unit + handler setup instead:
+    // Use drain() explicitly after actor + handler setup instead:
     net.enqueue({ receiver: 'late', data: 'world' })
     net.drain()
     await new Promise((r) => setTimeout(r, 10))
@@ -145,12 +145,12 @@ describe('Act 2: world add / remove', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 3: Signal routing
 //
-// Signals route to unit (default handler) or unit:task (named handler).
-// Missing units dissolve silently. replyTo closes the loop automatically.
+// Signals route to actor (default handler) or actor:task (named handler).
+// Missing actors dissolve silently. replyTo closes the loop automatically.
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Act 3: signal routing', () => {
-  it('routes signal to unit default handler', async () => {
+  it('routes signal to actor default handler', async () => {
     const net = world()
     const calls: unknown[] = []
     net.add('scout').on('default', async (d) => {
@@ -163,7 +163,7 @@ describe('Act 3: signal routing', () => {
     expect(calls[0]).toBe('ping')
   })
 
-  it('routes signal to unit:task named handler', async () => {
+  it('routes signal to actor:task named handler', async () => {
     const net = world()
     const calls: unknown[] = []
     net.add('scout').on('observe', async (d) => {
@@ -176,9 +176,9 @@ describe('Act 3: signal routing', () => {
     expect(calls[0]).toBe(42)
   })
 
-  it('missing unit → dissolves silently (no throw, no crash)', () => {
+  it('missing actor → dissolves silently (no throw, no crash)', () => {
     const net = world()
-    // No unit named 'ghost' — should silently dissolve
+    // No actor named 'ghost' — should silently dissolve
     expect(() => net.signal({ receiver: 'ghost:task' })).not.toThrow()
   })
 
@@ -385,7 +385,7 @@ describe('Act 6: follow vs select', () => {
     expect(net.select()).toBeNull()
   })
 
-  it('select returns a string (unit name) when paths exist', () => {
+  it('select returns a string (actor name) when paths exist', () => {
     const net = world()
     net.mark('entry→analyst', 5)
     const dest = net.select()
@@ -498,7 +498,7 @@ describe('Act 8: highways', () => {
 
   it('limit parameter caps result count', () => {
     const net = world()
-    for (let i = 0; i < 20; i++) net.mark(`entry→unit${i}`, i + 1)
+    for (let i = 0; i < 20; i++) net.mark(`entry→actor${i}`, i + 1)
     const hw = net.highways(5)
     expect(hw).toHaveLength(5)
   })
@@ -525,7 +525,7 @@ describe('Act 8: highways', () => {
 // ACT 9: ask — four outcomes
 //
 // ask() returns { result } on success, { timeout: true } on timeout,
-// { dissolved: true } on missing unit/capability, { failure: true } if
+// { dissolved: true } on missing actor/capability, { failure: true } if
 // the handler produces null/undefined.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -540,13 +540,13 @@ describe('Act 9: ask — four outcomes', () => {
     expect(out.dissolved).toBeUndefined()
   })
 
-  it('{ dissolved: true } when unit is missing', async () => {
+  it('{ dissolved: true } when actor is missing', async () => {
     const net = world()
     const out = await net.ask({ receiver: 'ghost' })
     expect(out.dissolved).toBe(true)
   })
 
-  it('{ dissolved: true } when unit exists but has no matching or default handler', async () => {
+  it('{ dissolved: true } when actor exists but has no matching or default handler', async () => {
     const net = world()
     net.add('partial').on('other', async () => 'nope')
     const out = await net.ask({ receiver: 'partial:missing' })
@@ -571,7 +571,7 @@ describe('Act 9: ask — four outcomes', () => {
     vi.useRealTimers()
   }, 10_000)
 
-  it('ask routes to unit:task named handler', async () => {
+  it('ask routes to actor:task named handler', async () => {
     const net = world()
     // ask() merges replyTo into data — use an object so the merge doesn't corrupt the value
     net.add('worker').on('process', async (d) => ((d as Record<string, unknown>).n as number) * 2)
@@ -591,7 +591,7 @@ describe('Act 9: ask — four outcomes', () => {
 // ACT 10: Continuations (.then chains)
 //
 // .then(name, template) fires after a successful handler, routing the result
-// to the next unit as a new signal. Chain propagates automatically.
+// to the next actor as a new signal. Chain propagates automatically.
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Act 10: continuations (.then chains)', () => {

@@ -262,7 +262,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
 
   <!-- Above-the-Fold: Complete Design System Showcase -->
   <section class="relative min-h-screen overflow-hidden border-b px-6 py-12 md:px-8">
-    <div class="absolute inset-0 -z-10 bg-gradient-to-br from-[hsl(var(--color-background))] via-background to-transparent"></div>
+    <div class="absolute inset-0 -z-10 bg-gradient-to-br from-background via-background to-transparent"></div>
     <div class="absolute -right-32 top-24 hidden h-[520px] w-[520px] rounded-full bg-primary/10 blur-3xl md:block"></div>
     <div class="absolute -left-32 bottom-24 hidden h-[420px] w-[420px] rounded-full bg-accent/5 blur-3xl md:block"></div>
 
@@ -295,10 +295,10 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           <!-- Compact Color Tokens -->
           <div class="space-y-2">
             <!-- Background -->
-            <div class="flex items-center gap-3 rounded-lg border bg-card p-3">
+            <div class="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
               <div class="flex gap-1">
-                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border" style="background-color: hsl(0 0% 93.3%)" title="Light mode"></div>
-                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border" style="background-color: hsl(0 0% 10%)" title="Dark mode"></div>
+                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border" style="background-color: hsl(var(--color-background))" title="Light mode"></div>
+                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border" style="background-color: hsl(var(--color-background))" title="Dark mode"></div>
               </div>
               <div class="flex-1">
                 <p class="text-sm font-semibold">background</p>
@@ -311,10 +311,10 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- Foreground -->
-            <div class="flex items-center gap-3 rounded-lg border bg-card p-3">
+            <div class="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
               <div class="flex gap-1">
-                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border" style="background-color: hsl(0 0% 100%)" title="Light mode"></div>
-                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border" style="background-color: hsl(0 0% 13%)" title="Dark mode"></div>
+                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border" style="background-color: hsl(var(--color-foreground))" title="Light mode"></div>
+                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border" style="background-color: hsl(var(--color-foreground))" title="Dark mode"></div>
               </div>
               <div class="flex-1">
                 <p class="text-sm font-semibold">foreground</p>
@@ -327,12 +327,12 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- Font -->
-            <div class="flex items-center gap-3 rounded-lg border bg-card p-3">
+            <div class="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
               <div class="flex gap-1">
-                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border flex items-center justify-center" style="background-color: hsl(0 0% 100%); color: hsl(0 0% 13%)" title="Light mode">
+                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border flex items-center justify-center" style="background-color: hsl(var(--color-foreground)); color: hsl(var(--color-font))" title="Light mode">
                   <span class="text-xs font-bold">Aa</span>
                 </div>
-                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border flex items-center justify-center" style="background-color: hsl(0 0% 13%); color: hsl(0 0% 100%)" title="Dark mode">
+                <div class="h-10 w-10 rounded-md shadow-inner ring-1 ring-border flex items-center justify-center" style="background-color: hsl(var(--color-background)); color: hsl(var(--color-font))" title="Dark mode">
                   <span class="text-xs font-bold">Aa</span>
                 </div>
               </div>
@@ -347,8 +347,8 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- Primary -->
-            <div class="flex items-center gap-3 rounded-lg border bg-card p-3">
-              <div class="h-10 w-10 rounded-md bg-[hsl(216_55%_25%)] shadow-inner"></div>
+            <div class="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+              <div class="h-10 w-10 rounded-md bg-primary shadow-inner"></div>
               <div class="flex-1">
                 <p class="text-sm font-semibold">primary</p>
                 <p class="text-xs text-muted-foreground">Main CTA · Buttons</p>
@@ -357,8 +357,8 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- Secondary -->
-            <div class="flex items-center gap-3 rounded-lg border bg-card p-3">
-              <div class="h-10 w-10 rounded-md bg-[hsl(219_14%_28%)] shadow-inner"></div>
+            <div class="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+              <div class="h-10 w-10 rounded-md bg-secondary shadow-inner"></div>
               <div class="flex-1">
                 <p class="text-sm font-semibold">secondary</p>
                 <p class="text-xs text-muted-foreground">Supporting actions</p>
@@ -367,8 +367,8 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- Tertiary (was accent) -->
-            <div class="flex items-center gap-3 rounded-lg border bg-card p-3">
-              <div class="h-10 w-10 rounded-md bg-[hsl(105_22%_25%)] shadow-inner"></div>
+            <div class="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+              <div class="h-10 w-10 rounded-md bg-tertiary shadow-inner"></div>
               <div class="flex-1">
                 <p class="text-sm font-semibold">tertiary</p>
                 <p class="text-xs text-muted-foreground">Accent · Was "accent"</p>
@@ -378,7 +378,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </div>
 
           <!-- Variants Auto-Generated -->
-          <div class="rounded-lg border bg-primary/5 p-3">
+          <div class="rounded-lg border border-border bg-primary/5 p-3">
             <p class="text-xs font-semibold text-primary">✨ Auto-Generated Variants</p>
             <p class="mt-1 text-xs text-muted-foreground">
               System creates: primary-light, primary-dark, secondary-light, etc. Ring = primary-dark.
@@ -408,7 +408,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </CardHeader>
             <CardContent className="space-y-4">
               <!-- Foreground Content Area -->
-              <div class="rounded-lg bg-background p-3 ring-1 ring-border">
+              <div class="rounded-lg bg-foreground p-3 ring-1 ring-border">
                 <p class="text-xs font-medium">Content Area</p>
                 <p class="text-xs text-muted-foreground">This uses foreground color (white)</p>
               </div>
@@ -418,13 +418,13 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
 
               <!-- Buttons Demo -->
               <div class="space-y-3">
-                <Button className="w-full rounded-md bg-[hsl(216_55%_25%)] text-white shadow-lg hover:bg-[hsl(216_55%_20%)] hover:shadow-xl active:shadow-md transition-all cursor-pointer font-semibold py-6">
+                <Button className="w-full rounded-md bg-primary text-primary-foreground shadow-lg hover:bg-primary/80 hover:shadow-xl active:shadow-md transition-all cursor-pointer font-semibold py-6">
                   Primary Button
                 </Button>
-                <Button className="w-full rounded-md bg-[hsl(219_14%_28%)] text-white shadow-lg hover:bg-[hsl(219_14%_23%)] hover:shadow-xl active:shadow-md transition-all cursor-pointer font-semibold py-6">
+                <Button className="w-full rounded-md bg-secondary text-secondary-foreground shadow-lg hover:bg-secondary/80 hover:shadow-xl active:shadow-md transition-all cursor-pointer font-semibold py-6">
                   Secondary Button
                 </Button>
-                <Button className="w-full rounded-md bg-[hsl(105_22%_25%)] text-white shadow-lg hover:bg-[hsl(105_22%_20%)] hover:shadow-xl active:shadow-md transition-all cursor-pointer font-semibold py-6">
+                <Button className="w-full rounded-md bg-tertiary text-tertiary-foreground shadow-lg hover:bg-tertiary/80 hover:shadow-xl active:shadow-md transition-all cursor-pointer font-semibold py-6">
                   Tertiary Button
                 </Button>
                 <Button variant="outline" className="w-full rounded-md shadow-md hover:shadow-lg transition-all cursor-pointer font-medium py-6">
@@ -460,7 +460,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
 
       <!-- Extraction Workflow (Compact) -->
       <div class="grid gap-4 md:grid-cols-3">
-        <div class="rounded-lg border bg-card p-4">
+        <div class="rounded-lg border border-border bg-card p-4">
           <div class="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
             <Download className="h-5 w-5 text-primary" />
           </div>
@@ -470,7 +470,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </p>
         </div>
 
-        <div class="rounded-lg border bg-card p-4">
+        <div class="rounded-lg border border-border bg-card p-4">
           <div class="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
             <Palette className="h-5 w-5 text-primary" />
           </div>
@@ -480,7 +480,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </p>
         </div>
 
-        <div class="rounded-lg border bg-card p-4">
+        <div class="rounded-lg border border-border bg-card p-4">
           <div class="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
             <Layers className="h-5 w-5 text-primary" />
           </div>
@@ -529,7 +529,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
                 <span class="text-xs font-mono text-muted-foreground">shadow-lg</span>
               </div>
               <p class="text-xs text-muted-foreground">Base state with strong elevation (shadow-lg)</p>
-              <button class="w-full rounded-md bg-[hsl(216_55%_25%)] px-4 py-2 text-sm text-white shadow-lg transition-all">
+              <button class="w-full rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground shadow-lg transition-all">
                 Click Me
               </button>
             </div>
@@ -541,7 +541,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
                 <span class="text-xs font-mono text-muted-foreground">shadow-xl</span>
               </div>
               <p class="text-xs text-muted-foreground">Darken 5% + elevate to shadow-xl</p>
-              <button class="w-full rounded-md bg-[hsl(216_55%_20%)] px-4 py-2 text-sm text-white shadow-xl transition-all">
+              <button class="w-full rounded-md bg-primary/80 px-4 py-2 text-sm text-primary-foreground shadow-xl transition-all">
                 Hover State
               </button>
             </div>
@@ -553,7 +553,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
                 <span class="text-xs font-mono text-muted-foreground">ring-2</span>
               </div>
               <p class="text-xs text-muted-foreground">2px primary ring with 2px offset</p>
-              <button class="w-full rounded-md bg-[hsl(216_55%_25%)] px-4 py-2 text-sm text-white shadow-lg ring-2 ring-primary ring-offset-2 transition-all">
+              <button class="w-full rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground shadow-lg ring-2 ring-primary ring-offset-2 transition-all">
                 Focused
               </button>
             </div>
@@ -565,7 +565,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
                 <span class="text-xs font-mono text-muted-foreground">shadow-md</span>
               </div>
               <p class="text-xs text-muted-foreground">Darken 7% + reduce to shadow-md</p>
-              <button class="w-full rounded-md bg-[hsl(216_55%_18%)] px-4 py-2 text-sm text-white shadow-md transition-all">
+              <button class="w-full rounded-md bg-primary/60 px-4 py-2 text-sm text-primary-foreground shadow-md transition-all">
                 Clicking
               </button>
             </div>
@@ -577,7 +577,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
                 <span class="text-xs font-mono text-muted-foreground">opacity-55</span>
               </div>
               <p class="text-xs text-muted-foreground">55% opacity + cursor not-allowed</p>
-              <button class="w-full rounded-md bg-[hsl(216_55%_25%)] px-4 py-2 text-sm text-white opacity-55 cursor-not-allowed shadow-lg transition-all" disabled>
+              <button class="w-full rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground opacity-55 cursor-not-allowed shadow-lg transition-all" disabled>
                 Disabled
               </button>
             </div>
@@ -599,7 +599,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </CardHeader>
           <CardContent className="space-y-3">
             <!-- shadow-none -->
-            <div class="space-y-2 rounded-md border bg-background p-3 shadow-none">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3 shadow-none">
               <p class="text-sm font-medium">shadow-none</p>
               <p class="text-xs text-muted-foreground">Flat surfaces, nested cards</p>
               <div class="rounded-md bg-primary/10 p-3 shadow-none">
@@ -608,7 +608,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- shadow-sm -->
-            <div class="space-y-2 rounded-md border bg-background p-3 shadow-sm">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3 shadow-sm">
               <p class="text-sm font-medium">shadow-sm</p>
               <p class="text-xs text-muted-foreground">Cards, inputs, subtle depth</p>
               <div class="rounded-md bg-primary/10 p-3 shadow-sm">
@@ -617,7 +617,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- shadow-md -->
-            <div class="space-y-2 rounded-md border bg-background p-3 shadow-md">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3 shadow-md">
               <p class="text-sm font-medium">shadow-md</p>
               <p class="text-xs text-muted-foreground">Dropdowns, active states</p>
               <div class="rounded-md bg-primary/10 p-3 shadow-md">
@@ -626,7 +626,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- shadow-lg -->
-            <div class="space-y-2 rounded-md border bg-background p-3 shadow-lg">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3 shadow-lg">
               <p class="text-sm font-medium">shadow-lg</p>
               <p class="text-xs text-muted-foreground">Buttons, important cards</p>
               <div class="rounded-md bg-primary/10 p-3 shadow-lg">
@@ -635,7 +635,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- shadow-xl -->
-            <div class="space-y-2 rounded-md border bg-background p-3 shadow-xl">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3 shadow-xl">
               <p class="text-sm font-medium">shadow-xl</p>
               <p class="text-xs text-muted-foreground">Hover states, modals</p>
               <div class="rounded-md bg-primary/10 p-3 shadow-xl">
@@ -660,7 +660,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </CardHeader>
           <CardContent className="space-y-3">
             <!-- rounded-sm (6px) -->
-            <div class="space-y-2 rounded-md border bg-background p-3">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3">
               <p class="text-sm font-medium">rounded-sm (6px)</p>
               <p class="text-xs text-muted-foreground">Pills, badges, tight components</p>
               <div class="rounded-sm bg-primary/10 p-3">
@@ -669,7 +669,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- rounded-md (8px) -->
-            <div class="space-y-2 rounded-md border bg-background p-3">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3">
               <p class="text-sm font-medium">rounded-md (8px)</p>
               <p class="text-xs text-muted-foreground">Cards, buttons - DEFAULT</p>
               <div class="rounded-md bg-primary/10 p-3">
@@ -678,7 +678,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- rounded-lg (12px) -->
-            <div class="space-y-2 rounded-md border bg-background p-3">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3">
               <p class="text-sm font-medium">rounded-lg (12px)</p>
               <p class="text-xs text-muted-foreground">Large cards, containers</p>
               <div class="rounded-lg bg-primary/10 p-3">
@@ -687,7 +687,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- rounded-xl (16px) -->
-            <div class="space-y-2 rounded-md border bg-background p-3">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3">
               <p class="text-sm font-medium">rounded-xl (16px)</p>
               <p class="text-xs text-muted-foreground">Modals, hero surfaces</p>
               <div class="rounded-xl bg-primary/10 p-3">
@@ -696,7 +696,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- rounded-full (9999px) -->
-            <div class="space-y-2 rounded-md border bg-background p-3">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3">
               <p class="text-sm font-medium">rounded-full (pill)</p>
               <p class="text-xs text-muted-foreground">Avatars, circular icons</p>
               <div class="rounded-full bg-primary/10 p-3 text-center">
@@ -721,7 +721,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </CardHeader>
           <CardContent className="space-y-3">
             <!-- instant (0ms) -->
-            <div class="space-y-2 rounded-md border bg-background p-3">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3">
               <p class="text-sm font-medium">instant (0ms)</p>
               <p class="text-xs text-muted-foreground">No animation, immediate</p>
               <button class="w-full rounded-md bg-primary/10 px-4 py-2 text-xs hover:bg-primary/20 transition-none">
@@ -730,7 +730,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- fast (150ms) -->
-            <div class="space-y-2 rounded-md border bg-background p-3">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3">
               <p class="text-sm font-medium">fast (150ms)</p>
               <p class="text-xs text-muted-foreground">Hovers, quick feedback</p>
               <button class="w-full rounded-md bg-primary/10 px-4 py-2 text-xs hover:bg-primary/20 transition-all duration-150">
@@ -739,7 +739,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- normal (300ms) -->
-            <div class="space-y-2 rounded-md border bg-background p-3">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3">
               <p class="text-sm font-medium">normal (300ms)</p>
               <p class="text-xs text-muted-foreground">Default, component transitions</p>
               <button class="w-full rounded-md bg-primary/10 px-4 py-2 text-xs hover:bg-primary/20 transition-all duration-300">
@@ -748,7 +748,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </div>
 
             <!-- slow (500ms) -->
-            <div class="space-y-2 rounded-md border bg-background p-3">
+            <div class="space-y-2 rounded-md border border-border bg-background p-3">
               <p class="text-sm font-medium">slow (500ms)</p>
               <p class="text-xs text-muted-foreground">Page transitions, modals</p>
               <button class="w-full rounded-md bg-primary/10 px-4 py-2 text-xs hover:bg-primary/20 transition-all duration-500">
@@ -784,17 +784,17 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div class="rounded-md bg-muted p-3 text-sm">
+              <div class="rounded-md border border-border bg-background p-3 text-sm">
                 <p class="font-medium">Default Card (shadow-sm + rounded-md)</p>
                 <p class="text-xs text-muted-foreground mt-1">Subtle elevation, 8px corners</p>
               </div>
 
-              <div class="rounded-md bg-muted p-3 shadow-md text-sm">
+              <div class="rounded-md border border-border bg-background p-3 shadow-md text-sm">
                 <p class="font-medium">Elevated Card (shadow-md + rounded-md)</p>
                 <p class="text-xs text-muted-foreground mt-1">Medium depth, same corners</p>
               </div>
 
-              <div class="rounded-lg bg-muted p-3 shadow-lg text-sm">
+              <div class="rounded-lg border border-border bg-background p-3 shadow-lg text-sm">
                 <p class="font-medium">Featured Card (shadow-lg + rounded-lg)</p>
                 <p class="text-xs text-muted-foreground mt-1">Strong depth, 12px corners</p>
               </div>
@@ -822,7 +822,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             <CardContent className="space-y-4">
               <div class="space-y-2">
                 <p class="text-sm font-medium">Try Interactive Button</p>
-                <button class="w-full rounded-md bg-[hsl(216_55%_25%)] px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-[hsl(216_55%_20%)] hover:shadow-xl hover:scale-[1.02] active:shadow-md active:scale-[0.98] focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all duration-150 cursor-pointer">
+                <button class="w-full rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg hover:bg-primary/80 hover:shadow-xl hover:scale-[1.02] active:shadow-md active:scale-[0.98] focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all duration-150 cursor-pointer">
                   Hover, Click, Focus Me
                 </button>
                 <p class="text-xs text-muted-foreground">
@@ -834,7 +834,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
 
               <div class="space-y-2">
                 <p class="text-sm font-medium">Outline Variant</p>
-                <button class="w-full rounded-md border-2 border-[hsl(216_55%_25%)] bg-transparent px-4 py-3 text-sm font-semibold text-[hsl(216_55%_25%)] shadow-md hover:bg-[hsl(216_55%_25%/0.1)] hover:shadow-lg hover:scale-[1.02] active:shadow-sm active:scale-[0.98] transition-all duration-150 cursor-pointer">
+                <button class="w-full rounded-md border-2 border-primary bg-transparent px-4 py-3 text-sm font-semibold text-primary shadow-md hover:bg-primary/10 hover:shadow-lg hover:scale-[1.02] active:shadow-sm active:scale-[0.98] transition-all duration-150 cursor-pointer">
                   Outline Button
                 </button>
                 <p class="text-xs text-muted-foreground">
@@ -872,7 +872,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
         <h3 class="text-2xl font-bold text-center mb-6">Adaptive Colors</h3>
         <div class="grid gap-4 md:grid-cols-3">
           <!-- Background -->
-          <Card className="border-primary/20">
+          <Card className="border-primary/20 border-border">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Palette className="h-4 w-4 text-primary" />
@@ -882,12 +882,12 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </CardHeader>
             <CardContent className="space-y-3">
               <div class="space-y-2">
-                <div class="h-16 rounded-lg border-2 shadow-sm" style="background-color: hsl(0 0% 93%)"></div>
+                <div class="h-16 rounded-lg border-2 shadow-sm" style="background-color: hsl(var(--color-background))"></div>
                 <p class="text-xs font-semibold">Light Mode</p>
                 <code class="text-xs text-muted-foreground">0 0% 93%</code>
               </div>
               <div class="space-y-2">
-                <div class="h-16 rounded-lg border-2 shadow-sm" style="background-color: hsl(0 0% 10%)"></div>
+                <div class="h-16 rounded-lg border-2 shadow-sm" style="background-color: hsl(var(--color-background))"></div>
                 <p class="text-xs font-semibold">Dark Mode</p>
                 <code class="text-xs text-muted-foreground">0 0% 10%</code>
               </div>
@@ -895,7 +895,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </Card>
 
           <!-- Foreground -->
-          <Card className="border-primary/20">
+          <Card className="border-primary/20 border-border">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Palette className="h-4 w-4 text-primary" />
@@ -905,12 +905,12 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </CardHeader>
             <CardContent className="space-y-3">
               <div class="space-y-2">
-                <div class="h-16 rounded-lg border-2 shadow-sm" style="background-color: hsl(0 0% 100%)"></div>
+                <div class="h-16 rounded-lg border-2 shadow-sm" style="background-color: hsl(var(--color-foreground))"></div>
                 <p class="text-xs font-semibold">Light Mode</p>
                 <code class="text-xs text-muted-foreground">0 0% 100%</code>
               </div>
               <div class="space-y-2">
-                <div class="h-16 rounded-lg border-2 shadow-sm" style="background-color: hsl(0 0% 13%)"></div>
+                <div class="h-16 rounded-lg border-2 shadow-sm" style="background-color: hsl(var(--color-foreground))"></div>
                 <p class="text-xs font-semibold">Dark Mode</p>
                 <code class="text-xs text-muted-foreground">0 0% 13%</code>
               </div>
@@ -918,7 +918,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </Card>
 
           <!-- Font -->
-          <Card className="border-primary/20">
+          <Card className="border-primary/20 border-border">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Palette className="h-4 w-4 text-primary" />
@@ -928,14 +928,14 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             </CardHeader>
             <CardContent className="space-y-3">
               <div class="space-y-2">
-                <div class="h-16 rounded-lg border-2 shadow-sm bg-white flex items-center justify-center" style="color: hsl(0 0% 13%)">
+                <div class="h-16 rounded-lg border-2 shadow-sm bg-white flex items-center justify-center" style="color: hsl(var(--color-font))">
                   <span class="font-bold text-2xl">Aa</span>
                 </div>
                 <p class="text-xs font-semibold">Light Mode</p>
                 <code class="text-xs text-muted-foreground">0 0% 13%</code>
               </div>
               <div class="space-y-2">
-                <div class="h-16 rounded-lg border-2 shadow-sm bg-black flex items-center justify-center" style="color: hsl(0 0% 100%)">
+                <div class="h-16 rounded-lg border-2 shadow-sm bg-black flex items-center justify-center" style="color: hsl(var(--color-font))">
                   <span class="font-bold text-2xl">Aa</span>
                 </div>
                 <p class="text-xs font-semibold">Dark Mode</p>
@@ -949,7 +949,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
       <!-- Constant Colors (Primary, Secondary, Tertiary) -->
       <div>
         <h3 class="text-2xl font-bold text-center mb-6">Constant Colors</h3>
-        <Card className="border-primary/20">
+        <Card className="border-primary/20 border-border">
           <CardHeader>
             <CardTitle>Action Colors</CardTitle>
             <CardDescription>Primary, Secondary, and Tertiary stay the same in light and dark modes</CardDescription>
@@ -957,30 +957,30 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           <CardContent className="grid gap-4 md:grid-cols-3">
             <!-- Primary -->
             <div class="space-y-3">
-              <div class="h-20 rounded-lg shadow-md" style="background-color: hsl(216 55% 25%)"></div>
+              <div class="h-20 rounded-lg shadow-md bg-primary"></div>
               <div>
                 <p class="font-semibold">primary</p>
-                <code class="text-xs text-muted-foreground">216 55% 25%</code>
+                <code class="text-xs text-muted-foreground">primary</code>
                 <p class="text-xs text-muted-foreground mt-1">Main CTA buttons</p>
               </div>
             </div>
 
             <!-- Secondary -->
             <div class="space-y-3">
-              <div class="h-20 rounded-lg shadow-md" style="background-color: hsl(219 14% 28%)"></div>
+              <div class="h-20 rounded-lg shadow-md bg-secondary"></div>
               <div>
                 <p class="font-semibold">secondary</p>
-                <code class="text-xs text-muted-foreground">219 14% 28%</code>
+                <code class="text-xs text-muted-foreground">secondary</code>
                 <p class="text-xs text-muted-foreground mt-1">Supporting actions</p>
               </div>
             </div>
 
             <!-- Tertiary -->
             <div class="space-y-3">
-              <div class="h-20 rounded-lg shadow-md" style="background-color: hsl(105 22% 25%)"></div>
+              <div class="h-20 rounded-lg shadow-md bg-tertiary"></div>
               <div>
                 <p class="font-semibold">tertiary</p>
-                <code class="text-xs text-muted-foreground">105 22% 25%</code>
+                <code class="text-xs text-muted-foreground">tertiary</code>
                 <p class="text-xs text-muted-foreground mt-1">Accent actions</p>
               </div>
             </div>
@@ -1013,7 +1013,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </CardHeader>
           <CardContent className="space-y-4">
             {typographyScale.map((item) => (
-              <div class="rounded-lg border bg-background p-4 shadow-sm">
+              <div class="rounded-lg border border-border bg-background p-4 shadow-sm">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <span class="text-lg font-semibold">{item.name}</span>
                   <span class="text-sm text-muted-foreground">{item.tailwind}</span>
@@ -1101,7 +1101,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </CardHeader>
           <CardContent className="space-y-4">
             {containerRules.map((rule) => (
-              <div class="rounded-lg border bg-background p-4 shadow-sm">
+              <div class="rounded-lg border border-border bg-background p-4 shadow-sm">
                 <p class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{rule.label}</p>
                 <p class="mt-1 text-base font-medium">{rule.value}</p>
                 <p class="mt-1 text-sm text-muted-foreground">{rule.usage}</p>
@@ -1112,7 +1112,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
       </div>
 
       <div class="overflow-hidden rounded-2xl border bg-card/70 p-6 shadow-inner">
-        <p class="text-sm font-semibold uppercase tracking-wide text-primary">Grid Example</p>
+        <p class="text-sm font-semibold uppercase tracking-wide text-primary-bright">Grid Example</p>
         <p class="mt-2 text-sm text-muted-foreground">
           Each column aligns to 72px at desktop with 24px gutters. Collapse to two columns on tablet, one on mobile.
         </p>
@@ -1148,7 +1148,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </CardHeader>
           <CardContent className="space-y-5">
             {componentPrinciples.map((principle) => (
-              <div class="flex gap-4 rounded-lg border bg-background p-4 shadow-sm">
+              <div class="flex gap-4 rounded-lg border border-border bg-background p-4 shadow-sm">
                 <div class="mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <principle.icon className="h-5 w-5" />
                 </div>
@@ -1172,13 +1172,13 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
             <div class="space-y-3">
               <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Button Variants</p>
               <div class="flex flex-wrap items-center gap-3">
-                <button class="rounded-md bg-[hsl(216_55%_25%)] px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-[hsl(216_55%_20%)] hover:shadow-xl active:shadow-md transition-all duration-150">
+                <button class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg hover:bg-primary/80 hover:shadow-xl active:shadow-md transition-all duration-150">
                   Primary
                 </button>
-                <button class="rounded-md bg-[hsl(219_14%_28%)] px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-[hsl(219_14%_23%)] hover:shadow-xl active:shadow-md transition-all duration-150">
+                <button class="rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground shadow-lg hover:bg-secondary/80 hover:shadow-xl active:shadow-md transition-all duration-150">
                   Secondary
                 </button>
-                <button class="rounded-md bg-[hsl(105_22%_25%)] px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-[hsl(105_22%_20%)] hover:shadow-xl active:shadow-md transition-all duration-150">
+                <button class="rounded-md bg-tertiary px-4 py-2 text-sm font-semibold text-tertiary-foreground shadow-lg hover:bg-tertiary/80 hover:shadow-xl active:shadow-md transition-all duration-150">
                   Tertiary
                 </button>
                 <Button variant="outline" size="default">Outline</Button>
@@ -1248,7 +1248,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </CardHeader>
           <CardContent className="space-y-4">
             {accessibilityChecklist.map((item) => (
-              <div class="rounded-lg border bg-background p-4 shadow-sm">
+              <div class="rounded-lg border border-border bg-background p-4 shadow-sm">
                 <p class="flex items-center gap-2 text-base font-medium">
                   <Check className="h-4 w-4 text-primary" />
                   {item.title}
@@ -1256,7 +1256,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
                 <p class="mt-1 text-sm text-muted-foreground">{item.description}</p>
               </div>
             ))}
-            <div class="rounded-lg border border-primary/40 bg-primary/10 p-4 text-sm text-primary">
+            <div class="rounded-lg border border-primary/40 bg-primary/10 p-4 text-sm text-primary-bright">
               <AlertCircle className="mr-3 inline h-4 w-4" />
               Document contrast and focus results in PR descriptions. Accessibility is a release-blocker.
             </div>
@@ -1288,7 +1288,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
           </CardHeader>
           <CardContent className="space-y-4">
             {implementationSteps.map((step, index) => (
-              <div class="rounded-lg border bg-background p-4 shadow-sm">
+              <div class="rounded-lg border border-border bg-background p-4 shadow-sm">
                 <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Step {index + 1}
                 </p>
@@ -1316,7 +1316,7 @@ const brandStyle = renderBrand(overrideBrand, { thingId, groupId, ua });
   --space-2: 0.5rem;
   --space-4: 1rem;
   --radius-md: 12px;
-  --shadow-md: 0 14px 32px -18px hsl(216 55% 25% / 0.32);
+  --shadow-md: 0 14px 32px -18px hsl(var(--color-primary) / 0.32);
   --ease-snappy: cubic-bezier(0.4, 0, 0.2, 1);
 }`}</code>
             </pre>

@@ -20,11 +20,11 @@ export interface BundleListing {
 
 export const GET: APIRoute = async () => {
   try {
-    // path is a relation — join through unit uid attributes (mirrors highways.ts pattern)
+    // path is a relation — join through actor uid attributes (mirrors highways.ts pattern)
     const rows = await readParsed(`
       match (source: $s, target: $t) isa path, has strength $str, has resistance $r;
-        $s has uid $sid;
-        $t has uid $tid;
+        $s has aid $sid;
+        $t has aid $tid;
         $str >= 20.0;
       sort $str desc;
       limit 50;

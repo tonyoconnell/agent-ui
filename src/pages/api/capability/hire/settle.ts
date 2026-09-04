@@ -110,13 +110,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Increment existing strength (TypeDB 3.0: match/delete/insert)
     writeSilent(`
-      match $p isa path, has from-unit "${from}", has to-unit "${to}", has strength $s;
+      match $p isa path, has from-actor "${from}", has to-actor "${to}", has strength $s;
       delete $p has strength $s;
       insert $p has strength ($s + 1.0);
     `)
     // If path has no strength yet, set to 1.0
     writeSilent(`
-      match $p isa path, has from-unit "${from}", has to-unit "${to}";
+      match $p isa path, has from-actor "${from}", has to-actor "${to}";
       not { $p has strength $_; };
       insert $p has strength 1.0;
     `)
@@ -174,7 +174,7 @@ async function reexecuteHire(originalRequest: {
     // Verify provider + skill capability still exists
     const rows = await readParsed(`
       match
-        $u isa unit, has uid "${provider}";
+        $u isa actor, has aid "${provider}";
         $s isa skill, has skill-id "${skillId}";
         (provider: $u, offered: $s) isa capability;
       select $u;
@@ -191,10 +191,10 @@ async function reexecuteHire(originalRequest: {
     if (!existingGroupId) {
       writeSilent(`insert $g isa group, has gid "${groupId}", has name "hire:${provider}", has tag "hire";`)
       writeSilent(
-        `match $g isa group, has gid "${groupId}"; $b isa unit, has uid "${buyer}"; insert (member: $b, group: $g) isa membership, has member-role "buyer";`,
+        `match $g isa group, has gid "${groupId}"; $b isa actor, has aid "${buyer}"; insert (member: $b, group: $g) isa membership, has member-role "buyer";`,
       )
       writeSilent(
-        `match $g isa group, has gid "${groupId}"; $p isa unit, has uid "${provider}"; insert (member: $p, group: $g) isa membership, has member-role "provider";`,
+        `match $g isa group, has gid "${groupId}"; $p isa actor, has aid "${provider}"; insert (member: $p, group: $g) isa membership, has member-role "provider";`,
       )
     }
 

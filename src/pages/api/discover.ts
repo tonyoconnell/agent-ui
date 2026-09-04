@@ -20,11 +20,11 @@ export const GET: APIRoute = async ({ url }) => {
     if (fromUnit && taskFilter) {
       const routes = await readParsed(`
         match
-          $from isa unit, has uid "${eFrom}";
+          $from isa actor, has aid "${eFrom}";
           $task isa skill, has name $tn; $tn contains "${eTask}";
           (source: $from, target: $to) isa path, has strength $s;
           (provider: $to, offered: $task) isa capability, has price $p;
-          $to has uid $uid, has name $n, has unit-kind $k,
+          $to has aid $uid, has name $n, has actor-type $k,
             has reputation $rep, has success-rate $sr;
         sort $s desc; limit 20;
         select $uid, $n, $k, $rep, $sr, $tn, $p, $s;
@@ -54,7 +54,7 @@ export const GET: APIRoute = async ({ url }) => {
         match
           (provider: $u, offered: $t) isa capability, has price $p;
           $t isa skill, has name $tn; $tn contains "${eTask}";
-          $u has uid $uid, has name $n, has unit-kind $k,
+          $u has aid $uid, has name $n, has actor-type $k,
             has reputation $rep, has success-rate $sr;
         sort $p asc; limit 20;
         select $uid, $n, $k, $rep, $sr, $tn, $p;
@@ -83,10 +83,10 @@ export const GET: APIRoute = async ({ url }) => {
 
     const rows = await readParsed(`
       match
-        $u isa unit,
-          has uid $uid,
+        $u isa actor,
+          has aid $uid,
           has name $n,
-          has unit-kind $k,
+          has actor-type $k,
           has reputation $rep,
           has success-rate $sr;
         (provider: $u, offered: $t) isa capability, has price $p;
@@ -99,7 +99,7 @@ export const GET: APIRoute = async ({ url }) => {
     if (rows.length > 0) {
       const strengthRows = await readParsed(`
         match
-          $u isa unit, has uid $uid;
+          $u isa actor, has aid $uid;
           (provider: $u, skill: $t) isa capability;
           $e (source: $src, target: $u) isa path, has strength $s;
         select $uid, $s;

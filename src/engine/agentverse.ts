@@ -5,7 +5,7 @@
  */
 
 import { type AdlDoc, syncAdl } from './adl'
-import { type Unit, type World, world } from './world'
+import { type Actor, type World, world } from './world'
 
 type AgentMeta = {
   address: string
@@ -17,7 +17,7 @@ type AgentMeta = {
 type Fetch = (address: string, data: unknown) => Promise<unknown>
 
 export interface Agentverse extends World {
-  register: (meta: AgentMeta) => Unit
+  register: (meta: AgentMeta) => Actor
   discover: (domain: string, limit?: number) => AgentMeta[]
   call: (address: string, task: string, data: unknown) => Promise<unknown>
 }
@@ -27,7 +27,7 @@ export const agentverse = (fetch: Fetch): Agentverse => {
   const meta: Record<string, AgentMeta> = {}
 
   // Register agent in world
-  const register = (m: AgentMeta): Unit => {
+  const register = (m: AgentMeta): Actor => {
     meta[m.address] = m
 
     // ADL Cycle 3: fire-and-forget ADL sync from peer endpoint (fail-open)

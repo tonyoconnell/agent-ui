@@ -71,20 +71,22 @@ export function AddClawWizard({ groupId, onClose }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 bg-[#0a0a0f] text-slate-100 min-w-[420px]">
+    <div className="flex flex-col gap-6 p-6 bg-background text-font min-w-[420px]">
       {/* Step progress */}
       <div className="flex items-center gap-2">
         {STEPS.map((s, i) => (
           <div key={s} className="flex items-center gap-2">
             <div
               className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                i <= stepIdx ? 'bg-indigo-600 text-white' : 'bg-[#161622] text-slate-500 border border-[#252538]'
+                i <= stepIdx
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-card text-muted-foreground border border-border'
               }`}
             >
               {i + 1}
             </div>
-            <span className={`text-sm ${i === stepIdx ? 'text-slate-100' : 'text-slate-500'}`}>{STEP_LABELS[i]}</span>
-            {i < STEPS.length - 1 && <div className="w-6 h-px bg-[#252538] mx-1" />}
+            <span className={`text-sm ${i === stepIdx ? 'text-font' : 'text-muted-foreground'}`}>{STEP_LABELS[i]}</span>
+            {i < STEPS.length - 1 && <div className="w-6 h-px bg-border mx-1" />}
           </div>
         ))}
       </div>
@@ -93,7 +95,7 @@ export function AddClawWizard({ groupId, onClose }: Props) {
       {state.step === 'configure' && (
         <form onSubmit={handleDeploy} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="name" className="text-xs text-slate-400">
+            <label htmlFor="name" className="text-xs text-muted-foreground">
               Worker name
             </label>
             <input
@@ -101,18 +103,18 @@ export function AddClawWizard({ groupId, onClose }: Props) {
               name="name"
               required
               placeholder="my-claw"
-              className="bg-[#161622] border border-[#252538] rounded px-3 py-2 text-sm text-slate-100"
+              className="bg-card border border-border rounded px-3 py-2 text-sm text-font"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="persona" className="text-xs text-slate-400">
+            <label htmlFor="persona" className="text-xs text-muted-foreground">
               Persona
             </label>
             <select
               id="persona"
               name="persona"
               defaultValue="one"
-              className="bg-[#161622] border border-[#252538] rounded px-3 py-2 text-sm text-slate-100"
+              className="bg-card border border-border rounded px-3 py-2 text-sm text-font"
             >
               {['one', 'donal', 'debby', 'concierge', 'custom'].map((p) => (
                 <option key={p} value={p}>
@@ -122,42 +124,42 @@ export function AddClawWizard({ groupId, onClose }: Props) {
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="telegramToken" className="text-xs text-slate-400">
-              Telegram token <span className="text-slate-600">(optional)</span>
+            <label htmlFor="telegramToken" className="text-xs text-muted-foreground">
+              Telegram token <span className="text-muted-foreground">(optional)</span>
             </label>
             <input
               id="telegramToken"
               name="telegramToken"
               type="password"
               placeholder="123456:ABC…"
-              className="bg-[#161622] border border-[#252538] rounded px-3 py-2 text-sm text-slate-100"
+              className="bg-card border border-border rounded px-3 py-2 text-sm text-font"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="openrouterKey" className="text-xs text-slate-400">
-              OpenRouter API key <span className="text-slate-600">(optional)</span>
+            <label htmlFor="openrouterKey" className="text-xs text-muted-foreground">
+              OpenRouter API key <span className="text-muted-foreground">(optional)</span>
             </label>
             <input
               id="openrouterKey"
               name="openrouterKey"
               type="password"
               placeholder="sk-or-…"
-              className="bg-[#161622] border border-[#252538] rounded px-3 py-2 text-sm text-slate-100"
+              className="bg-card border border-border rounded px-3 py-2 text-sm text-font"
             />
-            <p className="text-xs text-slate-600">Leave blank to use platform key</p>
+            <p className="text-xs text-muted-foreground">Leave blank to use platform key</p>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 rounded text-sm text-slate-400 hover:text-slate-100"
+              className="px-3 py-1.5 rounded text-sm text-muted-foreground hover:text-font"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isPending}
-              className="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-sm text-white disabled:opacity-50"
+              className="px-4 py-1.5 rounded bg-primary hover:bg-primary/80 text-sm text-primary-foreground disabled:opacity-50"
             >
               Deploy →
             </button>
@@ -168,11 +170,11 @@ export function AddClawWizard({ groupId, onClose }: Props) {
       {/* Step 2: Deploying */}
       {state.step === 'deploy' && (
         <div className="flex flex-col items-center gap-4 py-8">
-          <div className="h-8 w-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+          <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
           <p className="text-sm font-medium">Deploying worker…</p>
-          <p className="text-xs text-slate-500">This takes ~30s</p>
+          <p className="text-xs text-muted-foreground">This takes ~30s</p>
           {state.error && (
-            <div className="w-full rounded-md bg-red-900/20 border border-red-700/40 px-4 py-3 text-sm text-red-400">
+            <div className="w-full rounded-md bg-destructive/20 border border-destructive/40 px-4 py-3 text-sm text-destructive">
               {state.error}
             </div>
           )}
@@ -182,7 +184,7 @@ export function AddClawWizard({ groupId, onClose }: Props) {
       {/* Step 3: Done */}
       {state.step === 'done' && state.result && (
         <div className="flex flex-col gap-4">
-          <p className="text-sm font-medium text-green-400">Worker deployed</p>
+          <p className="text-sm font-medium text-tertiary-bright">Worker deployed</p>
           {(
             [
               ['Worker URL', state.result.workerUrl],
@@ -191,9 +193,9 @@ export function AddClawWizard({ groupId, onClose }: Props) {
             ] as [string, string][]
           ).map(([label, val]) => (
             <div key={label} className="flex flex-col gap-1">
-              <span className="text-xs text-slate-400">{label}</span>
+              <span className="text-xs text-muted-foreground">{label}</span>
               <div className="flex items-center gap-2">
-                <code className="flex-1 rounded bg-[#161622] border border-[#252538] px-3 py-1.5 text-xs text-slate-300 truncate">
+                <code className="flex-1 rounded bg-card border border-border px-3 py-1.5 text-xs text-foreground truncate">
                   {val}
                 </code>
                 <button
@@ -202,7 +204,7 @@ export function AddClawWizard({ groupId, onClose }: Props) {
                     emitClick('ui:add-claw:copy')
                     copy(val)
                   }}
-                  className="px-3 py-1.5 rounded border border-[#252538] text-xs text-slate-400 hover:text-slate-100 shrink-0"
+                  className="px-3 py-1.5 rounded border border-border text-xs text-muted-foreground hover:text-font shrink-0"
                 >
                   Copy
                 </button>
@@ -213,7 +215,7 @@ export function AddClawWizard({ groupId, onClose }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-sm text-white"
+              className="px-4 py-1.5 rounded bg-primary hover:bg-primary/80 text-sm text-primary-foreground"
             >
               Done
             </button>

@@ -1,14 +1,14 @@
 /**
- * GET /api/export/public/units.json — List public units only
+ * GET /api/export/public/actors.json — List public actors only
  *
- * Returns: Curated public demo world (units marked for demo)
+ * Returns: Curated public demo world (actors marked for demo)
  * For visitor mode: read-only view of public agents
  * Caching: 5s
  */
 import type { APIRoute } from 'astro'
 import { readParsed } from '@/lib/typedb'
 
-type UnitExport = {
+type ActorExport = {
   id: string
   uid: string
   name: string
@@ -25,13 +25,13 @@ type UnitExport = {
 
 export const GET: APIRoute = async () => {
   try {
-    // For now, return top units by success rate (curated public demo)
+    // For now, return top actors by success rate (curated public demo)
     const results = await readParsed(`
       match
-        $u isa unit,
-          has uid $id,
+        $u isa actor,
+          has aid $id,
           has name $n,
-          has unit-kind $k,
+          has actor-type $k,
           has success-rate $sr,
           has generation $g;
         ?$u has model $m;
@@ -41,10 +41,10 @@ export const GET: APIRoute = async () => {
       limit 50;
     `)
 
-    const units: UnitExport[] = []
+    const actors: ActorExport[] = []
 
     for (const r of results) {
-      units.push({
+      actors.push({
         id: r.id as string,
         uid: r.id as string,
         name: r.n as string,
@@ -59,7 +59,7 @@ export const GET: APIRoute = async () => {
       })
     }
 
-    return Response.json(units, {
+    return Response.json(actors, {
       headers: { 'Cache-Control': 'public, max-age=5' },
     })
   } catch {

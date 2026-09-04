@@ -3,7 +3,7 @@ import { escapeTqlString, readParsed, writeSilent } from '@/lib/typedb'
 
 export async function getStripeCustomer(uid: string): Promise<string | null> {
   const rows = await readParsed(`
-    match $u isa unit, has uid "${escapeTqlString(uid)}", has stripe-customer $sc;
+    match $u isa actor, has aid "${escapeTqlString(uid)}", has stripe-customer $sc;
     select $sc;
   `).catch(() => [] as Record<string, unknown>[])
   const sc = rows[0]?.sc
@@ -12,7 +12,7 @@ export async function getStripeCustomer(uid: string): Promise<string | null> {
 
 export function bindStripeCustomer(uid: string, customerId: string): Promise<void> {
   return writeSilent(`
-    match $u isa unit, has uid "${escapeTqlString(uid)}";
+    match $u isa actor, has aid "${escapeTqlString(uid)}";
     insert $u has stripe-customer "${escapeTqlString(customerId)}";
   `)
 }

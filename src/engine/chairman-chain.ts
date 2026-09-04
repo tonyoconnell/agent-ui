@@ -1,5 +1,5 @@
 /**
- * CHAIRMAN-CHAIN — Zero-LLM routing units for Chairman→CEO→Director→Specialist.
+ * CHAIRMAN-CHAIN — Zero-LLM routing actors for Chairman→CEO→Director→Specialist.
  *
  * The human (chairman) signals `ceo:route`. The CEO deterministically routes to
  * a director via `follow(domainTag)`, the director routes to a specialist via
@@ -19,7 +19,7 @@ import {
 } from './ceo-classifier'
 import type { PersistentWorld } from './persist'
 import { type LeafOptions, leafHandler } from './specialist-leaf'
-import type { Emit, Unit, World } from './world'
+import type { Actor, Emit, World } from './world'
 
 export type ChainData = {
   content: string
@@ -52,10 +52,10 @@ const DIRECTOR_STRENGTH = 1.0
 const CEO_FALLBACK_CONFIDENCE_THRESHOLD = 0.4
 const CEO_FALLBACK_MARK_STRENGTH = 0.5
 
-// TypeDB stores paths as unit→unit relations (no tag attribute in one.tql).
+// TypeDB stores paths as actor→actor relations (no tag attribute in one.tql).
 // But pickRoute scans for <tag>→<to> synthetic edges. Bridge the two: for
-// every loaded unit→unit edge `from→to`, derive routing tags from the TO
-// unit's uid segments and synthesize `<segment>→<to>` edges in-memory.
+// every loaded actor→actor edge `from→to`, derive routing tags from the TO
+// actor's uid segments and synthesize `<segment>→<to>` edges in-memory.
 //
 // Example: after load() populates `ceo→marketing-cmo` (strength 0.8), this
 // synthesizes `marketing→marketing-cmo` and `cmo→marketing-cmo` at 0.8 so
@@ -95,7 +95,7 @@ export const synthesizeTagEdgesFromUids = (net: Net): number => {
   return added
 }
 
-// pickRoute: scan strength for `<tag>→<to>` edges, return full <to> (unit uid).
+// pickRoute: scan strength for `<tag>→<to>` edges, return full <to> (actor uid).
 // We can't use world.follow() directly because it strips `:` suffixes from the
 // TO side — specialist uids like `marketing:seo` would collapse to `marketing`.
 // This walks pheromone edges anchored on the tag prefix only.
@@ -188,7 +188,7 @@ export const makeRouteHandler =
     return undefined
   }
 
-// listDirectors: any registered unit with a `route` handler (director), except
+// listDirectors: any registered actor with a `route` handler (director), except
 // the CEO itself. Used to feed the LLM classifier the universe of valid targets.
 // Examples from a director's own seeded edges give the LLM a hint about domain.
 const listDirectors = (net: Net, ceoUid: string): CeoDirectorCandidate[] => {
@@ -311,7 +311,7 @@ export const seedDirectorTeam = (net: Net, directorUid: string, specialists: Spe
   }
 }
 
-export const createDirector = (net: Net, uid: string, domainTag: string, specialists: Specialist[]): Unit => {
+export const createDirector = (net: Net, uid: string, domainTag: string, specialists: Specialist[]): Actor => {
   const u = net.has(uid) ? net.get(uid)! : net.add(uid)
   seedDirectorTeam(net, uid, specialists)
   // Director wins the domain tag at 2x specialist strength so synthesis-derived
@@ -322,9 +322,9 @@ export const createDirector = (net: Net, uid: string, domainTag: string, special
 }
 
 export type ChainWiring = {
-  ceo: Unit
-  directors: Unit[]
-  specialists: Unit[]
+  ceo: Actor
+  directors: Actor[]
+  specialists: Actor[]
   registered: string[]
   skipped: string[]
 }
@@ -426,7 +426,7 @@ export const registerLeavesFromEdges = (
   return { registered, skipped }
 }
 
-// discoverDirectorsFromEdges: every unit targeted by an edge from 'ceo' in
+// discoverDirectorsFromEdges: every actor targeted by an edge from 'ceo' in
 // the loaded pheromone graph is a director that needs a `route` handler at
 // runtime. The hardcoded 'marketing-director' only matches the dev default;
 // production's seeded `ceo→marketing-cmo` edge names a director that has no
@@ -441,7 +441,7 @@ const discoverDirectorsFromEdges = (net: Net): string[] => {
 }
 
 export const wireChairmanChain = (net: Net, opts: WireChainOptions = {}): ChainWiring => {
-  // Bridge TypeDB schema (unit→unit paths) to runtime routing (<tag>→<to>).
+  // Bridge TypeDB schema (actor→actor paths) to runtime routing (<tag>→<to>).
   // Must run before the CEO/director handlers fire, so pickRoute sees the
   // synthesized edges immediately. See synthesizeTagEdgesFromUids JSDoc.
   synthesizeTagEdgesFromUids(net)
@@ -458,7 +458,7 @@ export const wireChairmanChain = (net: Net, opts: WireChainOptions = {}): ChainW
   // Each gets a `route` handler so `ceo:route → <director>:route` resolves.
   // Their outgoing edges (director→specialist) already exist from the seed;
   // registerLeavesFromEdges below will wire respond handlers for the leaves.
-  const discoveredDirectors: Unit[] = []
+  const discoveredDirectors: Actor[] = []
   for (const uid of discoverDirectorsFromEdges(net)) {
     if (uid === marketingDirector.id) continue
     const u = net.has(uid) ? net.get(uid)! : net.add(uid)
@@ -482,7 +482,7 @@ export const wireChairmanChain = (net: Net, opts: WireChainOptions = {}): ChainW
 
   let registered: string[] = []
   let skipped: string[] = []
-  const specialists: Unit[] = []
+  const specialists: Actor[] = []
   if (opts.registerSpecialists !== false) {
     const directorUids = [marketingDirector.id]
     // Scan edges from every known director (CEO and chairman excluded). This

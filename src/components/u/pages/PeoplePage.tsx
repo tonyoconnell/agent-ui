@@ -202,7 +202,10 @@ export function PeoplePage() {
 
                       <div className="flex gap-4 text-sm">
                         {profile.twitter && (
-                          <a href={`https://twitter.com/${profile.twitter}`} className="text-blue-500 hover:underline">
+                          <a
+                            href={`https://twitter.com/${profile.twitter}`}
+                            className="text-[hsl(var(--color-primary-bright))] hover:underline"
+                          >
                             @{profile.twitter}
                           </a>
                         )}

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
-import { defaultBrand, deriveShadcn } from './derive'
+import { defaultBrand, deriveLadder, deriveShadcn } from './derive'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const ENV_CSS = readFileSync(resolve(__dirname, './global.css'), 'utf8')
@@ -79,6 +79,47 @@ describe('deriveShadcn contract', () => {
       const result = deriveShadcn(defaultBrand, mode)
       for (const key of expectedKeys) {
         expect(result, `missing key '${key}' in ${mode} mode`).toHaveProperty(key)
+      }
+    }
+  })
+
+  test('deriveLadder produces all 9 ladder keys in both modes', () => {
+    const expectedKeys = [
+      'primary-bright',
+      'primary-mid',
+      'primary-dim',
+      'secondary-bright',
+      'secondary-mid',
+      'secondary-dim',
+      'tertiary-bright',
+      'tertiary-mid',
+      'tertiary-dim',
+    ]
+    for (const mode of ['light', 'dark'] as const) {
+      const result = deriveLadder(defaultBrand, mode)
+      for (const key of expectedKeys) {
+        expect(result, `missing key '${key}' in ${mode} mode`).toHaveProperty(key)
+      }
+      // Light bright values should be darker (lower L%) than dark bright values
+      // Primary bright: light = '216 55% 35%', dark = '216 60% 68%'
+      const pb = result['primary-bright']
+      const lMatch = pb.match(/(\d+)%$/)
+      const lightness = lMatch ? Number.parseInt(lMatch[1], 10) : 0
+      if (mode === 'light') {
+        expect(lightness).toBeLessThan(50)
+      } else {
+        expect(lightness).toBeGreaterThan(50)
+      }
+    }
+  })
+
+  test('deriveLadder mid is bright at 0.38 alpha, dim at 0.11 alpha', () => {
+    for (const mode of ['light', 'dark'] as const) {
+      const r = deriveLadder(defaultBrand, mode)
+      for (const family of ['primary', 'secondary', 'tertiary'] as const) {
+        const bright = r[`${family}-bright`]
+        expect(r[`${family}-mid`]).toBe(`${bright} / 0.38`)
+        expect(r[`${family}-dim`]).toBe(`${bright} / 0.11`)
       }
     }
   })

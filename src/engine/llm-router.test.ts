@@ -372,7 +372,7 @@ describe('Act 5: Compound effect — cost falls, quality rises, highways form', 
   it('simulates 200 signals and proves the cost/quality curve from the plan doc', async () => {
     const net = world()
 
-    // Register models as units
+    // Register models as actors
     for (const [name, llm] of [
       ['gemma', GEMMA],
       ['llama', LLAMA],

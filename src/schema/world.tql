@@ -59,8 +59,8 @@ relation hierarchy,
 # DIMENSION 2: ACTORS
 # =============================================================================
 
-entity unit,
-    owns uid @key,
+entity actor,
+    owns aid @key,
     owns name,                    # canonical display name (owner-set)
     owns alias-ant,               # skin-specific: ant metaphor
     owns alias-brain,             # skin-specific: brain metaphor
@@ -68,7 +68,7 @@ entity unit,
     owns alias-mail,              # skin-specific: mail metaphor
     owns alias-water,             # skin-specific: water metaphor
     owns alias-signal,            # skin-specific: signal metaphor
-    owns unit-kind,               # "human", "agent", "llm", "system"
+    owns actor-type,               # "human", "agent", "llm", "system"
     owns wallet,                  # Sui address
     owns auth-hash,               # bcrypt hash of API key (never raw)
     owns sui-unit-id,             # Sui Unit object ID (0x...)
@@ -110,8 +110,8 @@ entity unit,
     plays membership:member,
     plays signal:sender,
     plays signal:receiver,
-    plays contribution-event:contributor-unit,
-    plays api-authorization:authorized-unit,
+    plays contribution-event:contributor-actor,
+    plays api-authorization:authorized-actor,
     plays session:owner,
     plays session-event:session-owner,
     plays session-event:actor;
@@ -271,7 +271,7 @@ entity contribution,
     plays contribution-event:contribution;
 
 relation contribution-event,
-    relates contributor-unit,
+    relates contributor-actor,
     relates contribution;
 
 
@@ -295,7 +295,7 @@ entity api-key,
 
 relation api-authorization,
     relates api-key,
-    relates authorized-unit;      # which unit this key can act as
+    relates authorized-actor;      # which unit this key can act as
 
 
 # =============================================================================
@@ -386,7 +386,7 @@ relation session-event,
 
 # Identifiers
 attribute gid, value string;
-attribute uid, value string;
+attribute aid, value string;
 attribute skill-id, value string;
 attribute hid, value string;
 attribute fid, value string;
@@ -445,7 +445,7 @@ attribute data, value string;
 attribute frontier-description, value string;
 attribute objective-description, value string;
 attribute group-type, value string;
-attribute unit-kind, value string;
+attribute actor-type, value string;
 attribute tag, value string;
 attribute contribution-type, value string;
 attribute frontier-type, value string;
@@ -597,39 +597,39 @@ fun is_highway($e: path) -> boolean:
 # --- Validation (the deterministic sandwich) ---
 
 # PRE-CHECK: Can this unit receive this skill signal?
-fun can_receive($u: unit, $sk: skill) -> boolean:
+fun can_receive($u: actor, $sk: skill) -> boolean:
     match (provider: $u, offered: $sk) isa capability;
     return first true;
 
 # PRE-CHECK: Is the path to this unit safe? (not toxic)
-fun is_safe($from: unit, $to: unit) -> boolean:
+fun is_safe($from: actor, $to: actor) -> boolean:
     match (source: $from, target: $to) isa path, has strength $s, has resistance $a;
     return first if ($a > $s and $a >= 10.0) then false else true;
 
 # PRE-CHECK: Is the signal within budget?
-fun within_budget($u: unit, $sk: skill, $amount: double) -> boolean:
+fun within_budget($u: actor, $sk: skill, $amount: double) -> boolean:
     match (provider: $u, offered: $sk) isa capability, has price $p;
     return first if ($amount >= $p) then true else false;
 
 # POST-CHECK: Does a referenced unit actually exist?
 fun unit_exists($uid: string) -> boolean:
-    match $u isa unit, has uid $uid;
+    match $u isa actor, has aid $uid;
     return first true;
 
 # POST-CHECK: Is a unit performing well enough to trust?
-fun is_trustworthy($u: unit) -> boolean:
+fun is_trustworthy($u: actor) -> boolean:
     match $u has success-rate $sr, has sample-count $sc;
     return first if ($sr >= 0.50 or $sc < 10) then true else false;
 
 # COMBINED: Full pre-flight check for a signal
-fun preflight($from: unit, $to: unit, $sk: skill) -> boolean:
+fun preflight($from: actor, $to: actor, $sk: skill) -> boolean:
     match (provider: $to, offered: $sk) isa capability;
           (source: $from, target: $to) isa path, has strength $s, has resistance $a;
     return first if ($a > $s and $a >= 10.0) then false else true;
 
 # --- Actors ---
 
-fun unit_classification($u: unit) -> string:
+fun actor_classification($u: actor) -> string:
     match $u has success-rate $sr, has activity-score $as, has sample-count $sc;
     return first
         if ($sr >= 0.75 and $as >= 70.0 and $sc >= 50) then "proven"
@@ -638,7 +638,7 @@ fun unit_classification($u: unit) -> string:
 
 # --- Evolution ---
 
-fun needs_evolution($u: unit) -> boolean:
+fun needs_evolution($u: actor) -> boolean:
     match $u has success-rate $sr, has sample-count $sc;
           $sr < 0.50; $sc >= 20;
     return first true;
@@ -663,27 +663,27 @@ fun highways(threshold: double = 10.0, min_traversals: integer = 50) -> { path }
           $s >= threshold; $t >= min_traversals;
     return { $e };
 
-fun optimal_route($from: unit, $skill: skill) -> unit:
+fun optimal_route($from: actor, $skill: skill) -> actor:
     match (source: $from, target: $to) isa path, has strength $s;
           (provider: $to, offered: $skill) isa capability;
     sort $s desc; limit 1;
     return $to;
 
-fun cheapest_provider($skill: skill) -> unit:
+fun cheapest_provider($skill: skill) -> actor:
     match (provider: $u, offered: $skill) isa capability, has price $p;
     sort $p asc; limit 1;
     return $u;
 
 # Scope-aware routing — same as suggest_route/cheapest_provider but filters by path scope
-fun suggest_route_scoped($from: unit, $skill: skill, $scope: string) -> { uid, strength }:
-    match $from isa unit; $skill isa skill;
+fun suggest_route_scoped($from: actor, $skill: skill, $scope: string) -> { uid, strength }:
+    match $from isa actor; $skill isa skill;
           (source: $from, target: $to) isa path, has strength $s, has scope $scope;
           (provider: $to, offered: $skill) isa capability;
-          $to has uid $id; $s >= 5.0;
+          $to has aid $id; $s >= 5.0;
     sort $s desc; limit 5;
     return { $id, $s };
 
-fun cheapest_provider_scoped($skill: skill, $scope: string) -> unit:
+fun cheapest_provider_scoped($skill: skill, $scope: string) -> actor:
     match (provider: $u, offered: $skill) isa capability, has price $p;
           (source: $u) isa path, has scope $scope;
     sort $p asc; limit 1;
@@ -692,39 +692,39 @@ fun cheapest_provider_scoped($skill: skill, $scope: string) -> unit:
 # Federation: only return public-scoped paths that qualify as highways
 fun highways_public($threshold: double) -> { from_uid, to_uid, strength }:
     match (source: $from, target: $to) isa path, has strength $s, has scope "public";
-          $from has uid $fid; $to has uid $tid; $s >= $threshold;
+          $from has aid $fid; $to has aid $tid; $s >= $threshold;
     sort $s desc; limit 20;
     return { $fid, $tid, $s };
 
-fun suggest_route($from: unit, $skill: skill) -> { uid, strength }:
-    match $from isa unit; $skill isa skill;
+fun suggest_route($from: actor, $skill: skill) -> { uid, strength }:
+    match $from isa actor; $skill isa skill;
           (source: $from, target: $to) isa path, has strength $s;
           (provider: $to, offered: $skill) isa capability;
-          $to has uid $id; $s >= 5.0;
+          $to has aid $id; $s >= 5.0;
     sort $s desc; limit 5;
     return { $id, $s };
 
 # --- Actors ---
 
-fun proven_units() -> { unit }:
-    match $u isa unit, has status "proven";
+fun proven_actors() -> { actor }:
+    match $u isa actor, has status "proven";
     return { $u };
 
-fun at_risk_units() -> { unit }:
-    match $u isa unit, has status "at-risk";
+fun at_risk_actors() -> { actor }:
+    match $u isa actor, has status "at-risk";
     return { $u };
 
-fun units_by_kind($kind: string) -> { unit }:
-    match $u isa unit, has unit-kind $kind, has status "active";
+fun actors_by_kind($kind: string) -> { actor }:
+    match $u isa actor, has actor-type $kind, has status "active";
     return { $u };
 
-fun collaborators($me: unit) -> { unit }:
+fun collaborators($me: actor) -> { actor }:
     match (member: $me, group: $g) isa membership;
           (member: $peer, group: $g) isa membership;
           not { $me is $peer; };
     return { $peer };
 
-fun group_members($group_name: string) -> { unit }:
+fun group_members($group_name: string) -> { actor }:
     match $grp isa group, has name $group_name;
           (group: $grp, member: $u) isa membership;
     return { $u };
@@ -739,8 +739,8 @@ fun priced_skills($tag: string) -> { skill }:
     match $s isa skill, has tag $tag, has price $p; $p > 0.0;
     return { $s };
 
-fun units_by_tag($tag: string) -> { unit }:
-    match $u isa unit, has tag $tag;
+fun actors_by_tag($tag: string) -> { actor }:
+    match $u isa actor, has tag $tag;
     return { $u };
 
 # --- Knowledge ---
@@ -766,8 +766,8 @@ fun active_objectives() -> { objective }:
 # --- Aggregates ---
 
 fun total_contribution($name: string) -> double:
-    match $u isa unit, has name $name;
-          $ev(contributor-unit: $u, contribution: $c) isa contribution-event;
+    match $u isa actor, has name $name;
+          $ev(contributor-actor: $u, contribution: $c) isa contribution-event;
           $c has impact-score $i;
     return sum($i);
 
@@ -810,21 +810,21 @@ fun task_blockers($t: task) -> { task }:
 # --- Task Subscription (tag matching) ---
 
 # Tasks matching a unit's tags — "what can I work on?"
-fun tasks_for_unit($u: unit) -> { task }:
+fun tasks_for_unit($u: actor) -> { task }:
     match $u has tag $tag;
           $t isa task, has tag $tag, has done false, has task-status "open";
     return { $t };
 
 # Units matching a task's tags — "who can do this?"
-fun units_for_task($t: task) -> { unit }:
+fun actors_for_task($t: task) -> { actor }:
     match $t has tag $tag;
-          $u isa unit, has tag $tag, has status "active";
+          $u isa actor, has tag $tag, has status "active";
     return { $u };
 
 # Best unit for a task: tag overlap + pheromone strength
-fun best_unit_for_task($t: task) -> unit:
+fun best_unit_for_task($t: task) -> actor:
     match $t has tag $tag;
-          $u isa unit, has tag $tag, has status "active";
+          $u isa actor, has tag $tag, has status "active";
           (source: $any, target: $u) isa path, has strength $s;
     sort $s desc; limit 1;
     return $u;

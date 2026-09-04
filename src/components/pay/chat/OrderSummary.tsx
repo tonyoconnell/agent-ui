@@ -52,7 +52,7 @@ export function OrderSummary({ totals, currency }: OrderSummaryProps) {
             <span className="text-muted-foreground">Shipping</span>
             <span>
               {shipping.amount === 0 ? (
-                <span className="text-green-600 font-bold">FREE</span>
+                <span className="text-[hsl(var(--color-tertiary-bright))] font-bold">FREE</span>
               ) : (
                 formatAmount(shipping.amount)
               )}

@@ -200,7 +200,7 @@ export function KnowledgePanel() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Intelligence</h1>
-        <p className="text-slate-400">Hypotheses, frontiers, objectives. The colony learns.</p>
+        <p className="text-muted-foreground">Hypotheses, frontiers, objectives. The colony learns.</p>
       </div>
 
       {/* Hypotheses */}
@@ -212,33 +212,33 @@ export function KnowledgePanel() {
             onChange={(e) => setNewStatement(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmitHypothesis()}
             placeholder="State a hypothesis..."
-            className="flex-1 bg-[#0a0a0f] border border-[#252538] rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500/50"
+            className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-muted-foreground focus:outline-none focus:border-primary/50"
           />
           <button
             onClick={handleSubmitHypothesis}
             disabled={submitting || !newStatement.trim()}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? '...' : 'Add'}
           </button>
         </div>
 
         {hypotheses.map((h) => (
-          <div key={h.hid} className="bg-[#161622] rounded-xl border border-[#252538] p-4 mb-3">
+          <div key={h.hid} className="bg-card rounded-xl border border-border p-4 mb-3">
             <div className="flex items-start justify-between mb-2">
               <p className="text-sm text-white flex-1 mr-3">{h.statement}</p>
               <StatusBadge status={h.status} />
             </div>
-            <div className="flex items-center gap-4 text-xs text-slate-500 mb-2">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
               <span>{h.observations} observations</span>
               <span>p = {h.pValue.toFixed(3)}</span>
-              {h.actionReady && <span className="text-emerald-400">action ready</span>}
+              {h.actionReady && <span className="text-tertiary-bright">action ready</span>}
             </div>
             {/* p-value progress: lower is better, bar fills as p approaches 0 */}
-            <div className="h-1.5 bg-[#0a0a0f] rounded-full overflow-hidden">
+            <div className="h-1.5 bg-background rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${
-                  h.pValue < 0.05 ? 'bg-emerald-500' : h.pValue < 0.25 ? 'bg-amber-500' : 'bg-slate-600'
+                  h.pValue < 0.05 ? 'bg-tertiary-bright' : h.pValue < 0.25 ? 'bg-gold' : 'bg-muted-foreground'
                 }`}
                 style={{ width: `${Math.max(2, (1 - h.pValue) * 100)}%` }}
               />
@@ -250,11 +250,11 @@ export function KnowledgePanel() {
       {/* Frontiers */}
       <Section title="Frontiers" count={frontiers.length}>
         {frontiers.map((f) => (
-          <div key={f.fid} className="bg-[#161622] rounded-xl border border-[#252538] p-4 mb-3">
+          <div key={f.fid} className="bg-card rounded-xl border border-border p-4 mb-3">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 mr-3">
                 <p className="text-sm text-white">{f.description}</p>
-                <span className="text-xs text-slate-500">{f.type}</span>
+                <span className="text-xs text-muted-foreground">{f.type}</span>
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge status={f.status} />
@@ -262,13 +262,15 @@ export function KnowledgePanel() {
             </div>
             {/* Expected value bar */}
             <div className="flex items-center gap-2">
-              <div className="flex-1 h-1.5 bg-[#0a0a0f] rounded-full overflow-hidden">
+              <div className="flex-1 h-1.5 bg-background rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-violet-600 to-fuchsia-500 rounded-full transition-all"
+                  className="h-full bg-gradient-to-r from-secondary to-secondary-bright rounded-full transition-all"
                   style={{ width: `${f.expectedValue * 100}%` }}
                 />
               </div>
-              <span className="text-xs text-slate-500 font-mono w-10 text-right">{f.expectedValue.toFixed(2)}</span>
+              <span className="text-xs text-muted-foreground font-mono w-10 text-right">
+                {f.expectedValue.toFixed(2)}
+              </span>
             </div>
           </div>
         ))}
@@ -277,28 +279,30 @@ export function KnowledgePanel() {
       {/* Objectives */}
       <Section title="Objectives" count={objectives.length}>
         {objectives.map((o) => (
-          <div key={o.oid} className="bg-[#161622] rounded-xl border border-[#252538] p-4 mb-3">
+          <div key={o.oid} className="bg-card rounded-xl border border-border p-4 mb-3">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 mr-3">
                 <p className="text-sm text-white">{o.description}</p>
                 <div className="flex gap-2 mt-1">
-                  <span className="text-xs text-slate-500">{o.type}</span>
-                  <span className="text-xs text-slate-500">priority {o.priority.toFixed(1)}</span>
+                  <span className="text-xs text-muted-foreground">{o.type}</span>
+                  <span className="text-xs text-muted-foreground">priority {o.priority.toFixed(1)}</span>
                 </div>
               </div>
               <StatusBadge status={o.status} />
             </div>
             {/* Progress bar */}
             <div className="flex items-center gap-2">
-              <div className="flex-1 h-1.5 bg-[#0a0a0f] rounded-full overflow-hidden">
+              <div className="flex-1 h-1.5 bg-background rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all ${
-                    o.progress >= 0.8 ? 'bg-emerald-500' : o.progress >= 0.5 ? 'bg-indigo-500' : 'bg-amber-500'
+                    o.progress >= 0.8 ? 'bg-tertiary-bright' : o.progress >= 0.5 ? 'bg-primary' : 'bg-gold'
                   }`}
                   style={{ width: `${o.progress * 100}%` }}
                 />
               </div>
-              <span className="text-xs text-slate-500 font-mono w-10 text-right">{Math.round(o.progress * 100)}%</span>
+              <span className="text-xs text-muted-foreground font-mono w-10 text-right">
+                {Math.round(o.progress * 100)}%
+              </span>
             </div>
           </div>
         ))}
@@ -314,7 +318,7 @@ function Section({ title, count, children }: { title: string; count: number; chi
     <div className="mb-10">
       <div className="flex items-center gap-3 mb-4">
         <h2 className="text-xl font-semibold">{title}</h2>
-        <span className="px-2 py-0.5 rounded-full text-xs bg-[#252538] text-slate-400">{count}</span>
+        <span className="px-2 py-0.5 rounded-full text-xs bg-border text-muted-foreground">{count}</span>
       </div>
       {children}
     </div>
@@ -322,14 +326,19 @@ function Section({ title, count, children }: { title: string; count: number; chi
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
-  testing: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  confirmed: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  rejected: 'bg-red-500/20 text-red-400 border-red-500/30',
-  open: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-  exploring: 'bg-violet-500/20 text-violet-300 border-violet-500/30',
-  active: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-  complete: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+  pending: 'bg-muted-foreground/10 text-muted-foreground border-muted-foreground/20',
+  testing:
+    'bg-[hsl(var(--color-gold-bright)/0.15)] text-[hsl(var(--color-gold-bright))] border-[hsl(var(--color-gold-mid))]',
+  confirmed:
+    'bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright))] border-[hsl(var(--color-tertiary-mid))]',
+  rejected: 'bg-destructive/20 text-destructive border-destructive/30',
+  open: 'bg-[hsl(var(--color-primary-bright)/0.15)] text-[hsl(var(--color-primary-bright))] border-[hsl(var(--color-primary-mid))]',
+  exploring:
+    'bg-[hsl(var(--color-secondary-bright)/0.15)] text-[hsl(var(--color-secondary-bright))] border-[hsl(var(--color-secondary-mid))]',
+  active:
+    'bg-[hsl(var(--color-primary-bright)/0.15)] text-[hsl(var(--color-primary-bright))] border-[hsl(var(--color-primary-mid))]',
+  complete:
+    'bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright))] border-[hsl(var(--color-tertiary-mid))]',
 }
 
 function StatusBadge({ status }: { status: string }) {

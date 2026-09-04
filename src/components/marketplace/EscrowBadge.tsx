@@ -37,7 +37,7 @@ export function EscrowBadge({ escrowObjectId }: Props) {
 
   if (!escrowObjectId) {
     return (
-      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-500/10 border border-slate-500/20 text-slate-500 text-xs">
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted-foreground/10 border border-muted-foreground/20 text-muted-foreground text-xs">
         <span className="font-mono tracking-widest">ESCROW</span>
         <span>pending</span>
       </div>
@@ -46,7 +46,7 @@ export function EscrowBadge({ escrowObjectId }: Props) {
 
   if (loading) {
     return (
-      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[hsl(var(--color-gold)/0.1)] border border-[hsl(var(--color-gold)/0.2)] text-[hsl(var(--color-gold))] text-xs">
         <span className="font-mono tracking-widest">ESCROW</span>
         <span>loading…</span>
       </div>
@@ -55,7 +55,7 @@ export function EscrowBadge({ escrowObjectId }: Props) {
 
   if (!view) {
     return (
-      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-500/10 border border-slate-500/20 text-slate-500 text-xs">
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted-foreground/10 border border-muted-foreground/20 text-muted-foreground text-xs">
         <span className="font-mono tracking-widest">ESCROW</span>
         <span>not found</span>
       </div>
@@ -65,12 +65,16 @@ export function EscrowBadge({ escrowObjectId }: Props) {
   const truncated = `${escrowObjectId.slice(0, 6)}…${escrowObjectId.slice(-4)}`
 
   return (
-    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs">
+    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[hsl(var(--color-primary-bright)/0.1)] border border-[hsl(var(--color-primary-bright)/0.2)] text-[hsl(var(--color-primary-bright)/0.8)] text-xs">
       <span className="font-mono tracking-widest">ESCROW</span>
       <span className="font-mono">{view.amount}</span>
-      <span className="text-indigo-500">·</span>
-      <span className="font-mono text-indigo-400/80">{truncated}</span>
-      {view.locked ? <span className="text-emerald-400">locked</span> : <span className="text-slate-400">open</span>}
+      <span className="text-[hsl(var(--color-primary-bright))]">·</span>
+      <span className="font-mono text-[hsl(var(--color-primary-bright)/0.65)]">{truncated}</span>
+      {view.locked ? (
+        <span className="text-[hsl(var(--color-tertiary-bright))]">locked</span>
+      ) : (
+        <span className="text-muted-foreground">open</span>
+      )}
     </div>
   )
 }

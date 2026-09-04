@@ -73,44 +73,44 @@ export function RoleEditor({ gid = DEFAULT_GID }: { gid?: string }) {
 
   if (!members) {
     return (
-      <Card className="bg-[#161622] border-[#252538]">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-slate-200">Role Editor</CardTitle>
+          <CardTitle className="text-font">Role Editor</CardTitle>
         </CardHeader>
-        <CardContent className="text-slate-400 text-sm">Loading…</CardContent>
+        <CardContent className="text-muted-foreground text-sm">Loading…</CardContent>
       </Card>
     )
   }
 
   return (
-    <Card className="bg-[#161622] border-[#252538]">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between text-slate-200">
+        <CardTitle className="flex items-center justify-between text-font">
           <span>Role Editor</span>
-          <Badge variant="secondary" className="bg-slate-700 text-slate-300">
+          <Badge variant="secondary" className="bg-muted text-foreground">
             {members.length} member{members.length === 1 ? '' : 's'}
           </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {error ? <div className="text-rose-400 text-sm">{error}</div> : null}
+        {error ? <div className="text-[hsl(var(--color-destructive))] text-sm">{error}</div> : null}
 
         {members.length === 0 ? (
-          <div className="text-slate-500 text-sm">No members found for group {gid}.</div>
+          <div className="text-muted-foreground text-sm">No members found for group {gid}.</div>
         ) : (
           members.map((m) => (
-            <div key={m.uid} className="flex items-center justify-between border border-[#252538] rounded-lg px-4 py-3">
+            <div key={m.uid} className="flex items-center justify-between border border-border rounded-lg px-4 py-3">
               <div>
-                <div className="text-slate-200 font-medium">{m.name || m.uid}</div>
-                <div className="text-xs text-slate-500 font-mono">{m.uid}</div>
+                <div className="text-font font-medium">{m.name || m.uid}</div>
+                <div className="text-xs text-muted-foreground font-mono">{m.uid}</div>
               </div>
               <Select value={m.role} onValueChange={(v) => assign(m.uid, v as Role)} disabled={pending === m.uid}>
-                <SelectTrigger className="w-32 bg-[#0a0a0f] border-[#252538] text-slate-200">
+                <SelectTrigger className="w-32 bg-background border-border text-font">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[#161622] border-[#252538]">
+                <SelectContent className="bg-card border-border">
                   {ROLES.map((r) => (
-                    <SelectItem key={r} value={r} className="text-slate-200">
+                    <SelectItem key={r} value={r} className="text-font">
                       {r}
                     </SelectItem>
                   ))}

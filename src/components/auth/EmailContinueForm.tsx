@@ -85,10 +85,10 @@ export function EmailContinueForm({ redirect = '/app' }: Props) {
           onChange={(e) => setEmail(e.target.value)}
           disabled={pending}
           aria-label="Email address"
-          className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-violet-400/40 focus:outline-none disabled:opacity-60"
+          className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-font placeholder:text-muted-foreground focus:border-secondary-bright/40 focus:outline-none disabled:opacity-60"
         />
         {error && (
-          <p role="alert" aria-live="polite" className="text-xs text-rose-400">
+          <p role="alert" aria-live="polite" className="text-xs text-[hsl(var(--color-destructive))]">
             {error}
           </p>
         )}
@@ -96,7 +96,7 @@ export function EmailContinueForm({ redirect = '/app' }: Props) {
           type="submit"
           disabled={pending}
           aria-busy={pending}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:bg-white/[0.08] disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-font transition hover:bg-card/80 disabled:opacity-60"
         >
           {pending ? (
             <>

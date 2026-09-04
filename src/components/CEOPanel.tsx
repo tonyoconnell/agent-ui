@@ -28,7 +28,7 @@ interface Edge {
 }
 
 interface Stats {
-  units: number
+  actors: number
   proven: number
   highways: number
   edges: number
@@ -37,7 +37,7 @@ interface Stats {
 }
 
 interface StateResponse {
-  units: Agent[]
+  actors: Agent[]
   edges: Edge[]
   highways: Edge[]
   stats: Stats
@@ -48,10 +48,10 @@ type Action = 'commend' | 'flag' | 'hire' | 'fire'
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function srColor(sr: number) {
-  if (sr >= 0.75) return 'text-emerald-400'
-  if (sr >= 0.5) return 'text-slate-300'
-  if (sr >= 0.25) return 'text-amber-400'
-  return 'text-red-400'
+  if (sr >= 0.75) return 'text-tertiary-bright'
+  if (sr >= 0.5) return 'text-foreground'
+  if (sr >= 0.25) return 'text-gold'
+  return 'text-destructive'
 }
 
 function netStrength(id: string, edges: Edge[]): number {
@@ -68,7 +68,9 @@ function StatusDot({ active }: { active: boolean }) {
     <span
       className={cn(
         'inline-block w-2 h-2 rounded-full flex-shrink-0',
-        active ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-slate-600',
+        active
+          ? 'bg-[hsl(var(--color-tertiary-bright))] shadow-[0_0_6px_hsl(var(--color-tertiary-bright)/0.5)]'
+          : 'bg-muted-foreground',
       )}
     />
   )
@@ -77,10 +79,16 @@ function StatusDot({ active }: { active: boolean }) {
 function SrBar({ value }: { value: number }) {
   const pct = Math.round(value * 100)
   const color =
-    value >= 0.75 ? 'bg-emerald-500' : value >= 0.5 ? 'bg-blue-500' : value >= 0.25 ? 'bg-amber-500' : 'bg-red-500'
+    value >= 0.75
+      ? 'bg-tertiary-bright'
+      : value >= 0.5
+        ? 'bg-primary-bright'
+        : value >= 0.25
+          ? 'bg-gold'
+          : 'bg-destructive'
   return (
     <div className="flex items-center gap-2">
-      <div className="w-16 h-1.5 bg-[#252538] rounded-full overflow-hidden">
+      <div className="w-16 h-1.5 bg-border rounded-full overflow-hidden">
         <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${pct}%` }} />
       </div>
       <span className={cn('text-xs tabular-nums w-8', srColor(value))}>{pct}%</span>
@@ -89,7 +97,7 @@ function SrBar({ value }: { value: number }) {
 }
 
 function NetStrengthBadge({ value }: { value: number }) {
-  const color = value > 10 ? 'text-emerald-400' : value > 0 ? 'text-slate-400' : 'text-red-400'
+  const color = value > 10 ? 'text-tertiary-bright' : value > 0 ? 'text-muted-foreground' : 'text-destructive'
   return (
     <span className={cn('text-xs tabular-nums font-mono w-12 text-right', color)}>
       {value > 0 ? '+' : ''}
@@ -113,19 +121,19 @@ function AgentRow({ agent, net, skill, pending, onAction, showNet = false }: Age
   return (
     <div
       className={cn(
-        'flex items-center gap-3 px-4 py-3 hover:bg-[#1a1a2e] transition-colors',
+        'flex items-center gap-3 px-4 py-3 hover:bg-muted transition-colors',
         agent.status === 'inactive' && 'opacity-50',
       )}
     >
       <StatusDot active={agent.status === 'active'} />
 
       <div className="flex-1 min-w-0">
-        <div className="text-sm text-slate-200 truncate">{agent.name || agent.id}</div>
-        {skill && <div className="text-xs text-slate-600 truncate">→ {skill}</div>}
+        <div className="text-sm text-font truncate">{agent.name || agent.id}</div>
+        {skill && <div className="text-xs text-muted-foreground truncate">→ {skill}</div>}
       </div>
 
       {agent.g > 0 && (
-        <span className="text-xs text-purple-400 border border-purple-400/30 rounded px-1.5 py-0.5 flex-shrink-0">
+        <span className="text-xs text-secondary-bright border border-secondary-bright/30 rounded px-1.5 py-0.5 flex-shrink-0">
           gen {agent.g}
         </span>
       )}
@@ -138,7 +146,7 @@ function AgentRow({ agent, net, skill, pending, onAction, showNet = false }: Age
         <ActionBtn
           label="★"
           title="Commend — boost success-rate +10%, strengthen outgoing paths"
-          color="text-emerald-400 hover:bg-emerald-400/10"
+          color="text-tertiary-bright hover:bg-tertiary-bright/10"
           loading={pending[`${agent.id}commend`]}
           disabled={agent.status === 'inactive'}
           onClick={() => onAction(agent.id, 'commend')}
@@ -146,7 +154,7 @@ function AgentRow({ agent, net, skill, pending, onAction, showNet = false }: Age
         <ActionBtn
           label="⚑"
           title="Flag — lower success-rate −15%, add resistance"
-          color="text-amber-400 hover:bg-amber-400/10"
+          color="text-gold hover:bg-gold/10"
           loading={pending[`${agent.id}flag`]}
           disabled={agent.status === 'inactive'}
           onClick={() => onAction(agent.id, 'flag')}
@@ -155,7 +163,7 @@ function AgentRow({ agent, net, skill, pending, onAction, showNet = false }: Age
           <ActionBtn
             label="✕"
             title="Deactivate — remove from routing"
-            color="text-slate-500 hover:bg-slate-500/10"
+            color="text-muted-foreground hover:bg-muted-foreground/10"
             loading={pending[`${agent.id}fire`]}
             onClick={() => onAction(agent.id, 'fire')}
           />
@@ -163,7 +171,7 @@ function AgentRow({ agent, net, skill, pending, onAction, showNet = false }: Age
           <ActionBtn
             label="↑"
             title="Activate — restore to routing"
-            color="text-blue-400 hover:bg-blue-400/10"
+            color="text-primary-bright hover:bg-primary-bright/10"
             loading={pending[`${agent.id}hire`]}
             onClick={() => onAction(agent.id, 'hire')}
           />
@@ -178,19 +186,19 @@ function AgentRow({ agent, net, skill, pending, onAction, showNet = false }: Age
 function StatsBar({ stats }: { stats: Stats }) {
   return (
     <div className="grid grid-cols-4 gap-4">
-      <StatCard label="Total Units" value={stats.units} color="text-slate-200" />
-      <StatCard label="Proven" value={stats.proven} color="text-emerald-400" />
-      <StatCard label="Highways" value={stats.highways} color="text-blue-400" />
-      <StatCard label="Revenue" value={`$${stats.revenue.toFixed(2)}`} color="text-amber-400" />
+      <StatCard label="Total Actors" value={stats.actors} color="text-font" />
+      <StatCard label="Proven" value={stats.proven} color="text-tertiary-bright" />
+      <StatCard label="Highways" value={stats.highways} color="text-primary-bright" />
+      <StatCard label="Revenue" value={`$${stats.revenue.toFixed(2)}`} color="text-gold" />
     </div>
   )
 }
 
 function StatCard({ label, value, color }: { label: string; value: string | number; color: string }) {
   return (
-    <div className="bg-[#161622] border border-[#252538] rounded-xl p-4 text-center">
+    <div className="bg-card border border-border rounded-xl p-4 text-center">
       <div className={cn('text-2xl font-bold tabular-nums', color)}>{value}</div>
-      <div className="text-xs text-slate-500 mt-0.5">{label}</div>
+      <div className="text-xs text-muted-foreground mt-0.5">{label}</div>
     </div>
   )
 }
@@ -202,18 +210,18 @@ function ToxicPaths({ edges }: { edges: Edge[] }) {
   if (toxic.length === 0) return null
 
   return (
-    <div className="bg-[#1a0f0f] border border-red-900/50 rounded-xl p-4">
-      <h2 className="text-xs font-semibold text-red-400 uppercase tracking-widest mb-3">
+    <div className="bg-destructive/20 border border-destructive/50 rounded-xl p-4">
+      <h2 className="text-xs font-semibold text-destructive uppercase tracking-widest mb-3">
         ⚠ Toxic Paths — {toxic.length}
       </h2>
       <div className="space-y-1.5">
         {toxic.slice(0, 8).map((e, i) => (
           <div key={i} className="flex items-center gap-3 text-xs font-mono">
-            <span className="text-slate-400 truncate flex-1">{e.from}</span>
-            <span className="text-slate-600">→</span>
-            <span className="text-slate-400 truncate flex-1">{e.to}</span>
-            <span className="text-emerald-400/60">+{e.strength.toFixed(1)}</span>
-            <span className="text-red-400">−{e.resistance.toFixed(1)}</span>
+            <span className="text-muted-foreground truncate flex-1">{e.from}</span>
+            <span className="text-muted-foreground">→</span>
+            <span className="text-muted-foreground truncate flex-1">{e.to}</span>
+            <span className="text-tertiary-bright/60">+{e.strength.toFixed(1)}</span>
+            <span className="text-destructive">−{e.resistance.toFixed(1)}</span>
           </div>
         ))}
       </div>
@@ -229,34 +237,34 @@ function HighwaysSection({ edges }: { edges: Edge[] }) {
   const maxStrength = Math.max(...edges.map((e) => e.strength), 1)
 
   return (
-    <div className="bg-[#161622] border border-[#252538] rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#252538] flex items-center justify-between">
-        <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
           Proven Highways — top {edges.length}
         </h2>
-        <span className="text-xs text-slate-600">strength ≥ 50, non-toxic</span>
+        <span className="text-xs text-muted-foreground">strength ≥ 50, non-toxic</span>
       </div>
-      <div className="divide-y divide-[#1e1e30]">
+      <div className="divide-y divide-border">
         {edges.map((e, i) => {
           const net = e.strength - e.resistance
           const pct = Math.round((e.strength / maxStrength) * 100)
           return (
             <div key={i} className="flex items-center gap-3 px-4 py-2.5">
-              <span className="text-xs text-slate-600 w-4 tabular-nums">{i + 1}</span>
+              <span className="text-xs text-muted-foreground w-4 tabular-nums">{i + 1}</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 text-xs font-mono">
-                  <span className="text-slate-300 truncate max-w-[120px]">{e.from}</span>
-                  <span className="text-slate-600">→</span>
-                  <span className="text-slate-300 truncate max-w-[120px]">{e.to}</span>
+                  <span className="text-foreground truncate max-w-[120px]">{e.from}</span>
+                  <span className="text-muted-foreground">→</span>
+                  <span className="text-foreground truncate max-w-[120px]">{e.to}</span>
                 </div>
-                <div className="mt-1 h-0.5 w-full bg-[#252538] rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500/60 rounded-full" style={{ width: `${pct}%` }} />
+                <div className="mt-1 h-0.5 w-full bg-border rounded-full overflow-hidden">
+                  <div className="h-full bg-primary-bright/60 rounded-full" style={{ width: `${pct}%` }} />
                 </div>
               </div>
               <div className="flex gap-3 flex-shrink-0 text-xs tabular-nums">
-                <span className="text-emerald-400/70">+{e.strength.toFixed(0)}</span>
-                {e.resistance > 0 && <span className="text-red-400/70">−{e.resistance.toFixed(0)}</span>}
-                <span className={cn('font-mono', net > 10 ? 'text-emerald-400' : 'text-slate-400')}>
+                <span className="text-tertiary-bright/70">+{e.strength.toFixed(0)}</span>
+                {e.resistance > 0 && <span className="text-destructive/70">−{e.resistance.toFixed(0)}</span>}
+                <span className={cn('font-mono', net > 10 ? 'text-tertiary-bright' : 'text-muted-foreground')}>
                   {net > 0 ? '+' : ''}
                   {net.toFixed(0)} net
                 </span>
@@ -275,7 +283,7 @@ export function CEOPanel() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [edges, setEdges] = useState<Edge[]>([])
   const [highways, setHighways] = useState<Edge[]>([])
-  const [stats, setStats] = useState<Stats>({ units: 0, proven: 0, highways: 0, edges: 0, tags: 0, revenue: 0 })
+  const [stats, setStats] = useState<Stats>({ actors: 0, proven: 0, highways: 0, edges: 0, tags: 0, revenue: 0 })
   const [loading, setLoading] = useState(true)
   const [pending, setPending] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState<string | null>(null)
@@ -283,10 +291,10 @@ export function CEOPanel() {
   const load = useCallback(async () => {
     try {
       const res = (await fetch('/api/state').then((r) => r.json())) as StateResponse
-      setAgents([...(res.units || [])])
+      setAgents([...(res.actors || [])])
       setEdges(res.edges || [])
       setHighways((res.highways || []).slice(0, 10))
-      setStats(res.stats || { units: 0, proven: 0, highways: 0, edges: 0, tags: 0, revenue: 0 })
+      setStats(res.stats || { actors: 0, proven: 0, highways: 0, edges: 0, tags: 0, revenue: 0 })
     } finally {
       setLoading(false)
     }
@@ -349,17 +357,17 @@ export function CEOPanel() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <span className="text-slate-500 text-sm">Loading world state…</span>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <span className="text-muted-foreground text-sm">Loading world state…</span>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-slate-200 p-6 space-y-6 max-w-5xl mx-auto">
+    <div className="min-h-screen bg-background text-font p-6 space-y-6 max-w-5xl mx-auto">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-[#1a1a2e] border border-[#252538] rounded-lg px-4 py-2 text-sm text-emerald-400 shadow-lg animate-in fade-in slide-in-from-top-2">
+        <div className="fixed top-4 right-4 z-50 bg-card border border-border rounded-lg px-4 py-2 text-sm text-tertiary-bright shadow-lg animate-in fade-in slide-in-from-top-2">
           {toast}
         </div>
       )}
@@ -367,17 +375,17 @@ export function CEOPanel() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">CEO Control Panel</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h1 className="text-xl font-semibold text-font">CEO Control Panel</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Avg SR: <span className={cn('font-mono', srColor(avgSr))}>{Math.round(avgSr * 100)}%</span>
             {' · '}
             {agents.filter((a) => a.status === 'active').length} active
-            {atRisk.length > 0 && <span className="text-red-400 ml-2">· {atRisk.length} at risk</span>}
+            {atRisk.length > 0 && <span className="text-destructive ml-2">· {atRisk.length} at risk</span>}
           </p>
         </div>
         <button
           onClick={load}
-          className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-2 py-1 rounded border border-[#252538] hover:border-slate-500"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded border border-border hover:border-border"
         >
           ↻ Refresh
         </button>
@@ -388,12 +396,12 @@ export function CEOPanel() {
 
       {/* Top Performers */}
       {topPerformers.length > 0 && (
-        <div className="bg-[#161622] border border-[#252538] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#252538] flex items-center justify-between">
-            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Top Performers</h2>
-            <span className="text-xs text-slate-600">net strength = mark − warn</span>
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Top Performers</h2>
+            <span className="text-xs text-muted-foreground">net strength = mark − warn</span>
           </div>
-          <div className="divide-y divide-[#1e1e30]">
+          <div className="divide-y divide-border">
             {topPerformers.map((agent) => (
               <AgentRow
                 key={agent.id}
@@ -411,13 +419,13 @@ export function CEOPanel() {
 
       {/* At-Risk Agents */}
       {atRisk.length > 0 && (
-        <div className="bg-[#161622] border border-red-900/40 rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-red-900/40">
-            <h2 className="text-xs font-semibold text-red-400 uppercase tracking-widest">
+        <div className="bg-card border border-destructive/40 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-destructive/40">
+            <h2 className="text-xs font-semibold text-destructive uppercase tracking-widest">
               At-Risk Agents — SR &lt; 40%
             </h2>
           </div>
-          <div className="divide-y divide-[#1e1e30]">
+          <div className="divide-y divide-border">
             {atRisk.map((agent) => (
               <AgentRow
                 key={agent.id}
@@ -439,13 +447,13 @@ export function CEOPanel() {
       <ToxicPaths edges={edges} />
 
       {/* Full Roster */}
-      <div className="bg-[#161622] border border-[#252538] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#252538]">
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-            Full Roster — {agents.length} units
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+            Full Roster — {agents.length} actors
           </h2>
         </div>
-        <div className="divide-y divide-[#1e1e30]">
+        <div className="divide-y divide-border">
           {agentsWithNet
             .sort((a, b) => b.sr - a.sr)
             .map((agent) => (
@@ -462,18 +470,18 @@ export function CEOPanel() {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-600 pb-2">
+      <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground pb-2">
         <span>
-          <span className="text-emerald-400">★</span> Commend — SR +10%, strengthen outgoing paths
+          <span className="text-tertiary-bright">★</span> Commend — SR +10%, strengthen outgoing paths
         </span>
         <span>
-          <span className="text-amber-400">⚑</span> Flag — SR −15%, add resistance to paths
+          <span className="text-gold">⚑</span> Flag — SR −15%, add resistance to paths
         </span>
         <span>
-          <span className="text-slate-400">✕</span> Deactivate — exclude from routing
+          <span className="text-muted-foreground">✕</span> Deactivate — exclude from routing
         </span>
         <span>
-          <span className="text-blue-400">↑</span> Activate — restore to routing
+          <span className="text-primary-bright">↑</span> Activate — restore to routing
         </span>
       </div>
     </div>

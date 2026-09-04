@@ -62,7 +62,7 @@ describe('auth passkey lifecycle', () => {
   })
 
   describe('H: ensureHumanUnit fires', () => {
-    it.todo('TypeDB has unit-kind=human row after sign-in')
+    it.todo('TypeDB has actor-type=human row after sign-in')
     it.todo('personal group and chairman membership exist')
   })
 

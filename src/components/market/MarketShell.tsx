@@ -62,7 +62,9 @@ export function MarketShell() {
             type="button"
             onClick={() => setLens(l)}
             className={`rounded-full px-3 py-1 text-xs transition-colors ${
-              lens === l ? 'bg-indigo-600 text-white' : 'border border-[#252538] text-slate-400 hover:text-slate-100'
+              lens === l
+                ? 'bg-[hsl(var(--color-primary-bright))] text-white'
+                : 'border border-border text-muted-foreground hover:text-font'
             }`}
           >
             {LENS_LABELS[l]}
@@ -73,19 +75,19 @@ export function MarketShell() {
             value={tagFilter}
             onChange={(e) => setTagFilter(e.target.value)}
             placeholder="Filter by tag…"
-            className="ml-2 bg-[#161622] border border-[#252538] rounded px-3 py-1 text-xs text-slate-100 placeholder-slate-600"
+            className="ml-2 bg-card border border-border rounded px-3 py-1 text-xs text-font placeholder-muted-foreground"
           />
         )}
       </div>
 
       {/* Listings */}
       {loading ? (
-        <div className="flex items-center gap-2 py-8 text-sm text-slate-500">
-          <div className="h-4 w-4 rounded-full border border-indigo-500 border-t-transparent animate-spin" />
+        <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+          <div className="h-4 w-4 rounded-full border border-[hsl(var(--color-primary-bright))] border-t-transparent animate-spin" />
           Loading…
         </div>
       ) : filtered.length === 0 ? (
-        <p className="py-8 text-sm text-slate-500">No capabilities found.</p>
+        <p className="py-8 text-sm text-muted-foreground">No capabilities found.</p>
       ) : (
         <div className="flex flex-col gap-2">
           {filtered.map((l) => (
@@ -97,7 +99,7 @@ export function MarketShell() {
       {/* Bounty composer overlay */}
       {bountyTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="rounded-xl border border-[#252538] bg-[#0a0a0f]">
+          <div className="rounded-xl border border-border bg-background">
             <BountyComposer
               listing={bountyTarget}
               posterUid="user"

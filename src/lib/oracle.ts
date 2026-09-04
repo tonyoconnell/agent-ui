@@ -137,7 +137,7 @@ export async function getConsensusSuiPrice(): Promise<number> {
 }
 
 /**
- * Convert a MIST amount (smallest SUI unit, 10^-9 SUI) to USD.
+ * Convert a MIST amount (smallest SUI actor, 10^-9 SUI) to USD.
  *
  * @param mist - Amount in MIST (bigint)
  * @param priceUsd - SUI/USD price from getConsensusSuiPrice()

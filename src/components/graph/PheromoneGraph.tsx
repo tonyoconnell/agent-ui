@@ -56,11 +56,11 @@ interface StateUnit {
 }
 
 interface StateData {
-  units: StateUnit[]
+  actors: StateUnit[]
   edges: StateEdge[]
   highways: StateEdge[]
   stats: {
-    units: number
+    actors: number
     proven: number
     highways: number
     edges: number
@@ -114,23 +114,23 @@ interface PheromoneEdgeData {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const C = {
-  bg: '#0a0a0f',
-  surface: '#161622',
-  border: '#252538',
-  muted: '#6b7280',
-  agentBg: '#0f1729',
-  agentBorder: '#1e3a6b',
-  agentText: '#60a5fa',
-  agentAccent: '#3b82f6',
-  taskBg: '#140f1e',
-  taskBorder: '#3b1f6b',
-  taskText: '#c084fc',
-  taskAccent: '#a855f7',
-  highway: '#f59e0b',
-  toxic: '#ef4444',
-  normal: '#334155',
-  success: '#22c55e',
-  white: '#f1f5f9',
+  bg: 'hsl(var(--color-background))',
+  surface: 'hsl(var(--color-card))',
+  border: 'hsl(var(--color-border))',
+  muted: 'hsl(var(--color-muted-foreground))',
+  agentBg: 'hsl(var(--color-primary-mid)/0.1)',
+  agentBorder: 'hsl(var(--color-primary-mid)/0.3)',
+  agentText: 'hsl(var(--color-primary-bright))',
+  agentAccent: 'hsl(var(--color-primary-bright))',
+  taskBg: 'hsl(var(--color-secondary-mid)/0.1)',
+  taskBorder: 'hsl(var(--color-secondary-mid)/0.3)',
+  taskText: 'hsl(var(--color-secondary-bright))',
+  taskAccent: 'hsl(var(--color-secondary-bright))',
+  highway: 'hsl(var(--color-gold))',
+  toxic: 'hsl(var(--color-destructive))',
+  normal: 'hsl(var(--color-muted-foreground))',
+  success: 'hsl(var(--color-tertiary-bright))',
+  white: 'hsl(var(--color-font))',
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -185,9 +185,13 @@ function PheromoneEdge(props: EdgeProps) {
             left: labelX,
             top: labelY,
             transform: 'translate(-50%, -50%)',
-            backgroundColor: toxic ? '#ef444420' : highway ? '#f59e0b20' : '#ffffff10',
+            backgroundColor: toxic
+              ? 'hsl(var(--color-destructive)/0.125)'
+              : highway
+                ? 'hsl(var(--color-gold)/0.125)'
+                : 'hsl(var(--color-foreground)/0.0625)',
             color: toxic ? C.toxic : highway ? C.highway : C.muted,
-            border: `1px solid ${toxic ? '#ef444440' : highway ? '#f59e0b40' : '#ffffff15'}`,
+            border: `1px solid ${toxic ? 'hsl(var(--color-destructive)/0.25)' : highway ? 'hsl(var(--color-gold)/0.25)' : 'hsl(var(--color-foreground)/0.0833)'}`,
           }}
         >
           {strength.toFixed(0)}
@@ -237,7 +241,7 @@ function AgentNode({ data, selected }: NodeProps) {
           </span>
         </div>
         <div className="text-[9px] mt-0.5" style={{ color: C.muted }}>
-          {d.kind || 'unit'}
+          {d.kind || 'actor'}
         </div>
       </div>
 
@@ -448,14 +452,14 @@ export function PheromoneGraph({ refreshInterval = 30_000 }: PheromoneGraphProps
     if (!state) return { initialNodes: [], initialEdges: [] }
 
     // Agent nodes
-    const agentNodes: Node[] = (state.units || []).map((u) => ({
+    const agentNodes: Node[] = (state.actors || []).map((u) => ({
       id: `agent:${u.id}`,
       type: 'agent',
       position: { x: 0, y: 0 }, // placed by dagre
       data: {
         label: u.name || u.id,
         successRate: u.sr ?? 0,
-        kind: u.kind || 'unit',
+        kind: u.kind || 'actor',
         status: u.status || 'active',
       } satisfies AgentNodeData,
     }))
@@ -475,7 +479,7 @@ export function PheromoneGraph({ refreshInterval = 30_000 }: PheromoneGraphProps
     }))
 
     // Pheromone edges (between agents)
-    const agentIds = new Set(state.units.map((u) => `agent:${u.id}`))
+    const agentIds = new Set(state.actors.map((u) => `agent:${u.id}`))
     const pheromoneEdges: FlowEdge[] = (state.edges || [])
       .filter((e) => {
         const src = `agent:${e.from}`
@@ -548,7 +552,7 @@ export function PheromoneGraph({ refreshInterval = 30_000 }: PheromoneGraphProps
           </span>
           {stats && (
             <div className="flex items-center gap-3 text-[10px]" style={{ color: C.muted }}>
-              <span>{stats.units} agents</span>
+              <span>{stats.actors} agents</span>
               <span>{stats.edges} paths</span>
               <span style={{ color: C.highway }}>{stats.highways} highways</span>
               <span>{tasks.length} tasks</span>

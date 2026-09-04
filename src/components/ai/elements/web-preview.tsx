@@ -198,7 +198,7 @@ export const WebPreviewConsole = ({ className, logs = [], children, ...props }: 
                 className={cn(
                   'text-xs',
                   log.level === 'error' && 'text-destructive',
-                  log.level === 'warn' && 'text-yellow-600',
+                  log.level === 'warn' && 'text-[hsl(var(--color-gold))]',
                   log.level === 'log' && 'text-foreground',
                 )}
                 key={`${log.timestamp.getTime()}-${index}`}

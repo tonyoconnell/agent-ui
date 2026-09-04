@@ -13,8 +13,8 @@ export const GET: APIRoute = async ({ url }) => {
   // Find signals with amount > 0 (paid services) joined with path strength
   const tql = `
     match
-      $from isa unit, has uid $from_id;
-      $to isa unit, has uid $to_id;
+      $from isa actor, has aid $from_id;
+      $to isa actor, has aid $to_id;
       try { $to has success-rate $sr; };
       $sig (sender: $from, receiver: $to) isa signal,
         has data $task, has amount $amt;

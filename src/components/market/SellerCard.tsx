@@ -11,30 +11,36 @@ interface Props {
 
 export function SellerCard({ sellerName, successRate, capabilities }: Props) {
   return (
-    <Card className="bg-slate-900 border border-slate-700/50">
+    <Card className="bg-card border border-border">
       <CardContent className="p-4 space-y-2">
         <div className="flex items-center justify-between">
-          <span className="font-medium text-slate-200 text-sm">{sellerName}</span>
-          <span className="text-xs text-slate-400">{capabilities.length} skills</span>
+          <span className="font-medium text-foreground text-sm">{sellerName}</span>
+          <span className="text-xs text-muted-foreground">{capabilities.length} skills</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-indigo-500/60 rounded-full"
+              className="h-full bg-primary/60 rounded-full"
               style={{ width: `${Math.min(100, successRate * 100)}%` }}
             />
           </div>
-          <span className="text-xs text-slate-500 shrink-0">{Math.round(successRate * 100)}% success</span>
+          <span className="text-xs text-muted-foreground shrink-0">{Math.round(successRate * 100)}% success</span>
         </div>
 
         <div className="flex flex-wrap gap-1 pt-1">
           {capabilities.slice(0, 3).map((c) => (
-            <Badge key={c.skillId} variant="outline" className="text-xs px-1.5 py-0 text-slate-400 border-slate-700">
+            <Badge
+              key={c.skillId}
+              variant="outline"
+              className="text-xs px-1.5 py-0 text-muted-foreground border-border"
+            >
               {c.name}
             </Badge>
           ))}
-          {capabilities.length > 3 && <span className="text-xs text-slate-600">+{capabilities.length - 3} more</span>}
+          {capabilities.length > 3 && (
+            <span className="text-xs text-muted-foreground">+{capabilities.length - 3} more</span>
+          )}
         </div>
       </CardContent>
     </Card>

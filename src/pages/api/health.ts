@@ -1,7 +1,7 @@
 /**
  * GET /api/health — Live system health check
  *
- * Reports: unitCount, agentCount, signalsPerMin, revenuePerMin, successRate, topGroup
+ * Reports: actorCount, agentCount, signalsPerMin, revenuePerMin, successRate, topGroup
  * Returns: { status, world, version, uptime, timestamp }
  * Caching: 1s
  */
@@ -13,17 +13,17 @@ const startTime = Date.now()
 
 export const GET: APIRoute = async () => {
   const net = await getNet()
-  const units = getUnitMeta()
+  const actors = getUnitMeta()
   const loaded = loadedAt()
 
-  const unitCount = Object.keys(units).length
-  const agentCount = Object.values(units).filter((u) => u.kind === 'agent' || u.kind === 'llm').length
+  const actorCount = Object.keys(actors).length
+  const agentCount = Object.values(actors).filter((u) => u.kind === 'agent' || u.kind === 'llm').length
   const edgeCount = Object.keys(net.strength).length
   const highwayCount = net.highways(100).length
   const ageMs = loaded ? Date.now() - loaded : -1
 
-  // Calculate success rate across all units
-  const unitList = Object.values(units)
+  // Calculate success rate across all actors
+  const unitList = Object.values(actors)
   const avgSuccessRate = unitList.length > 0 ? unitList.reduce((s, u) => s + u.successRate, 0) / unitList.length : 0
 
   // Get total revenue (all paths)
@@ -36,7 +36,7 @@ export const GET: APIRoute = async () => {
       match
         (group: $g, member: $m) isa membership;
         $g has gid $gid, has name $name;
-        $m has uid $uid;
+        $m has aid $uid;
       group $gid by $gid, $name;
       select $gid, $name, count as $c;
       sort $c desc; limit 1;
@@ -54,13 +54,13 @@ export const GET: APIRoute = async () => {
   }
 
   // Degraded if world never loaded or has no data
-  const status = loaded && (unitCount > 0 || edgeCount > 0) ? 'healthy' : 'degraded'
+  const status = loaded && (actorCount > 0 || edgeCount > 0) ? 'healthy' : 'degraded'
 
   return new Response(
     JSON.stringify({
       status,
       world: {
-        units: unitCount,
+        actors: actorCount,
         agents: agentCount,
         edges: edgeCount,
         highways: highwayCount,

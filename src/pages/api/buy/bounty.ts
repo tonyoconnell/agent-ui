@@ -54,19 +54,19 @@ export const POST: APIRoute = async ({ request }) => {
   const now = new Date().toISOString().replace('Z', '')
 
   // ── Sui escrow creation ──────────────────────────────────────────────────
-  // Requires both units to have on-chain identities and a path between them.
+  // Requires both actors to have on-chain identities and a path between them.
   // Falls back to 'pending' if Sui is not configured or identities are absent.
   let txHash = 'pending'
   try {
     const [posterIds, providerIds] = await Promise.all([resolve(posterUid), resolve(providerUid)])
-    if (posterIds?.unitId && providerIds?.unitId) {
+    if (posterIds?.actorId && providerIds?.actorId) {
       const pathObjectId = await resolvePath(posterUid, providerUid)
       if (pathObjectId) {
-        // TODO: pass MIST amount (price × 1e9) once economic units are standardised
+        // TODO: pass MIST amount (price × 1e9) once economic actors are standardised
         const escrowResult = await createEscrow(
           posterUid,
-          posterIds.unitId,
-          providerIds.unitId,
+          posterIds.actorId,
+          providerIds.actorId,
           skillId,
           Math.round(price * 1e9),
           deadlineMs,
@@ -76,7 +76,7 @@ export const POST: APIRoute = async ({ request }) => {
       }
       // else: no on-chain path yet — escrow is 'pending' until path is mirrored
     }
-    // else: units not yet on-chain — escrow is 'pending'
+    // else: actors not yet on-chain — escrow is 'pending'
   } catch {
     // Sui not configured or tx failed — bounty still posted in TypeDB
     txHash = 'pending'
@@ -100,8 +100,8 @@ export const POST: APIRoute = async ({ request }) => {
 
   writeSilent(`
     match
-      $poster isa unit, has uid "${posterUid}";
-      $provider isa unit, has uid "${providerUid}";
+      $poster isa actor, has aid "${posterUid}";
+      $provider isa actor, has aid "${providerUid}";
     insert
       (sender: $poster, receiver: $provider) isa signal,
         has data "${dataPayload}",

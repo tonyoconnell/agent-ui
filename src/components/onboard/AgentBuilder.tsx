@@ -203,7 +203,7 @@ export function AgentBuilder() {
                     <button
                       type="button"
                       onClick={() => removeCapability(i)}
-                      className="text-muted-foreground hover:text-red-400 transition-colors text-sm"
+                      className="text-muted-foreground hover:text-destructive transition-colors text-sm"
                     >
                       remove
                     </button>
@@ -230,15 +230,18 @@ export function AgentBuilder() {
             <p className="mt-1 text-sm text-muted-foreground">
               UID: <span className="font-mono text-foreground">{result.uid}</span>
             </p>
-            <a href={`/u/${name}`} className="mt-2 inline-block text-sm text-secondary-bright hover:text-secondary-bright/90">
+            <a
+              href={`/u/${name}`}
+              className="mt-2 inline-block text-sm text-secondary-bright hover:text-secondary-bright/90"
+            >
               View profile
             </a>
           </div>
         )}
 
         {result?.error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-center">
-            <p className="text-red-400 font-medium">{result.error}</p>
+          <div className="rounded-lg border border-[hsl(var(--color-destructive)_/_0.3)] bg-[hsl(var(--color-destructive)_/_0.1)] p-4 text-center">
+            <p className="text-[hsl(var(--color-destructive))] font-medium">{result.error}</p>
           </div>
         )}
       </form>

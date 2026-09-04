@@ -37,16 +37,16 @@ export function Inspector({ uid, onClose }: Props) {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-        <span className="text-sm font-medium text-slate-100">Inspector</span>
-        <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-100">
+        <span className="text-sm font-medium text-font">Inspector</span>
+        <button type="button" onClick={onClose} className="text-muted-foreground hover:text-font">
           ✕
         </button>
       </div>
       <div className="flex-1 overflow-y-auto">
         {loading && (
-          <div className="flex items-center gap-2 px-4 py-6 text-slate-400 text-sm">
+          <div className="flex items-center gap-2 px-4 py-6 text-muted-foreground text-sm">
             <svg
-              className="animate-spin h-4 w-4 text-slate-400"
+              className="animate-spin h-4 w-4 text-muted-foreground"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -59,11 +59,11 @@ export function Inspector({ uid, onClose }: Props) {
         )}
         {!loading && error && (
           <div className="px-4 py-6 flex flex-col gap-3">
-            <p className="text-sm text-red-400">{error}</p>
+            <p className="text-sm text-[hsl(var(--color-destructive))]">{error}</p>
             <button
               type="button"
               onClick={fetchData}
-              className="self-start text-xs px-3 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-100"
+              className="self-start text-xs px-3 py-1 rounded bg-muted hover:bg-muted/80 text-font"
             >
               Retry
             </button>

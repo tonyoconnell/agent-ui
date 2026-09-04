@@ -158,8 +158,8 @@ export const DEMO_RESPONSES: Record<string, ExtendedMessage[]> = {
           chartType: 'bar',
           labels: ['Landing Page', 'Engagement', 'Qualification', 'Demo Request', 'Closed Won'],
           datasets: [
-            { label: 'AI Chat', data: [100, 82, 67, 54, 38], color: '#10b981' },
-            { label: 'Traditional Form', data: [100, 34, 23, 12, 5], color: '#94a3b8' },
+            { label: 'AI Chat', data: [100, 82, 67, 54, 38], color: 'hsl(var(--color-tertiary-bright))' },
+            { label: 'Traditional Form', data: [100, 34, 23, 12, 5], color: 'hsl(var(--color-muted-foreground))' },
           ],
         },
       },
@@ -177,8 +177,8 @@ export const DEMO_RESPONSES: Record<string, ExtendedMessage[]> = {
           chartType: 'bar',
           labels: ['Basic Plan', 'Pro Plan Upsell', 'Enterprise Add-ons', 'Annual Commitment'],
           datasets: [
-            { label: 'AI Chat Conversational', data: [100, 68, 42, 73], color: '#3b82f6' },
-            { label: 'Traditional Forms', data: [100, 22, 8, 31], color: '#94a3b8' },
+            { label: 'AI Chat Conversational', data: [100, 68, 42, 73], color: 'hsl(var(--color-primary-bright))' },
+            { label: 'Traditional Forms', data: [100, 22, 8, 31], color: 'hsl(var(--color-muted-foreground))' },
           ],
         },
       },
@@ -195,7 +195,9 @@ export const DEMO_RESPONSES: Record<string, ExtendedMessage[]> = {
           title: 'Code to Production: Deployment Pipeline',
           chartType: 'line',
           labels: ['Code Push', 'Build Start', 'Tests Pass', 'Cloudflare Deploy', 'Live Traffic'],
-          datasets: [{ label: 'Deployment Time (seconds)', data: [0, 12, 45, 67, 89], color: '#f59e0b' }],
+          datasets: [
+            { label: 'Deployment Time (seconds)', data: [0, 12, 45, 67, 89], color: 'hsl(var(--color-gold))' },
+          ],
         },
       },
       timestamp: Date.now(),
@@ -212,8 +214,12 @@ export const DEMO_RESPONSES: Record<string, ExtendedMessage[]> = {
           chartType: 'line',
           labels: ['0s', '10s', '20s', '30s', '40s', '50s', '60s'],
           datasets: [
-            { label: 'Response Time (ms)', data: [8, 9, 7, 8, 9, 8, 7], color: '#8b5cf6' },
-            { label: 'Requests/sec', data: [1200, 1450, 1380, 1520, 1490, 1560, 1610], color: '#3b82f6' },
+            { label: 'Response Time (ms)', data: [8, 9, 7, 8, 9, 8, 7], color: 'hsl(var(--color-secondary-bright))' },
+            {
+              label: 'Requests/sec',
+              data: [1200, 1450, 1380, 1520, 1490, 1560, 1610],
+              color: 'hsl(var(--color-primary-bright))',
+            },
           ],
         },
       },

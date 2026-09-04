@@ -24,8 +24,8 @@ export const GET: APIRoute = async ({ params, url }) => {
     const rows = await readParsed(`
       match
         $g isa group, has gid "${gid}";
-        $u1 isa unit, has uid $from;
-        $u2 isa unit, has uid $to;
+        $u1 isa actor, has aid $from;
+        $u2 isa actor, has aid $to;
         (member: $u1, group: $g) isa membership;
         (member: $u2, group: $g) isa membership;
         $p (source: $u1, target: $u2) isa path, has strength $s;

@@ -1,5 +1,5 @@
 /**
- * Human unit management — TypeDB operations for human actors.
+ * Human actor management — TypeDB operations for human actors.
  *
  * Extracted from api-auth.ts to break circular dependency:
  *   auth.ts → sui-wallet.ts → api-auth.ts → auth.ts
@@ -14,10 +14,10 @@ function esc(s: string): string {
 }
 
 /**
- * Insert unit-if-absent for a BetterAuth-authenticated human. Idempotent.
+ * Insert actor-if-absent for a BetterAuth-authenticated human. Idempotent.
  *
  * Creates:
- *   1. unit entity with uid, wallet, human kind
+ *   1. actor entity with uid, wallet, human kind
  *   2. personal group (group:{uid})
  *   3. chairman membership in personal group
  */
@@ -26,12 +26,12 @@ export async function ensureHumanUnit(
   user: { id: string; email?: string | null; name?: string | null },
 ): Promise<void> {
   const existing = await readParsed(`
-    match $u isa unit, has uid "${esc(uid)}";
+    match $u isa actor, has aid "${esc(uid)}";
     select $u;
   `).catch(() => [])
 
-  // Insert unit only if missing — but ALWAYS fall through to group/membership.
-  // A previous request may have created the unit but failed the group write;
+  // Insert actor only if missing — but ALWAYS fall through to group/membership.
+  // A previous request may have created the actor but failed the group write;
   // returning early would strand the human with no inbox forever.
   if (existing.length === 0) {
     const wallet = ''
@@ -39,10 +39,10 @@ export async function ensureHumanUnit(
     const now = new Date().toISOString().replace('Z', '')
     const walletClause = wallet ? `, has wallet "${esc(wallet)}"` : ''
     await write(`
-      insert $u isa unit,
-        has uid "${esc(uid)}",
+      insert $u isa actor,
+        has aid "${esc(uid)}",
         has name "${esc(name)}",
-        has unit-kind "human",
+        has actor-type "human",
         has status "active",
         has success-rate 0.5,
         has activity-score 0.0,
@@ -58,7 +58,7 @@ export async function ensureHumanUnit(
   // surfaces in logs instead of silently orphaning humans from /in.
   const escPGid = esc(`group:${uid}`)
   const groupOk = await writeTracked(`
-    match $u isa unit, has uid "${esc(uid)}";
+    match $u isa actor, has aid "${esc(uid)}";
     not { $g isa group, has gid "${escPGid}"; };
     insert $g isa group,
       has gid "${escPGid}",
@@ -68,7 +68,7 @@ export async function ensureHumanUnit(
   `)
   if (!groupOk) console.warn(`[ensureHumanUnit] personal group create failed for ${uid}`)
   const memOk = await writeTracked(`
-    match $u isa unit, has uid "${esc(uid)}";
+    match $u isa actor, has aid "${esc(uid)}";
           $g isa group, has gid "${escPGid}";
     not { (group: $g, member: $u) isa membership; };
     insert (group: $g, member: $u) isa membership, has member-role "chairman";

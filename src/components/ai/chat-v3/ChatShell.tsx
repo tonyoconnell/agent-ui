@@ -240,7 +240,7 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
               }}
               className={
                 useDirector
-                  ? 'bg-purple-600 hover:bg-purple-700 text-white transition-all'
+                  ? 'bg-[hsl(var(--color-secondary-bright))] hover:bg-[hsl(var(--color-secondary-bright))]/90 text-[hsl(var(--color-secondary-foreground))] transition-all'
                   : 'bg-background hover:bg-accent transition-all'
               }
             >
@@ -250,9 +250,11 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
           <HoverCardContent side="right" className="w-80">
             <div className="space-y-2">
               <div className="flex items-start gap-2">
-                <Brain className="h-5 w-5 text-purple-600 mt-0.5" />
+                <Brain className="h-5 w-5 text-[hsl(var(--color-secondary-bright))] mt-0.5" />
                 <div>
-                  <p className="font-semibold text-sm">{useDirector ? 'Director Mode: ON' : 'Director Mode: OFF'}</p>
+                  <p className="font-semibold text-sm text-font">
+                    {useDirector ? 'Director Mode: ON' : 'Director Mode: OFF'}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {useDirector
                       ? 'Agent Director analyzes, assigns specialists, orchestrates in parallel.'
@@ -372,16 +374,16 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
 
       {!hasApiKey && typeof window !== 'undefined' && !localStorage.getItem('hideLoginBanner') && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 w-full max-w-2xl z-[90] px-6 animate-in fade-in slide-in-from-top-4 duration-500">
-          <Card className="border-blue-500/50 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 shadow-lg">
+          <Card className="border-[hsl(var(--color-primary))] bg-gradient-to-br from-[hsl(var(--color-primary-bright)/0.15)] to-[hsl(var(--color-primary-bright)/0.1)] shadow-lg">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/20 flex-shrink-0">
-                  <Sparkles className="h-5 w-5 text-blue-600" />
+                <div className="p-2 rounded-lg bg-[hsl(var(--color-primary-bright)/0.2)] flex-shrink-0">
+                  <Sparkles className="h-5 w-5 text-[hsl(var(--color-primary))]" />
                 </div>
                 <div className="flex-1 space-y-2">
-                  <h3 className="font-semibold text-blue-600">✨ Using Claude Code (Free)</h3>
-                  <div className="flex items-start gap-2 p-2 rounded-md bg-blue-500/5 border border-blue-500/20">
-                    <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <h3 className="font-semibold text-[hsl(var(--color-primary))]">✨ Using Claude Code (Free)</h3>
+                  <div className="flex items-start gap-2 p-2 rounded-md bg-[hsl(var(--color-primary-bright)/0.05)] border border-[hsl(var(--color-primary-bright)/0.2)]">
+                    <Info className="h-4 w-4 text-[hsl(var(--color-primary))] mt-0.5 flex-shrink-0" />
                     <p className="text-xs text-muted-foreground">
                       <span className="font-medium text-foreground">Want 200+ models?</span> Add your OpenRouter API key
                       in Settings.
@@ -433,14 +435,14 @@ export function ChatShell({ mode = 'full', target: _target }: Props) {
       {commandResult && (
         <div className="absolute bottom-24 left-4 right-4 z-50 rounded-xl border border-border bg-background shadow-lg">
           <div className="flex items-start justify-between p-3 pb-0">
-            <span className="text-xs text-slate-500">Command result</span>
+            <span className="text-xs text-muted-foreground">Command result</span>
             <button
               type="button"
               onClick={() => {
                 emitClick('ui:chat:dismiss-result')
                 setCommandResult(null)
               }}
-              className="text-slate-500 hover:text-slate-300"
+              className="text-muted-foreground hover:text-foreground"
             >
               ✕
             </button>

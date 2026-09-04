@@ -46,24 +46,28 @@ export function SellListIsland() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 py-16 text-sm text-zinc-500">
-        <div className="h-4 w-4 animate-spin rounded-full border border-indigo-500 border-t-transparent" />
+      <div className="flex items-center gap-2 py-16 text-sm text-muted-foreground">
+        <div className="h-4 w-4 animate-spin rounded-full border border-[hsl(var(--color-secondary-bright))] border-t-transparent" />
         Loading listings…
       </div>
     )
   }
 
   if (error) {
-    return <div className="rounded-md border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-300">{error}</div>
+    return (
+      <div className="rounded-md border border-[hsl(var(--color-destructive)/0.5)] bg-[hsl(var(--color-destructive)/0.15)] px-4 py-3 text-sm text-[hsl(var(--color-destructive))]">
+        {error}
+      </div>
+    )
   }
 
   if (listings.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900/40 px-6 py-16 text-center">
-        <p className="text-sm text-zinc-500">No listings yet.</p>
+      <div className="flex flex-col items-center gap-4 rounded-lg border border-border bg-muted/20 px-6 py-16 text-center">
+        <p className="text-sm text-muted-foreground">No listings yet.</p>
         <a
           href="/sell/new"
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+          className="rounded-md bg-[hsl(var(--color-secondary-bright))] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[hsl(var(--color-secondary-mid))]"
         >
           Create your first listing
         </a>
@@ -80,34 +84,40 @@ export function SellListIsland() {
         )
 
         return (
-          <Card key={cap.sid} className="border-zinc-800 bg-zinc-900/60 transition-colors hover:bg-zinc-900/80">
+          <Card key={cap.sid} className="border-border bg-card/60 transition-colors hover:bg-card/80">
             <CardContent className="p-4">
               <div className="mb-2 flex items-start justify-between gap-2">
-                <span className="truncate text-sm font-medium text-white">{cap.name}</span>
+                <span className="truncate text-sm font-medium text-foreground">{cap.name}</span>
                 <Badge
                   variant="outline"
                   className={
                     status === 'active'
-                      ? 'shrink-0 border-emerald-700 bg-emerald-900/40 text-emerald-300'
-                      : 'shrink-0 border-zinc-700 bg-zinc-800/60 text-zinc-400'
+                      ? 'shrink-0 border-[hsl(var(--color-tertiary-mid))] bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright))]'
+                      : 'shrink-0 border-border bg-muted text-muted-foreground'
                   }
                 >
                   {status}
                 </Badge>
               </div>
 
-              <p className="mb-3 text-sm tabular-nums text-zinc-300">
+              <p className="mb-3 text-sm tabular-nums text-foreground">
                 {cap.price != null ? `${cap.price.toFixed(4)} SUI` : '—'}
               </p>
 
               {visibleTags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {visibleTags.slice(0, 4).map((tag) => (
-                    <Badge key={tag} variant="outline" className="border-zinc-700 px-1.5 py-0 text-xs text-zinc-500">
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className="border-border px-1.5 py-0 text-xs text-muted-foreground"
+                    >
                       {tag}
                     </Badge>
                   ))}
-                  {visibleTags.length > 4 && <span className="text-xs text-zinc-600">+{visibleTags.length - 4}</span>}
+                  {visibleTags.length > 4 && (
+                    <span className="text-xs text-muted-foreground">+{visibleTags.length - 4}</span>
+                  )}
                 </div>
               )}
             </CardContent>

@@ -15,7 +15,7 @@
  * │ mark()   │                │ Marked   │                │ strength │
  * │ warn()   │                │ Warned   │                │ resist.  │
  * │ signal() │                │ Signal   │                │ signal   │
- * │ actor()  │                │ Unit     │                │ unit     │
+ * │ actor()  │                │ Actor     │                │ actor     │
  * └────┬─────┘                └──────────┘                └────┬─────┘
  *      │                                                       │
  *      └────────────── load() ◄────────────────────────────────┘
@@ -75,7 +75,7 @@ async function canCallSui(sender: string, receiver: string): Promise<boolean> {
   }
   let readFailed = false
   const rows = await readParsed(
-    `match $u isa unit, has uid "${esc(receiver)}", has perm-network $pn; select $pn;`,
+    `match $u isa actor, has aid "${esc(receiver)}", has perm-network $pn; select $pn;`,
   ).catch(() => {
     readFailed = true
     return []
@@ -124,8 +124,8 @@ async function canCallSui(sender: string, receiver: string): Promise<boolean> {
   try {
     const scopeRows = await readParsed(
       `match (source: $from, target: $to) isa path, has scope $sc;
-       $from has uid "${sender.replace(/[^a-zA-Z0-9_:.-]/g, '')}";
-       $to has uid "${receiver.replace(/[^a-zA-Z0-9_:.-]/g, '')}";
+       $from has aid "${sender.replace(/[^a-zA-Z0-9_:.-]/g, '')}";
+       $to has aid "${receiver.replace(/[^a-zA-Z0-9_:.-]/g, '')}";
        select $sc; limit 1;`,
     )
     const scope = scopeRows[0]?.sc as string | undefined
@@ -146,18 +146,18 @@ async function canCallSui(sender: string, receiver: string): Promise<boolean> {
 // RESOLVE — Find Sui object IDs from TypeDB
 // ═══════════════════════════════════════════════════════════════════════════
 
-type SuiIds = { wallet: string; unitId: string; pathIds: Record<string, string> }
+type SuiIds = { wallet: string; actorId: string; pathIds: Record<string, string> }
 
-/** Look up a unit's Sui identity from TypeDB. */
+/** Look up a actor's Sui identity from TypeDB. */
 export async function resolve(uid: string): Promise<SuiIds | null> {
   const rows = await readParsed(`
-    match $u isa unit, has uid "${uid}", has wallet $w, has sui-unit-id $oid;
+    match $u isa actor, has aid "${uid}", has wallet $w, has sui-unit-id $oid;
     select $w, $oid;
   `).catch(() => [])
   if (!rows.length) return null
   return {
     wallet: rows[0].w as string,
-    unitId: rows[0].oid as string,
+    actorId: rows[0].oid as string,
     pathIds: {},
   }
 }
@@ -165,7 +165,7 @@ export async function resolve(uid: string): Promise<SuiIds | null> {
 /** Look up the Sui Path object ID for an edge. */
 export async function resolvePath(from: string, to: string): Promise<string | null> {
   const rows = await readParsed(`
-    match $from isa unit, has uid "${from}"; $to isa unit, has uid "${to}";
+    match $from isa actor, has aid "${from}"; $to isa actor, has aid "${to}";
     $e (source: $from, target: $to) isa path, has sui-path-id $pid;
     select $pid;
   `).catch(() => [])
@@ -187,19 +187,19 @@ export async function mirrorMark(from: string, to: string, amount = 1): Promise<
   }
 
   const [fIds, tIds] = await Promise.all([resolve(from), resolve(to)])
-  if (!fIds?.unitId || !tIds?.unitId) return
+  if (!fIds?.actorId || !tIds?.actorId) return
 
   let pathId = await resolvePath(from, to)
 
   // First interaction? Create on-chain path
   if (!pathId) {
     const { createPath } = await sui()
-    const r = await createPath(from, fIds.unitId, tIds.unitId).catch(() => null)
+    const r = await createPath(from, fIds.actorId, tIds.actorId).catch(() => null)
     if (!r?.pathId) return
     pathId = r.pathId
     // Store in TypeDB for next time
     writeSilent(`
-      match $from isa unit, has uid "${from}"; $to isa unit, has uid "${to}";
+      match $from isa actor, has aid "${from}"; $to isa actor, has aid "${to}";
       $e (source: $from, target: $to) isa path;
       insert $e has sui-path-id "${pathId}";
     `)
@@ -226,11 +226,11 @@ export async function mirrorWarn(from: string, to: string, amount = 1): Promise<
 export async function mirrorPay(from: string, to: string, amount: number): Promise<{ digest: string } | null> {
   if (!(await canCallSui(from, to))) return null
   const [fIds, tIds] = await Promise.all([resolve(from), resolve(to)])
-  if (!fIds?.unitId || !tIds?.unitId) return null
+  if (!fIds?.actorId || !tIds?.actorId) return null
   const pathId = await resolvePath(from, to)
   if (!pathId) return null
   const { pay } = await sui()
-  return await pay(from, fIds.unitId, tIds.unitId, pathId, amount).catch(() => null)
+  return await pay(from, fIds.actorId, tIds.actorId, pathId, amount).catch(() => null)
 }
 
 /** Mirror a harden() to Sui. Promotes TypeDB path to on-chain Highway object. */
@@ -242,24 +242,24 @@ export async function mirrorHarden(from: string, to: string): Promise<{ highwayI
   const result = await harden(from, pathId).catch(() => null)
   if (!result?.highwayId) return null
   writeSilent(`
-    match $from isa unit, has uid "${from}"; $to isa unit, has uid "${to}";
+    match $from isa actor, has aid "${from}"; $to isa actor, has aid "${to}";
     $e (source: $from, target: $to) isa path;
     insert $e has sui-highway-id "${result.highwayId}";
   `)
   return result
 }
 
-/** Mirror a new actor to Sui. Returns { wallet, unitId } or null. */
-export async function mirrorActor(uid: string, name: string): Promise<{ wallet: string; unitId: string } | null> {
+/** Mirror a new actor to Sui. Returns { wallet, actorId } or null. */
+export async function mirrorActor(uid: string, name: string): Promise<{ wallet: string; actorId: string } | null> {
   try {
     const { createUnit } = await sui()
     const { address, objectId } = await createUnit(uid, name)
     // Store IDs back in TypeDB
     writeSilent(`
-      match $u isa unit, has uid "${uid}";
+      match $u isa actor, has aid "${uid}";
       insert $u has wallet "${address}", has sui-unit-id "${objectId}";
     `)
-    return { wallet: address, unitId: objectId }
+    return { wallet: address, actorId: objectId }
   } catch {
     return null
   }
@@ -379,10 +379,10 @@ async function absorbWarn(d: Record<string, unknown>) {
 
 async function absorbUnit(d: Record<string, unknown>) {
   const name = d.name as string
-  const unitId = d.unit_id as string
+  const actorId = d.unit_id as string
   // Upsert: if unit exists, add sui-unit-id; if not, skip (TypeDB is source of truth)
   writeSilent(`
-    match $u isa unit, has uid "${name}";
+    match $u isa actor, has aid "${name}";
     insert $u has sui-unit-id "${unitId}";
   `)
 }
@@ -392,8 +392,8 @@ async function absorbSignal(d: Record<string, unknown>) {
   const task = d.task as string
   // Record as signal event in TypeDB (audit trail)
   writeSilent(`
-    match $from isa unit, has sui-unit-id "${d.sender}";
-    $to isa unit, has sui-unit-id "${d.receiver}";
+    match $from isa actor, has sui-unit-id "${d.sender}";
+    $to isa actor, has sui-unit-id "${d.receiver}";
     insert (sender: $from, receiver: $to) isa signal,
       has data "${task}", has amount ${amount / 1e9},
       has success true, has ts ${new Date().toISOString().replace('Z', '')};
@@ -403,8 +403,8 @@ async function absorbSignal(d: Record<string, unknown>) {
 async function absorbPayment(d: Record<string, unknown>) {
   const amount = Number(d.amount || 0)
   writeSilent(`
-    match $from isa unit, has sui-unit-id "${d.from}";
-    $to isa unit, has sui-unit-id "${d.to}";
+    match $from isa actor, has sui-unit-id "${d.from}";
+    $to isa actor, has sui-unit-id "${d.to}";
     $e (source: $from, target: $to) isa path, has revenue $r;
     delete $r of $e;
     insert $e has revenue ($r + ${amount / 1e9});
@@ -422,8 +422,8 @@ async function absorbEscrowCreated(d: Record<string, unknown>) {
   // Write escrow state to TypeDB for audit trail
   // Fire-and-forget: don't block on TypeDB write
   writeSilent(`
-    match $poster isa unit, has sui-unit-id "${posterId}";
-    $worker isa unit, has sui-unit-id "${workerId}";
+    match $poster isa actor, has sui-unit-id "${posterId}";
+    $worker isa actor, has sui-unit-id "${workerId}";
     insert $escrow isa escrow,
       has sui-escrow-id "${escrowId}",
       has escrow-status "created",
@@ -503,16 +503,16 @@ export const settleEscrow = async (
   try {
     if (success) {
       const [ids, { releaseEscrow }] = await Promise.all([resolve(claimantUid), sui()])
-      if (!ids?.unitId) return { ok: true }
+      if (!ids?.actorId) return { ok: true }
       const pathId = await resolvePath(posterUid, claimantUid)
       if (!pathId) return { ok: true }
-      await releaseEscrow(claimantUid, escrowObjectId, ids.unitId, pathId)
+      await releaseEscrow(claimantUid, escrowObjectId, ids.actorId, pathId)
     } else {
       const [ids, { cancelEscrow }] = await Promise.all([resolve(posterUid), sui()])
-      if (!ids?.unitId) return { ok: true }
+      if (!ids?.actorId) return { ok: true }
       const pathId = await resolvePath(posterUid, claimantUid)
       if (!pathId) return { ok: true }
-      await cancelEscrow(posterUid, escrowObjectId, ids.unitId, pathId)
+      await cancelEscrow(posterUid, escrowObjectId, ids.actorId, pathId)
     }
     return { ok: true }
   } catch (err) {

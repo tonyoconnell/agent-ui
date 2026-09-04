@@ -12,8 +12,8 @@
  * Operator fixes; re-runs; gate passes when exit code is 0.
  */
 
-import { existsSync, readFileSync } from 'fs'
-import { dirname, resolve } from 'path'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -393,7 +393,7 @@ for (const f of findings) {
 }
 
 function shortPath(abs: string): string {
-  if (abs.startsWith(ONE_IE)) return 'one.ie/' + abs.slice(ONE_IE.length + 1)
+  if (abs.startsWith(ONE_IE)) return `one.ie/${abs.slice(ONE_IE.length + 1)}`
   if (abs.startsWith(ROOT)) return abs.slice(ROOT.length + 1)
   return abs
 }

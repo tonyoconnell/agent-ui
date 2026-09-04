@@ -417,7 +417,7 @@ export const typedbPersist = (write: (q: string) => Promise<void>, read: (q: str
       if (!from || !to) continue
       const res = state.resistance[path] || 0
       await write(`
-        match $f isa unit, has uid "${from}"; $t isa unit, has uid "${to}";
+        match $f isa actor, has aid "${from}"; $t isa actor, has aid "${to}";
         insert (source: $f, target: $t) isa path,
           has strength ${str.toFixed(2)}, has resistance ${res.toFixed(2)}, has traversals 0;
       `).catch(() => {}) // ignore if exists
@@ -427,7 +427,7 @@ export const typedbPersist = (write: (q: string) => Promise<void>, read: (q: str
   load: async (): Promise<State | null> => {
     const rows = (await read(`
       match $e (source: $f, target: $t) isa path, has strength $s, has resistance $r;
-      $f has uid $fid; $t has uid $tid; select $fid, $tid, $s, $r;
+      $f has aid $fid; $t has aid $tid; select $fid, $tid, $s, $r;
     `).catch(() => [])) as { fid: string; tid: string; s: number; r: number }[]
 
     if (!rows.length) return null

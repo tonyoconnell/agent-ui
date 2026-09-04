@@ -123,16 +123,16 @@ export function ConversationView({
 
           {/* Active Agents Listening */}
           {useDirector && activeAgents.length > 0 && (
-            <Card className="border-green-500/50 bg-green-500/5 mb-4">
+            <Card className="border-tertiary-bright/50 bg-tertiary-bright/5 mb-4">
               <CardContent className="pt-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-tertiary-bright/10 flex items-center justify-center">
                     👂
                   </div>
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-sm text-green-700 dark:text-green-400">Active Agents Listening</p>
-                      <Badge variant="outline" className="text-xs border-green-500/30">
+                      <p className="font-medium text-sm text-tertiary-bright">Active Agents Listening</p>
+                      <Badge variant="outline" className="text-xs border-tertiary-bright/30">
                         {activeAgents.length} listening
                       </Badge>
                     </div>
@@ -153,7 +153,7 @@ export function ConversationView({
                           <Badge
                             key={idx}
                             variant="secondary"
-                            className="text-xs flex items-center gap-1 bg-green-500/10 border-green-500/20"
+                            className="text-xs flex items-center gap-1 bg-tertiary-bright/10 border-tertiary-bright/20"
                           >
                             <span>{agentEmojis[agentId] || '🤖'}</span>
                             {agentName}
@@ -169,10 +169,10 @@ export function ConversationView({
 
           {/* Active Tool Execution Status */}
           {isLoading && activeTools.length > 0 && (
-            <Card className="border-blue-500/50 bg-blue-500/5">
+            <Card className="border-primary-bright/50 bg-primary-bright/5">
               <CardContent className="pt-4">
                 <div className="flex items-start gap-3">
-                  <Wrench className="h-5 w-5 text-blue-500 animate-pulse mt-1" />
+                  <Wrench className="h-5 w-5 text-primary-bright animate-pulse mt-1" />
                   <div className="flex-1 space-y-2">
                     <p className="font-medium text-sm">{thinkingStatus}</p>
                     <div className="flex flex-wrap gap-2">
@@ -223,7 +223,9 @@ export function ConversationView({
                 }}
                 className={cn(
                   'transition-all duration-200',
-                  conversationCopied ? 'bg-green-600 hover:bg-green-700 text-white border-green-600' : '',
+                  conversationCopied
+                    ? 'bg-tertiary-bright hover:bg-tertiary-bright/90 text-background border-tertiary-bright'
+                    : '',
                 )}
               >
                 {conversationCopied ? (

@@ -19,8 +19,8 @@ export const GET: APIRoute = async () => {
     const results = await readParsed(`
       match
         (source: $s, target: $t) isa path, has strength $str, has resistance $r, has traversals $tv;
-        $s has uid $sid;
-        $t has uid $tid;
+        $s has aid $sid;
+        $t has aid $tid;
         $r >= 10;
         $r > $str * 2;
       select $sid, $tid, $str, $r, $tv;

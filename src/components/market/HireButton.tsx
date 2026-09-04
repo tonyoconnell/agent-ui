@@ -61,16 +61,16 @@ export function HireButton({ skillId, sellerUid, sellerName, price, buyerUid = '
 
   if (stage === 'settled' && result) {
     return (
-      <div className="rounded-lg border border-green-500/30 bg-green-500/10 px-5 py-4 flex items-center gap-3">
-        <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-        <span className="text-sm text-green-300">{result.message}</span>
+      <div className="rounded-lg border border-[hsl(var(--color-tertiary-bright)/0.3)] bg-[hsl(var(--color-tertiary-bright)/0.1)] px-5 py-4 flex items-center gap-3">
+        <span className="h-2 w-2 rounded-full bg-[hsl(var(--color-tertiary-bright))] animate-pulse" />
+        <span className="text-sm text-[hsl(var(--color-tertiary-bright)/0.85)]">{result.message}</span>
         <button
           type="button"
           onClick={() => {
             setStage('idle')
             setResult(null)
           }}
-          className="ml-auto text-xs text-slate-400 hover:text-slate-200"
+          className="ml-auto text-xs text-muted-foreground hover:text-foreground"
         >
           hire again
         </button>
@@ -80,10 +80,10 @@ export function HireButton({ skillId, sellerUid, sellerName, price, buyerUid = '
 
   if (stage === 'failed' && result) {
     return (
-      <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-5 py-4 flex items-center gap-3">
-        <span className="h-2 w-2 rounded-full bg-red-400" />
-        <span className="text-sm text-red-300">{result.message}</span>
-        <button type="button" onClick={cancel} className="ml-auto text-xs text-slate-400 hover:text-slate-200">
+      <div className="rounded-lg border border-[hsl(var(--color-destructive)/0.3)] bg-[hsl(var(--color-destructive)/0.1)] px-5 py-4 flex items-center gap-3">
+        <span className="h-2 w-2 rounded-full bg-[hsl(var(--color-destructive))]" />
+        <span className="text-sm text-[hsl(var(--color-destructive)/0.85)]">{result.message}</span>
+        <button type="button" onClick={cancel} className="ml-auto text-xs text-muted-foreground hover:text-foreground">
           retry
         </button>
       </div>
@@ -92,19 +92,19 @@ export function HireButton({ skillId, sellerUid, sellerName, price, buyerUid = '
 
   if (stage === 'confirm' || stage === 'paying') {
     return (
-      <div className="rounded-lg border border-[#252538] bg-[#161622] px-5 py-4 flex flex-col gap-3">
+      <div className="rounded-lg border border-border bg-card px-5 py-4 flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-400">
-            Hire <span className="text-slate-200">{sellerName}</span> for {isFree ? 'free' : `$${price.toFixed(2)}`}?
+          <span className="text-sm text-muted-foreground">
+            Hire <span className="text-font">{sellerName}</span> for {isFree ? 'free' : `$${price.toFixed(2)}`}?
           </span>
-          <span className="text-xs font-mono text-slate-500">{skillId}</span>
+          <span className="text-xs font-mono text-muted-foreground">{skillId}</span>
         </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={submit}
             disabled={stage === 'paying'}
-            className="flex-1 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-wait px-4 py-2 text-sm font-medium text-white transition-colors"
+            className="flex-1 rounded bg-[hsl(var(--color-primary-bright))] hover:bg-[hsl(var(--color-primary-bright)/0.9)] disabled:opacity-50 disabled:cursor-wait px-4 py-2 text-sm font-medium text-white transition-colors"
           >
             {stage === 'paying' ? (
               <span className="inline-flex items-center gap-2">
@@ -119,7 +119,7 @@ export function HireButton({ skillId, sellerUid, sellerName, price, buyerUid = '
             type="button"
             onClick={cancel}
             disabled={stage === 'paying'}
-            className="rounded border border-[#252538] hover:border-slate-600 px-4 py-2 text-sm text-slate-400 disabled:opacity-50"
+            className="rounded border border-border hover:border-[hsl(var(--color-primary-mid))] px-4 py-2 text-sm text-muted-foreground disabled:opacity-50"
           >
             Cancel
           </button>
@@ -132,7 +132,7 @@ export function HireButton({ skillId, sellerUid, sellerName, price, buyerUid = '
     <button
       type="button"
       onClick={openConfirm}
-      className="rounded bg-indigo-600 hover:bg-indigo-500 px-5 py-2 text-sm font-medium text-white transition-colors"
+      className="rounded bg-[hsl(var(--color-primary-bright))] hover:bg-[hsl(var(--color-primary-bright)/0.9)] px-5 py-2 text-sm font-medium text-white transition-colors"
     >
       {isFree ? 'Hire free' : `Hire — $${price.toFixed(2)}`}
     </button>

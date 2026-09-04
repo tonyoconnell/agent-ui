@@ -30,7 +30,7 @@ function PayPageContent({ skillId, skillName, price, seller }: Props) {
       setState('paying')
       try {
         // /api/signal requires sender + receiver at the top level and data as a
-        // JSON string (not an object). USDC has 6 decimals — the micro-unit
+        // JSON string (not an object). USDC has 6 decimals — the micro-actor
         // amount lives inside the data payload.
         const buyer = account?.address ?? 'anon'
         const payload = {
@@ -85,12 +85,12 @@ function PayPageContent({ skillId, skillName, price, seller }: Props) {
   if (!account && state === 'connect') {
     return (
       <div className="w-full max-w-md space-y-6">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 text-center space-y-4">
+        <div className="rounded-xl border border-border bg-card p-6 text-center space-y-4">
           <h1 className="text-xl font-semibold text-white">{skillName}</h1>
           <p className="text-3xl font-bold text-white">
-            ${price.toFixed(2)} <span className="text-base font-normal text-zinc-400">USDC</span>
+            ${price.toFixed(2)} <span className="text-base font-normal text-muted-foreground">USDC</span>
           </p>
-          <p className="text-sm text-zinc-500">Connect your Sui wallet to pay</p>
+          <p className="text-sm text-muted-foreground">Connect your Sui wallet to pay</p>
           <ConnectButton />
         </div>
       </div>
@@ -104,11 +104,11 @@ function PayPageContent({ skillId, skillName, price, seller }: Props) {
   if (state === 'done' && receipt) {
     return (
       <div className="w-full max-w-md space-y-4">
-        <div className="rounded-xl border border-emerald-800 bg-emerald-950/30 p-6 text-center space-y-3">
+        <div className="rounded-xl border border-tertiary-bright/30 bg-card/50 p-6 text-center space-y-3">
           <div className="text-2xl">✓</div>
-          <h1 className="text-lg font-semibold text-emerald-400">Payment complete</h1>
-          <p className="text-sm text-zinc-400">{skillName}</p>
-          <p className="text-xs text-zinc-500 break-all">TX: {receipt.digest}</p>
+          <h1 className="text-lg font-semibold text-tertiary-bright">Payment complete</h1>
+          <p className="text-sm text-muted-foreground">{skillName}</p>
+          <p className="text-xs text-muted-foreground break-all">TX: {receipt.digest}</p>
         </div>
       </div>
     )
@@ -125,9 +125,9 @@ function PayPageContent({ skillId, skillName, price, seller }: Props) {
     }`
     return (
       <div className="w-full max-w-md space-y-3">
-        <div className="rounded-xl border border-amber-900/60 bg-amber-950/20 p-6 space-y-3">
-          <h1 className="text-base font-semibold text-amber-300">Finish at pay.one.ie</h1>
-          <p className="text-sm text-zinc-400">{errorMsg}</p>
+        <div className="rounded-xl border border-gold/40 bg-card/40 p-6 space-y-3">
+          <h1 className="text-base font-semibold text-gold">Finish at pay.one.ie</h1>
+          <p className="text-sm text-muted-foreground">{errorMsg}</p>
           <a
             href={fallbackUrl}
             target="_blank"
@@ -145,7 +145,7 @@ function PayPageContent({ skillId, skillName, price, seller }: Props) {
               setErrorMsg(null)
               setState('review')
             }}
-            className="w-full py-2 text-sm rounded-lg border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-colors"
+            className="w-full py-2 text-sm rounded-lg border border-border text-muted-foreground hover:text-font hover:bg-muted transition-colors"
           >
             Retry on-chain
           </button>
@@ -156,25 +156,25 @@ function PayPageContent({ skillId, skillName, price, seller }: Props) {
 
   return (
     <div className="w-full max-w-md space-y-4">
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 space-y-5">
+      <div className="rounded-xl border border-border bg-card p-6 space-y-5">
         <h1 className="text-xl font-semibold text-white">{skillName}</h1>
 
         <div className="space-y-2 text-sm">
-          <div className="flex justify-between text-zinc-300">
+          <div className="flex justify-between text-foreground">
             <span>Price</span>
             <span>${price.toFixed(2)} USDC</span>
           </div>
-          <div className="flex justify-between text-zinc-500">
+          <div className="flex justify-between text-muted-foreground">
             <span>Platform fee (2%)</span>
             <span>−${fee.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-zinc-400 border-t border-zinc-800 pt-2">
+          <div className="flex justify-between text-muted-foreground border-t border-border pt-2">
             <span>Seller receives</span>
             <span>${sellerReceives.toFixed(2)} USDC</span>
           </div>
         </div>
 
-        <div className="text-xs text-zinc-600 space-y-1">
+        <div className="text-xs text-muted-foreground space-y-1">
           <p>
             From:{' '}
             <span className="font-mono">
@@ -188,7 +188,7 @@ function PayPageContent({ skillId, skillName, price, seller }: Props) {
           type="button"
           onClick={handlePay}
           disabled={isPending || state === 'paying'}
-          className="w-full py-3 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-medium transition-colors"
+          className="w-full py-3 rounded-lg bg-secondary-bright hover:bg-secondary-bright/90 disabled:opacity-50 text-white font-medium transition-colors"
         >
           {state === 'paying' ? 'Confirming…' : `Pay $${price.toFixed(2)} USDC`}
         </button>

@@ -100,37 +100,37 @@ async function buildDetail(safeId: string): Promise<Response> {
   const [unitRows, sensitivityRows, tagRows, capPairRows, membershipRows] = await Promise.all([
     readParsed(`
       match
-        $u isa unit, has uid "${safeId}",
+        $u isa actor, has aid "${safeId}",
           has name $name, has model $model, has system-prompt $sp;
       select $name, $model, $sp;
     `).catch(() => []),
     readParsed(`
       match
-        $u isa unit, has uid "${safeId}", has data-sensitivity $ds;
+        $u isa actor, has aid "${safeId}", has data-sensitivity $ds;
       select $ds;
     `).catch(() => []),
     readParsed(`
       match
-        $u isa unit, has uid "${safeId}", has tag $tag;
+        $u isa actor, has aid "${safeId}", has tag $tag;
       select $tag;
     `).catch(() => []),
     // Planner-friendly order: hoist projected-attribute bindings above the
-    // relation pattern. With ($u has uid ...) at the top the planner fans
-    // out from the unit across all capabilities before projecting skill-id,
+    // relation pattern. With ($u has aid ...) at the top the planner fans
+    // out from the actor across all capabilities before projecting skill-id,
     // which hangs >30s on cold paths. Binding `$s has skill-id $sid` first
     // gives the planner a concrete start set. See memory: typedb_planner_trio.
     readParsed(`
       match
         $s isa skill, has skill-id $sid;
         (provider: $u, offered: $s) isa capability;
-        $u has uid "${safeId}";
+        $u has aid "${safeId}";
       select $sid;
     `).catch(() => []),
     readParsed(`
       match
         $g isa group, has gid $gid;
         (group: $g, member: $u) isa membership;
-        $u has uid "${safeId}";
+        $u has aid "${safeId}";
       select $gid;
     `).catch(() => []),
   ])

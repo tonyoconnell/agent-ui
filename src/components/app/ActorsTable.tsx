@@ -56,7 +56,7 @@ export function ActorsTable({ groupId: _groupId, onSelect }: Props) {
 
     async function load() {
       try {
-        const raw = await sdk.exportData('units')
+        const raw = await sdk.exportData('actors')
         if (!cancelled) {
           setRows(parseRows(raw))
           setLoading(false)
@@ -113,7 +113,7 @@ export function ActorsTable({ groupId: _groupId, onSelect }: Props) {
                     <span
                       className={
                         row.status === 'active'
-                          ? 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-500/15 text-green-500'
+                          ? 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright))]'
                           : 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground'
                       }
                     >

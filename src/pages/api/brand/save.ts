@@ -12,7 +12,7 @@ function escapeStr(s: string): string {
 }
 
 // Public scope names stay `thing | group | user`. Live schema (world.tql) uses
-// `skill` (key: skill-id) for things and `unit` (key: uid) for actors.
+// `skill` (key: skill-id) for things and `actor` (key: uid) for actors.
 function entityFor(scope: 'thing' | 'group'): { entity: string; idAttr: string } {
   return scope === 'thing' ? { entity: 'skill', idAttr: 'skill-id' } : { entity: 'group', idAttr: 'gid' }
 }
@@ -79,7 +79,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   if (typedScope === 'group') {
     const rows = await readParsed(
-      `match $g isa group, has gid "${safeIdForCheck}"; (group: $g, member: $m) isa membership; $m has uid "${safeUserId}"; select $m;`,
+      `match $g isa group, has gid "${safeIdForCheck}"; (group: $g, member: $m) isa membership; $m has aid "${safeUserId}"; select $m;`,
     ).catch(() => [] as Record<string, unknown>[])
     if (rows.length === 0) {
       return Response.json({ error: 'forbidden' }, { status: 403 })

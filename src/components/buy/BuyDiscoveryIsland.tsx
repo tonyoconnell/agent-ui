@@ -46,18 +46,18 @@ function ListingCard({ listing, onBuy }: ListingCardProps) {
   return (
     <Card
       className={cn(
-        'flex flex-col gap-3 rounded-xl border border-[#252538] bg-[#161622] p-4',
-        'transition-colors hover:border-[#353550]',
+        'flex flex-col gap-3 rounded-xl border border-border bg-card p-4',
+        'transition-colors hover:border-border',
       )}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-slate-100">{listing.name}</div>
-          <div className="mt-0.5 truncate font-mono text-[11px] text-slate-500">{listing.seller}</div>
+          <div className="truncate text-sm font-semibold text-font">{listing.name}</div>
+          <div className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">{listing.seller}</div>
         </div>
         <div className="shrink-0 text-right">
-          <div className="text-sm font-semibold text-slate-200">{priceLabel}</div>
+          <div className="text-sm font-semibold text-foreground">{priceLabel}</div>
           {priceMist === 0n && (
             <Badge variant="secondary" className="mt-0.5 text-[10px]">
               free
@@ -70,7 +70,7 @@ function ListingCard({ listing, onBuy }: ListingCardProps) {
       {listing.tags.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {listing.tags.slice(0, 5).map((t) => (
-            <Badge key={t} variant="outline" className="text-[10px] text-slate-400">
+            <Badge key={t} variant="outline" className="text-[10px] text-muted-foreground">
               {t}
             </Badge>
           ))}
@@ -80,10 +80,13 @@ function ListingCard({ listing, onBuy }: ListingCardProps) {
       {/* Pheromone strength bar */}
       {strength > 0 && (
         <div className="flex items-center gap-2">
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-[#252538]">
-            <div className="h-full rounded-full bg-indigo-500/70" style={{ width: `${Math.min(100, strength)}%` }} />
+          <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary-bright/70"
+              style={{ width: `${Math.min(100, strength)}%` }}
+            />
           </div>
-          <span className="shrink-0 text-[10px] text-slate-600">{Math.round(strength)} str</span>
+          <span className="shrink-0 text-[10px] text-muted-foreground">{Math.round(strength)} str</span>
         </div>
       )}
 
@@ -156,30 +159,30 @@ export function BuyDiscoveryIsland() {
           placeholder="Search by name or tag…"
           aria-label="Search skills"
           className={cn(
-            'flex-1 rounded-xl border border-[#252538] bg-[#161622]',
-            'px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600',
-            'focus:border-indigo-500/50 focus:outline-none focus:ring-1 focus:ring-indigo-500/30',
+            'flex-1 rounded-xl border border-border bg-card',
+            'px-4 py-2.5 text-sm text-font placeholder-muted-foreground',
+            'focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30',
           )}
         />
-        <a href="/sell" className="shrink-0 text-xs text-slate-500 transition-colors hover:text-slate-300">
+        <a href="/sell" className="shrink-0 text-xs text-muted-foreground transition-colors hover:text-foreground">
           Sell something →
         </a>
       </div>
 
       {/* State: loading */}
       {loading && (
-        <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500">
-          <div className="h-4 w-4 animate-spin rounded-full border border-indigo-500 border-t-transparent" />
+        <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+          <div className="h-4 w-4 animate-spin rounded-full border border-primary border-t-transparent" />
           Discovering skills…
         </div>
       )}
 
       {/* State: error */}
-      {!loading && error && <p className="py-8 text-center text-sm text-red-400">Could not load skills: {error}</p>}
+      {!loading && error && <p className="py-8 text-center text-sm text-destructive">Could not load skills: {error}</p>}
 
       {/* State: empty */}
       {!loading && !error && filtered.length === 0 && (
-        <p className="py-16 text-center text-sm text-slate-500">
+        <p className="py-16 text-center text-sm text-muted-foreground">
           {search ? 'No skills match your search.' : 'No skills available yet.'}
         </p>
       )}
@@ -187,7 +190,7 @@ export function BuyDiscoveryIsland() {
       {/* Grid */}
       {!loading && !error && filtered.length > 0 && (
         <>
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-muted-foreground">
             {filtered.length} skill{filtered.length !== 1 ? 's' : ''} · sorted by pheromone strength
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

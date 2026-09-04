@@ -664,10 +664,12 @@ export function ProductsPage() {
               </div>
 
               {newProduct.walletAddresses.length === 0 && (
-                <p className="text-xs text-amber-500 mt-2">⚠️ Add at least one wallet to receive payments</p>
+                <p className="text-xs text-[hsl(var(--color-gold))] mt-2">
+                  ⚠️ Add at least one wallet to receive payments
+                </p>
               )}
               {newProduct.walletAddresses.length > 1 && (
-                <p className="text-xs text-green-600 mt-2">
+                <p className="text-xs text-[hsl(var(--color-tertiary-bright))] mt-2">
                   ✅ Customers will choose from {newProduct.walletAddresses.length} payment options
                 </p>
               )}
@@ -708,10 +710,8 @@ export function ProductsPage() {
               {/* Warning if no wallet */}
               {!showPaymentLinkDialog.walletAddress &&
                 (!showPaymentLinkDialog.walletAddresses || showPaymentLinkDialog.walletAddresses.length === 0) && (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                    <p className="text-sm text-amber-600 dark:text-amber-400 font-medium mb-2">
-                      ⚠️ No receiving wallet set
-                    </p>
+                  <div className="p-3 bg-[hsl(var(--color-gold)/0.1)] border border-[hsl(var(--color-gold)/0.2)] rounded-lg">
+                    <p className="text-sm text-[hsl(var(--color-gold))] font-medium mb-2">⚠️ No receiving wallet set</p>
                     <div className="flex gap-2">
                       <Input
                         placeholder="Enter wallet address..."
@@ -763,7 +763,7 @@ export function ProductsPage() {
 
               {/* Show wallet addresses */}
               {((showPaymentLinkDialog.walletAddresses?.length || 0) > 0 || showPaymentLinkDialog.walletAddress) && (
-                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                <div className="p-3 bg-[hsl(var(--color-tertiary-bright)/0.1)] border border-[hsl(var(--color-tertiary-bright)/0.2)] rounded-lg">
                   <p className="text-xs text-muted-foreground mb-2">
                     {(showPaymentLinkDialog.walletAddresses?.length || 1) > 1
                       ? `Customers can pay to ${showPaymentLinkDialog.walletAddresses?.length} wallets:`
@@ -1087,10 +1087,12 @@ export function ProductsPage() {
 
                 {(!showEditDialog.walletAddresses || showEditDialog.walletAddresses.length === 0) &&
                   !showEditDialog.walletAddress && (
-                    <p className="text-xs text-amber-500 mt-2">⚠️ No wallet set - payments won't have a destination</p>
+                    <p className="text-xs text-[hsl(var(--color-gold))] mt-2">
+                      ⚠️ No wallet set - payments won't have a destination
+                    </p>
                   )}
                 {(showEditDialog.walletAddresses?.length || 0) > 1 && (
-                  <p className="text-xs text-green-600 mt-2">
+                  <p className="text-xs text-[hsl(var(--color-tertiary-bright))] mt-2">
                     ✅ Customers will choose from {showEditDialog.walletAddresses?.length} payment options
                   </p>
                 )}

@@ -1,5 +1,5 @@
 /**
- * Pay Unit v1 — Sui-native USDC commerce.
+ * Pay Actor v1 — Sui-native USDC commerce.
  *
  * Handlers:
  *   pay:initiate  — buyer creates escrow on Sui (locks USDC)
@@ -39,8 +39,8 @@ export function registerPayUnit(net: World): void {
 
       if (!skillId || !buyerUid || !sellerUid || !amount) return null
 
-      const buyerUnitId = `unit:${buyerUid}`
-      const sellerUnitId = `unit:${sellerUid}`
+      const buyerUnitId = `actor:${buyerUid}`
+      const sellerUnitId = `actor:${sellerUid}`
       const resolvedPathId = pathId ?? `path:${buyerUid}:${sellerUid}`
 
       try {
@@ -73,7 +73,7 @@ export function registerPayUnit(net: World): void {
 
       if (!escrowId || !sellerUid) return null
 
-      const sellerUnitId = `unit:${sellerUid}`
+      const sellerUnitId = `actor:${sellerUid}`
       const resolvedPathId = pathId ?? `path:${buyerUid ?? 'buyer'}:${sellerUid}`
 
       try {

@@ -28,7 +28,7 @@ status: PROPOSED
 > [dsl.md](dsl.md) — the signal grammar,
 > [dictionary.md](dictionary.md) — everything named,
 > [rubrics.md](rubrics.md) — quality scoring (fit/form/truth/taste → mark),
-> [auth.md](auth.md) — identity, API keys, wallet derivation,
+> [auth.md](one-ie/dev.one.ie/one/auth.md) — identity, API keys, wallet derivation,
 > [one-ontology.md](one-ontology.md) — the 6 dimensions,
 > [routing.md](routing.md) — deterministic sandwich + bridge behavior,
 > [loop-close.md](loop-close.md) — verify → signal → propagate protocol.
@@ -197,7 +197,7 @@ Every cycle closes when:
 **[dictionary.md](dictionary.md)** — canonical names: `group`, `membership`, `hierarchy`, `role`, `scope`.
 **[one-ontology.md](one-ontology.md)** — group is dimension 1; actors are dimension 2; membership joins them.
 **[rubrics.md](rubrics.md)** — quality scoring: fit/form/truth/taste as tagged edges.
-**[auth.md](auth.md)** — `deriveHumanUid`, `ensureHumanUnit`, `getRoleForUser`, API key flow.
+**[auth.md](one-ie/dev.one.ie/one/auth.md)** — `deriveHumanUid`, `ensureHumanUnit`, `getRoleForUser`, API key flow.
 **[routing.md](routing.md)** — deterministic sandwich (toxic → capable → execute), bridge paths.
 **[loop-close.md](loop-close.md)** — `/close` emits `do:close`, appends `one/learnings.md`.
 
@@ -724,7 +724,7 @@ To convert cycle deliverables to substrate tasks: each Wave 3 job becomes a
 - [dsl.md](dsl.md) — signal grammar (always loaded in W2)
 - [dictionary.md](dictionary.md) — canonical names (always loaded in W2)
 - [rubrics.md](rubrics.md) — quality scoring: fit/form/truth/taste as tagged edges
-- [auth.md](auth.md) — identity, API keys, `getRoleForUser`, session cache
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — identity, API keys, `getRoleForUser`, session cache
 - [one-ontology.md](one-ontology.md) — the 6 dimensions
 - [routing.md](routing.md) — deterministic sandwich + bridge behavior
 - [loop-close.md](loop-close.md) — close protocol

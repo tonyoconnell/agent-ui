@@ -156,8 +156,8 @@ describe('toTypeDB()', () => {
   it('should generate insert for minimal ADL', () => {
     const queries = toTypeDB(minimalAdl)
     expect(queries.length).toBeGreaterThan(0)
-    expect(queries[0]).toContain('insert $u isa unit')
-    expect(queries[0]).toContain('has uid')
+    expect(queries[0]).toContain('insert $u isa actor')
+    expect(queries[0]).toContain('has aid')
     expect(queries[0]).toContain('has name')
   })
 
@@ -196,7 +196,7 @@ describe('toTypeDB()', () => {
 
   it('should generate skill inserts for tools', () => {
     const queries = toTypeDB(fullAdl)
-    // Unit insert + 2 skill inserts + 2 capability relations = 5 queries
+    // Actor insert + 2 skill inserts + 2 capability relations = 5 queries
     expect(queries.length).toBeGreaterThanOrEqual(5)
     expect(queries.some((q) => q.includes('isa skill'))).toBe(true)
     expect(queries.some((q) => q.includes('isa capability'))).toBe(true)
@@ -280,7 +280,7 @@ describe('edge cases', () => {
       capabilities: { tools: [] },
     }
     const queries = toTypeDB(adl)
-    // Only unit insert, no skill inserts
+    // Only actor insert, no skill inserts
     expect(queries.length).toBe(1)
   })
 
@@ -293,7 +293,7 @@ describe('edge cases', () => {
     }
     const queries = toTypeDB(adl)
     // Should not crash
-    expect(queries[0]).toContain('isa unit')
+    expect(queries[0]).toContain('isa actor')
   })
 
   it('should handle special characters in names', () => {

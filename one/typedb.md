@@ -328,14 +328,14 @@ fun highways(threshold: double = 10.0, min_traversals: integer = 50) -> { path }
     return { $e };
 
 # Single best route from unit to skill
-fun optimal_route($from: unit, $skill: skill) -> unit:
+fun optimal_route($from: unit, $skill: skill) -> actor:
     match (source: $from, target: $to) isa path, has strength $s;
           (provider: $to, offered: $skill) isa capability;
     sort $s desc; limit 1;
     return $to;
 
 # Lowest price with capability
-fun cheapest_provider($skill: skill) -> unit:
+fun cheapest_provider($skill: skill) -> actor:
     match (provider: $u, offered: $skill) isa capability, has price $p;
     sort $p asc; limit 1;
     return $u;
@@ -355,25 +355,25 @@ fun suggest_route($from: unit, $skill: skill) -> { uid, strength }:
 ## Actor & Skill Functions
 
 ```typeql
-fun proven_units() -> { unit }:
+fun proven_actors() -> { actor }:
     match $u isa unit, has status "proven";
     return { $u };
 
-fun at_risk_units() -> { unit }:
+fun at_risk_actors() -> { actor }:
     match $u isa unit, has status "at-risk";
     return { $u };
 
-fun units_by_kind($kind: string) -> { unit }:
+fun actors_by_kind($kind: string) -> { actor }:
     match $u isa unit, has unit-kind $kind, has status "active";
     return { $u };
 
-fun collaborators($me: unit) -> { unit }:
+fun collaborators($me: unit) -> { actor }:
     match (member: $me, group: $g) isa membership;
           (member: $peer, group: $g) isa membership;
           not { $me is $peer; };
     return { $peer };
 
-fun group_members($group_name: string) -> { unit }:
+fun group_members($group_name: string) -> { actor }:
     match $grp isa group, has name $group_name;
           (group: $grp, member: $u) isa membership;
     return { $u };
@@ -386,7 +386,7 @@ fun priced_skills($tag: string) -> { skill }:
     match $s isa skill, has tag $tag, has price $p; $p > 0.0;
     return { $s };
 
-fun units_by_tag($tag: string) -> { unit }:
+fun actors_by_tag($tag: string) -> { actor }:
     match $u isa unit, has tag $tag;
     return { $u };
 ```

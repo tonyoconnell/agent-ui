@@ -58,8 +58,9 @@ function SpeedJourneyContent() {
     <div className="space-y-8">
       {/* Skin switcher */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-xs text-slate-500">
-          Same mechanics. Different metaphor. Current lens: <span className="text-slate-400 font-mono">{skinId}</span>
+        <p className="text-xs text-muted-foreground">
+          Same mechanics. Different metaphor. Current lens:{' '}
+          <span className="text-muted-foreground font-mono">{skinId}</span>
         </p>
         <SkinSwitcher variant="compact" />
       </div>
@@ -74,7 +75,7 @@ function SpeedJourneyContent() {
 
       {/* 9 stops — detailed panels for each step of the journey */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-200">The 9 Stops</h2>
+        <h2 className="text-lg font-semibold text-foreground">The 9 Stops</h2>
 
         {/* Outbound */}
         <Stop
@@ -197,16 +198,17 @@ function SpeedJourneyContent() {
       </div>
 
       {/* Outro */}
-      <div className="rounded-lg bg-[#161622] border border-[#252538] p-5 space-y-3">
-        <h2 className="text-lg font-medium text-slate-100">Now run it yourself</h2>
+      <div className="rounded-lg bg-card border border-border p-5 space-y-3">
+        <h2 className="text-lg font-medium text-font">Now run it yourself</h2>
         <div className="space-y-3">
           <RunItBlock command="bun vitest run routing.test.ts" description="Run the routing benchmarks:" />
           <RunItBlock command="curl https://api.one.ie/health" description="Check the gateway:" />
           <RunItBlock command="curl https://dev.one.ie/api/export/highways" description="See live proven paths:" />
         </div>
         {lastMs !== null && (
-          <p className="text-sm text-slate-400">
-            Your last signal completed in <span className="text-cyan-400 font-mono">{lastMs.toFixed(1)}ms</span>.
+          <p className="text-sm text-muted-foreground">
+            Your last signal completed in{' '}
+            <span className="text-[hsl(var(--color-primary-bright))] font-mono">{lastMs.toFixed(1)}ms</span>.
           </p>
         )}
       </div>

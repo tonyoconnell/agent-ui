@@ -1,12 +1,12 @@
 /**
  * AGENT — Build powerful agents in five lines
  *
- * Thin builder over unit. skill() + pipe() + memory() + tools() + evolve().
+ * Thin builder over actor. skill() + pipe() + memory() + tools() + evolve().
  * The substrate does the rest.
  */
 
 import { writeSilent } from '@/lib/typedb'
-import type { Emit, Unit, World } from './world'
+import type { Actor, Emit, World } from './world'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -30,7 +30,7 @@ export interface Agent {
   tools: (t: Record<string, Tool>) => Agent
   price: (skill: string, amount: number, currency?: string) => Agent
   evolve: (opts?: { system?: string }) => Agent
-  unit: Unit
+  actor: Actor
   id: string
 }
 
@@ -76,7 +76,7 @@ export const agent = (id: string, net: World): Agent => {
         insert $sk isa skill, has skill-id "${skill}", has tag "${id}";
       `).catch(() => {})
       writeSilent(`
-        match $u isa unit, has uid "${id}"; $sk isa skill, has skill-id "${skill}";
+        match $u isa actor, has aid "${id}"; $sk isa skill, has skill-id "${skill}";
         insert (provider: $u, offered: $sk) isa capability, has price ${amount};
       `).catch(() => {})
       return a
@@ -85,12 +85,12 @@ export const agent = (id: string, net: World): Agent => {
     evolve: (opts) => {
       const system = opts?.system || `You are agent "${id}". Do your tasks well.`
       writeSilent(`
-        match $u isa unit, has uid "${id}";
+        match $u isa actor, has aid "${id}";
         delete has system-prompt of $u;
         insert $u has system-prompt "${system.replace(/"/g, '\\"')}";
       `).catch(() =>
         writeSilent(`
-          insert $u isa unit, has uid "${id}", has unit-kind "agent", has status "active",
+          insert $u isa actor, has aid "${id}", has actor-type "agent", has status "active",
             has system-prompt "${system.replace(/"/g, '\\"')}",
             has success-rate 0.5, has activity-score 0.0, has sample-count 0,
             has reputation 0.0, has balance 0.0, has generation 0;
@@ -99,7 +99,7 @@ export const agent = (id: string, net: World): Agent => {
       return a
     },
 
-    unit: u,
+    actor: u,
     id,
   }
 

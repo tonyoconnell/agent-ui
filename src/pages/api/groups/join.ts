@@ -30,12 +30,12 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Idempotent join
     const existing = await readParsed(`
-      match $g isa group, has gid "${esc(gid)}"; $u isa unit, has uid "${esc(ctx.user)}";
+      match $g isa group, has gid "${esc(gid)}"; $u isa actor, has aid "${esc(ctx.user)}";
       (group: $g, member: $u) isa membership; select $g;
     `)
     if (existing.length > 0) return Response.json({ ok: true, role: 'member', already: true })
 
-    writeSilent(`match $g isa group, has gid "${esc(gid)}"; $u isa unit, has uid "${esc(ctx.user)}";
+    writeSilent(`match $g isa group, has gid "${esc(gid)}"; $u isa actor, has aid "${esc(ctx.user)}";
       insert (group: $g, member: $u) isa membership, has member-role "member";`)
 
     return Response.json({ ok: true, gid, role: 'member' })

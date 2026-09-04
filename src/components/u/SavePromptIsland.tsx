@@ -43,7 +43,7 @@ export function SavePromptIsland() {
     <>
       <SavePrompt onSave={handleSave} onDismiss={handleDismiss} isDismissable={true} />
       {error && (
-        <p role="alert" className="mt-3 text-center text-xs text-red-400">
+        <p role="alert" className="mt-3 text-center text-xs text-[hsl(var(--color-destructive))]">
           {error}
         </p>
       )}

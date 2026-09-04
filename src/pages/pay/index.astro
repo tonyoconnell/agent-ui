@@ -13,7 +13,7 @@ export const prerender = false
 >
   <ReferenceBanner endpoint="POST /api/pay/stripe/create-intent, /api/sui/escrow/*" note="Drop into your checkout — Stripe + Sui rails, one SDK call" />
 
-  <main class="min-h-screen bg-[#0a0a0f] text-slate-100">
+  <main class="min-h-screen bg-background text-foreground">
     <PayShowcaseHeader client:only="react" />
     <PayLiveDemo client:only="react" />
     <PayShowcaseFooter client:only="react" />

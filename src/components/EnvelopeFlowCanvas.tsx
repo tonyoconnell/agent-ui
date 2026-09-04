@@ -44,7 +44,11 @@ interface EnvelopeInput {
 // Status dot
 const Dot = ({ status, pulse }: { status: string; pulse?: boolean }) => {
   const color =
-    { pending: 'bg-amber-400', resolved: 'bg-emerald-400', rejected: 'bg-red-400' }[status] || 'bg-slate-400'
+    {
+      pending: 'bg-[hsl(var(--color-gold))]',
+      resolved: 'bg-[hsl(var(--color-tertiary-bright))]',
+      rejected: 'bg-[hsl(var(--color-destructive))]',
+    }[status] || 'bg-muted-foreground'
   return (
     <span className="relative flex h-2 w-2">
       {pulse && <span className={cn('animate-ping absolute inset-0 rounded-full opacity-75', color)} />}
@@ -60,9 +64,9 @@ const Json = ({ data, variant, highlight }: { data: unknown; variant?: 'success'
       'font-mono text-[11px] p-3 rounded-xl border transition-all',
       highlight
         ? variant === 'success'
-          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-          : 'bg-blue-500/20 border-blue-500/40 text-blue-300'
-        : 'bg-black/30 border-white/5 text-slate-400',
+          ? 'bg-tertiary-bright/20 border-tertiary-bright/40 text-tertiary-bright'
+          : 'bg-primary-bright/20 border-primary-bright/40 text-primary-bright'
+        : 'bg-black/30 border-white/5 text-muted-foreground',
     )}
   >
     <pre className="whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>
@@ -75,61 +79,61 @@ const EnvelopeNode = ({ data }: NodeProps<Node<EnvelopeData>>) => {
   return (
     <div
       className={cn(
-        'bg-[#161622] rounded-2xl p-6 w-[280px] min-h-[400px] border transition-all',
-        data.isActive ? 'border-blue-500/50 shadow-lg shadow-blue-500/10' : 'border-[#252538]',
+        'bg-card rounded-2xl p-6 w-[280px] min-h-[400px] border transition-all',
+        data.isActive ? 'border-primary/50 shadow-lg shadow-primary/10' : 'border-border',
       )}
     >
       {!isIn && (
         <Handle
           type="target"
           position={Position.Left}
-          className="!bg-blue-400 !w-3 !h-3 !border-[3px] !border-[#161622] !-left-1.5"
+          className="!bg-primary !w-3 !h-3 !border-[3px] !border-card !-left-1.5"
         />
       )}
       {isIn && (
         <Handle
           type="source"
           position={Position.Right}
-          className="!bg-blue-400 !w-3 !h-3 !border-[3px] !border-[#161622] !-right-1.5"
+          className="!bg-primary !w-3 !h-3 !border-[3px] !border-card !-right-1.5"
         />
       )}
 
       <div className="flex justify-between mb-6">
-        <span className="text-xs text-slate-500 uppercase">{isIn ? 'Envelope' : 'Callback'}</span>
+        <span className="text-xs text-muted-foreground uppercase">{isIn ? 'Envelope' : 'Callback'}</span>
         <div className="flex items-center gap-2">
           <Dot status={data.status} pulse={data.isActive} />
-          <span className="text-xs text-slate-500">{data.status}</span>
+          <span className="text-xs text-muted-foreground">{data.status}</span>
         </div>
       </div>
 
       <div className="space-y-4">
         <div>
-          <div className="text-slate-500 text-xs mb-1">ID</div>
-          <code className="text-slate-300 font-mono text-sm">{data.id || '—'}</code>
+          <div className="text-muted-foreground text-xs mb-1">ID</div>
+          <code className="text-foreground font-mono text-sm">{data.id || '—'}</code>
         </div>
         <div>
-          <div className="text-slate-500 text-xs mb-1">Action</div>
-          <div className={cn('text-xl font-semibold', data.isActive ? 'text-white' : 'text-slate-300')}>
+          <div className="text-muted-foreground text-xs mb-1">Action</div>
+          <div className={cn('text-xl font-semibold', data.isActive ? 'text-white' : 'text-foreground')}>
             {data.action}
           </div>
         </div>
         <div>
-          <div className="text-slate-500 text-xs mb-1">Inputs</div>
+          <div className="text-muted-foreground text-xs mb-1">Inputs</div>
           <Json data={data.inputs} highlight={data.highlight === 'inputs'} />
         </div>
         {data.results && (
           <div>
-            <div className="text-slate-500 text-xs mb-1">Results</div>
+            <div className="text-muted-foreground text-xs mb-1">Results</div>
             <Json data={data.results} variant="success" highlight={data.highlight === 'results'} />
           </div>
         )}
         {isIn && data.chainsTo && (
-          <div className="pt-4 border-t border-[#252538]">
-            <div className="text-slate-500 text-xs mb-1">Chains to</div>
+          <div className="pt-4 border-t border-border">
+            <div className="text-muted-foreground text-xs mb-1">Chains to</div>
             <div className="font-mono text-sm">
-              <span className="text-blue-400">{data.chainsTo.action}</span>
-              <span className="text-slate-600"> → </span>
-              <span className="text-slate-500">{data.chainsTo.receiver}</span>
+              <span className="text-primary-bright">{data.chainsTo.action}</span>
+              <span className="text-muted-foreground"> → </span>
+              <span className="text-muted-foreground">{data.chainsTo.receiver}</span>
             </div>
           </div>
         )}
@@ -151,29 +155,29 @@ const LogicNode = ({ data }: NodeProps<Node<LogicData>>) => {
   ]
 
   return (
-    <div className="bg-[#161622] rounded-2xl p-6 w-[320px] min-h-[400px] border border-[#252538]">
+    <div className="bg-card rounded-2xl p-6 w-[320px] min-h-[400px] border border-border">
       <Handle
         type="target"
         position={Position.Left}
-        className="!bg-blue-400 !w-3 !h-3 !border-[3px] !border-[#161622] !-left-1.5"
+        className="!bg-primary !w-3 !h-3 !border-[3px] !border-card !-left-1.5"
       />
       <Handle
         type="source"
         position={Position.Right}
-        className="!bg-blue-400 !w-3 !h-3 !border-[3px] !border-[#161622] !-right-1.5"
+        className="!bg-primary !w-3 !h-3 !border-[3px] !border-card !-right-1.5"
       />
 
       <div className="mb-6">
-        <span className="text-xs text-slate-500 uppercase">Logic</span>
+        <span className="text-xs text-muted-foreground uppercase">Logic</span>
       </div>
 
       <div className="space-y-1 font-mono text-sm">
         {steps.map((code, i) => (
           <div
             key={i}
-            className={cn('py-1 px-2 rounded', data.step === i && 'bg-blue-500/10 border-l-2 border-blue-500')}
+            className={cn('py-1 px-2 rounded', data.step === i && 'bg-primary/10 border-l-2 border-primary')}
           >
-            <span className={data.step === i ? 'text-white' : 'text-slate-400'}>{code}</span>
+            <span className={data.step === i ? 'text-white' : 'text-muted-foreground'}>{code}</span>
           </div>
         ))}
       </div>
@@ -184,8 +188,8 @@ const LogicNode = ({ data }: NodeProps<Node<LogicData>>) => {
 const nodeTypes = { envelope: EnvelopeNode, logic: LogicNode }
 
 const edges: Edge[] = [
-  { id: 'e1', source: 'envelope', target: 'logic', style: { stroke: '#60a5fa', strokeWidth: 2 } },
-  { id: 'e2', source: 'logic', target: 'callback', style: { stroke: '#60a5fa', strokeWidth: 2 } },
+  { id: 'e1', source: 'envelope', target: 'logic', style: { stroke: 'hsl(var(--color-primary))', strokeWidth: 2 } },
+  { id: 'e2', source: 'logic', target: 'callback', style: { stroke: 'hsl(var(--color-primary))', strokeWidth: 2 } },
 ]
 
 function buildNodes(env: EnvelopeInput | null): Node[] {
@@ -292,7 +296,7 @@ export function EnvelopeFlowCanvas({ envelope = null }: { envelope?: EnvelopeInp
   }, [envelope, animate]) // eslint-disable-line
 
   return (
-    <div className="h-full w-full bg-[#0f0f17]">
+    <div className="h-full w-full bg-card">
       <ReactFlow
         nodes={nodes}
         edges={edgeState}
@@ -307,7 +311,7 @@ export function EnvelopeFlowCanvas({ envelope = null }: { envelope?: EnvelopeInp
         panOnDrag
         zoomOnScroll
       >
-        <Background color="#1e293b" gap={40} size={1} />
+        <Background color="hsl(var(--color-border))" gap={40} size={1} />
       </ReactFlow>
     </div>
   )

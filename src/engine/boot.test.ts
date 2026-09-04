@@ -3,7 +3,7 @@
  *
  * Tests the boot sequence:
  *   1. load() — hydrate pheromone from TypeDB
- *   2. readParsed() — load units and add them to the world
+ *   2. readParsed() — load actors and add them to the world
  *   3. wireChairmanChain(), registerBridges(), registerPayUnit() — wiring
  *   4. tick() — starts the loop
  *
@@ -42,7 +42,7 @@ vi.mock('./agentverse-connect', () => ({
   connectAgentverse: vi.fn().mockResolvedValue(null),
 }))
 
-// Bridge units — wire-only, no return value needed
+// Bridge actors — wire-only, no return value needed
 vi.mock('./bridges', () => ({
   registerBridges: vi.fn(),
 }))
@@ -75,7 +75,7 @@ vi.mock('./loop', () => ({
   }),
 }))
 
-// Pay unit — Sui commerce
+// Pay actor — Sui commerce
 vi.mock('./pay', () => ({
   registerPayUnit: vi.fn(),
 }))
@@ -130,7 +130,7 @@ describe('Act 1: boot() — returns world + control API', () => {
     expect(typeof result.stop).toBe('function')
   })
 
-  it('world is a PersistentWorld with unit management', async () => {
+  it('world is a PersistentWorld with actor management', async () => {
     const result = await boot(undefined, 100_000)
     stopBoot = result.stop
 
@@ -155,10 +155,10 @@ describe('Act 1: boot() — returns world + control API', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ACT 2: Hydration — TypeDB units are loaded and added to the world
+// ACT 2: Hydration — TypeDB actors are loaded and added to the world
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('Act 2: Hydration — load units from TypeDB', () => {
+describe('Act 2: Hydration — load actors from TypeDB', () => {
   let stopBoot: (() => Promise<void>) | null = null
 
   afterEach(async () => {
@@ -170,18 +170,18 @@ describe('Act 2: Hydration — load units from TypeDB', () => {
     await new Promise((r) => setTimeout(r, 10))
   })
 
-  it('readParsed is called during boot to load units', async () => {
+  it('readParsed is called during boot to load actors', async () => {
     vi.mocked(readParsed).mockResolvedValue([])
 
     const result = await boot(undefined, 100_000)
     stopBoot = result.stop
 
-    // readParsed should have been called at least once (for unit loading)
+    // readParsed should have been called at least once (for actor loading)
     expect(vi.mocked(readParsed)).toHaveBeenCalled()
   })
 
-  it('units from TypeDB are added to the world in the correct order', async () => {
-    // Return two units from the "mock TypeDB"
+  it('actors from TypeDB are added to the world in the correct order', async () => {
+    // Return two actors from the "mock TypeDB"
     vi.mocked(readParsed).mockResolvedValueOnce([
       { id: 'marketing-director', kind: 'director' },
       { id: 'marketing-seo', kind: 'specialist' },
@@ -190,15 +190,15 @@ describe('Act 2: Hydration — load units from TypeDB', () => {
     const result = await boot(undefined, 100_000)
     stopBoot = result.stop
 
-    // Units were loaded — world should be able to handle signals to them
+    // Actors were loaded — world should be able to handle signals to them
     // (They might have been added by wireChairmanChain since we mock it,
     //  but the readParsed call verifies hydration attempt happened)
     expect(vi.mocked(readParsed)).toHaveBeenCalled()
     const callArgs = vi.mocked(readParsed).mock.calls[0]?.[0] as string
-    expect(callArgs).toMatch(/unit.*uid|uid.*unit/)
+    expect(callArgs).toMatch(/actor.*aid|aid.*actor/)
   })
 
-  it('empty TypeDB (no units) does not crash boot', async () => {
+  it('empty TypeDB (no actors) does not crash boot', async () => {
     vi.mocked(readParsed).mockResolvedValue([])
 
     await expect(boot(undefined, 100_000)).resolves.toBeDefined()
@@ -207,7 +207,7 @@ describe('Act 2: Hydration — load units from TypeDB', () => {
 })
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ACT 3: Wiring — chairman chain, bridges, pay unit are registered
+// ACT 3: Wiring — chairman chain, bridges, pay actor are registered
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Act 3: Wiring — chain + bridges + pay registered after hydration', () => {
@@ -277,13 +277,13 @@ describe('Act 3: Wiring — chain + bridges + pay registered after hydration', (
 })
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ACT 4: loop:feedback unit is registered
+// ACT 4: loop:feedback actor is registered
 //
-// boot.ts registers a 'loop' unit with a 'feedback' handler.
+// boot.ts registers a 'loop' actor with a 'feedback' handler.
 // This handler deposits pheromone on tag paths proportional to rubric score.
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('Act 4: loop:feedback unit wired by boot', () => {
+describe('Act 4: loop:feedback actor wired by boot', () => {
   let stopBoot: (() => Promise<void>) | null = null
 
   beforeEach(() => {
@@ -299,7 +299,7 @@ describe('Act 4: loop:feedback unit wired by boot', () => {
     await new Promise((r) => setTimeout(r, 10))
   })
 
-  it('loop unit is present in the world after boot', async () => {
+  it('loop actor is present in the world after boot', async () => {
     const result = await boot(undefined, 100_000)
     stopBoot = result.stop
 

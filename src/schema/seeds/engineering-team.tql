@@ -4,7 +4,7 @@
 #
 # No new schema. world.tql already has everything.
 #
-#   role        = unit (unit-kind: "human" or "agent")
+#   role        = unit (actor-type: "human" or "agent")
 #   handoff     = signal (sender → receiver, data)
 #   trust       = path (strength = how often this handoff works)
 #   workflow    = trail (task→task pheromone)
@@ -40,10 +40,10 @@ insert $team isa group,
 insert
 
 # Product Owner — translates stakeholder need into stories
-$po isa unit,
-    has uid "po-sarah",
+$po isa actor,
+    has aid "po-sarah",
     has name "Sarah",
-    has unit-kind "human",
+    has actor-type "human",
     has status "active",
     has balance 0.0,
     has reputation 0.0,
@@ -53,10 +53,10 @@ $po isa unit,
     has created 2026-03-01T09:00:00;
 
 # Scrum Master — routes blockers, never routes work
-$sm isa unit,
-    has uid "sm-david",
+$sm isa actor,
+    has aid "sm-david",
     has name "David",
-    has unit-kind "human",
+    has actor-type "human",
     has status "active",
     has balance 0.0,
     has reputation 0.0,
@@ -66,10 +66,10 @@ $sm isa unit,
     has created 2026-03-01T09:00:00;
 
 # Developer
-$dev isa unit,
-    has uid "dev-kai",
+$dev isa actor,
+    has aid "dev-kai",
     has name "Kai",
-    has unit-kind "human",
+    has actor-type "human",
     has status "active",
     has balance 0.0,
     has reputation 0.0,
@@ -79,10 +79,10 @@ $dev isa unit,
     has created 2026-03-01T09:00:00;
 
 # QA Tester
-$qa isa unit,
-    has uid "qa-mei",
+$qa isa actor,
+    has aid "qa-mei",
     has name "Mei",
-    has unit-kind "human",
+    has actor-type "human",
     has status "active",
     has balance 0.0,
     has reputation 0.0,
@@ -92,10 +92,10 @@ $qa isa unit,
     has created 2026-03-01T09:00:00;
 
 # DevOps
-$ops isa unit,
-    has uid "ops-alex",
+$ops isa actor,
+    has aid "ops-alex",
     has name "Alex",
-    has unit-kind "human",
+    has actor-type "human",
     has status "active",
     has balance 0.0,
     has reputation 0.0,
@@ -105,10 +105,10 @@ $ops isa unit,
     has created 2026-03-01T09:00:00;
 
 # Architect
-$arch isa unit,
-    has uid "arch-ravi",
+$arch isa actor,
+    has aid "arch-ravi",
     has name "Ravi",
-    has unit-kind "human",
+    has actor-type "human",
     has status "active",
     has balance 0.0,
     has reputation 0.0,
@@ -118,10 +118,10 @@ $arch isa unit,
     has created 2026-03-01T09:00:00;
 
 # Stakeholder
-$stake isa unit,
-    has uid "stake-ceo",
+$stake isa actor,
+    has aid "stake-ceo",
     has name "CEO",
-    has unit-kind "human",
+    has actor-type "human",
     has status "active",
     has balance 0.0,
     has reputation 0.0,
@@ -131,10 +131,10 @@ $stake isa unit,
     has created 2026-03-01T09:00:00;
 
 # Claude Code — the AI unit in the colony
-$claude isa unit,
-    has uid "claude-code",
+$claude isa actor,
+    has aid "claude-code",
     has name "Claude",
-    has unit-kind "agent",
+    has actor-type "agent",
     has model "opus",
     has status "active",
     has balance 0.0,
@@ -151,14 +151,14 @@ $claude isa unit,
 
 match
     $team isa group, has gid "eng-alpha";
-    $po isa unit, has uid "po-sarah";
-    $sm isa unit, has uid "sm-david";
-    $dev isa unit, has uid "dev-kai";
-    $qa isa unit, has uid "qa-mei";
-    $ops isa unit, has uid "ops-alex";
-    $arch isa unit, has uid "arch-ravi";
-    $stake isa unit, has uid "stake-ceo";
-    $claude isa unit, has uid "claude-code";
+    $po isa actor, has aid "po-sarah";
+    $sm isa actor, has aid "sm-david";
+    $dev isa actor, has aid "dev-kai";
+    $qa isa actor, has aid "qa-mei";
+    $ops isa actor, has aid "ops-alex";
+    $arch isa actor, has aid "arch-ravi";
+    $stake isa actor, has aid "stake-ceo";
+    $claude isa actor, has aid "claude-code";
 insert
     (group: $team, member: $po) isa membership, has joined-at 2026-03-01T09:00:00;
     (group: $team, member: $sm) isa membership, has joined-at 2026-03-01T09:00:00;
@@ -185,14 +185,14 @@ insert
 # =============================================================================
 
 match
-    $po isa unit, has uid "po-sarah";
-    $sm isa unit, has uid "sm-david";
-    $dev isa unit, has uid "dev-kai";
-    $qa isa unit, has uid "qa-mei";
-    $ops isa unit, has uid "ops-alex";
-    $arch isa unit, has uid "arch-ravi";
-    $stake isa unit, has uid "stake-ceo";
-    $claude isa unit, has uid "claude-code";
+    $po isa actor, has aid "po-sarah";
+    $sm isa actor, has aid "sm-david";
+    $dev isa actor, has aid "dev-kai";
+    $qa isa actor, has aid "qa-mei";
+    $ops isa actor, has aid "ops-alex";
+    $arch isa actor, has aid "arch-ravi";
+    $stake isa actor, has aid "stake-ceo";
+    $claude isa actor, has aid "claude-code";
 insert
 
     # ── THE HIGHWAY: stake → po → dev → qa → ops ──
@@ -408,12 +408,12 @@ insert
 # =============================================================================
 
 match
-    $po isa unit, has uid "po-sarah";
-    $dev isa unit, has uid "dev-kai";
-    $qa isa unit, has uid "qa-mei";
-    $ops isa unit, has uid "ops-alex";
-    $arch isa unit, has uid "arch-ravi";
-    $claude isa unit, has uid "claude-code";
+    $po isa actor, has aid "po-sarah";
+    $dev isa actor, has aid "dev-kai";
+    $qa isa actor, has aid "qa-mei";
+    $ops isa actor, has aid "ops-alex";
+    $arch isa actor, has aid "arch-ravi";
+    $claude isa actor, has aid "claude-code";
     $t1 isa task, has tid "ALPHA-101";
     $t2 isa task, has tid "ALPHA-102";
     $t3 isa task, has tid "ALPHA-103";
@@ -441,14 +441,14 @@ insert
 #
 
 match
-    $po isa unit, has uid "po-sarah";
-    $sm isa unit, has uid "sm-david";
-    $dev isa unit, has uid "dev-kai";
-    $qa isa unit, has uid "qa-mei";
-    $ops isa unit, has uid "ops-alex";
-    $arch isa unit, has uid "arch-ravi";
-    $stake isa unit, has uid "stake-ceo";
-    $claude isa unit, has uid "claude-code";
+    $po isa actor, has aid "po-sarah";
+    $sm isa actor, has aid "sm-david";
+    $dev isa actor, has aid "dev-kai";
+    $qa isa actor, has aid "qa-mei";
+    $ops isa actor, has aid "ops-alex";
+    $arch isa actor, has aid "arch-ravi";
+    $stake isa actor, has aid "stake-ceo";
+    $claude isa actor, has aid "claude-code";
 insert
 
     # ── SPRINT PLANNING (ceremony = signal burst) ──
@@ -594,12 +594,12 @@ insert
 # =============================================================================
 
 match
-    $po isa unit, has uid "po-sarah";
-    $dev isa unit, has uid "dev-kai";
-    $qa isa unit, has uid "qa-mei";
-    $ops isa unit, has uid "ops-alex";
-    $arch isa unit, has uid "arch-ravi";
-    $claude isa unit, has uid "claude-code";
+    $po isa actor, has aid "po-sarah";
+    $dev isa actor, has aid "dev-kai";
+    $qa isa actor, has aid "qa-mei";
+    $ops isa actor, has aid "ops-alex";
+    $arch isa actor, has aid "arch-ravi";
+    $claude isa actor, has aid "claude-code";
     $t_build isa task, has tid "ALPHA-103";
     $t_test isa task, has tid "ALPHA-104";
     $t_deploy isa task, has tid "ALPHA-105";
@@ -635,7 +635,7 @@ insert
 #
 #   -- How does Claude fit?
 #   match $sig (sender: $from, receiver: $claude) isa signal;
-#         $claude has uid "claude-code";
+#         $claude has aid "claude-code";
 #         $from has name $fn;
 #         $sig has data $d;
 #   select $fn, $d;
@@ -648,7 +648,7 @@ insert
 #   -- Scrum master = circuit breaker?
 #   match $p isa path, has traversals $t;
 #         $p links (source: $sm, target: $any);
-#         $sm has uid "sm-david";
+#         $sm has aid "sm-david";
 #         $any has name $n;
 #   select $n, $t; sort $t desc;
 #

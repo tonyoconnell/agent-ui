@@ -84,12 +84,13 @@ export interface PersistentWorld extends World {
   taskBlockers: (taskId: string) => Promise<{ id: string; name: string }[]>
   span: () => Promise<number>
   context: (keys: (DocKey | string)[]) => string
-  capable: (unitId: string, skillId: string, price?: number) => Promise<void>
+  capable: (actorId: string, skillId: string, price?: number) => Promise<void>
   canDeclareCapability: (uid: string) => Promise<boolean>
   canBeDiscovered: (uid: string) => Promise<boolean>
   selfCheckoff: (taskId: string) => Promise<void>
-  subscribe: (unitId: string, tags: string[]) => void
-  tasksFor: (unitId: string) => Promise<TaskMatch[]>
+  subscribe: (actorId: string, tags: string[]) => void
+  subscribeTopic: (actorId: string, topic: string) => void
+  tasksFor: (actorId: string) => Promise<TaskMatch[]>
   dissolve: (
     uid: string,
     opts?: { reason?: string },
@@ -109,7 +110,7 @@ export interface PersistentWorld extends World {
       threshold?: number
       /** Override: skip rubric gate, pass true/false directly (legacy path) */
       success?: boolean
-      /** Escrow amount in base units; used to compute the 2% fee audit signal */
+      /** Escrow amount in base actors; used to compute the 2% fee audit signal */
       escrowAmount?: number
     },
   ) => void
@@ -149,7 +150,7 @@ export const world = (): PersistentWorld => {
       relayToGateway(markMsg) // reach production WS clients via Gateway
     }
     writeSilent(`
-      match $from isa unit, has uid "${from.trim()}"; $to isa unit, has uid "${to.trim()}";
+      match $from isa actor, has aid "${from.trim()}"; $to isa actor, has aid "${to.trim()}";
       $e (source: $from, target: $to) isa path, has strength $s, has traversals $t;
       delete $s of $e; delete $t of $e;
       insert $e has strength ($s + ${strength}), has traversals ($t + 1);
@@ -184,7 +185,7 @@ export const world = (): PersistentWorld => {
       relayToGateway(warnMsg) // reach production WS clients via Gateway
     }
     writeSilent(`
-      match $from isa unit, has uid "${from.trim()}"; $to isa unit, has uid "${to.trim()}";
+      match $from isa actor, has aid "${from.trim()}"; $to isa actor, has aid "${to.trim()}";
       $e (source: $from, target: $to) isa path, has resistance $a;
       delete $a of $e; insert $e has resistance ($a + ${strength});
     `)
@@ -250,7 +251,7 @@ export const world = (): PersistentWorld => {
     const uid = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
     const data = s.data ? JSON.stringify(s.data).replace(/"/g, '\\"') : ''
     writeSilent(`
-      match $from isa unit, has uid "loop"; $to isa unit, has uid "${uid}";
+      match $from isa actor, has aid "loop"; $to isa actor, has aid "${uid}";
       insert (sender: $from, receiver: $to) isa signal,
         has data "${data}", has amount 0.0, has success false,
         has ts ${new Date().toISOString().replace('Z', '')};
@@ -266,7 +267,7 @@ export const world = (): PersistentWorld => {
     // is fetched separately and defaults to 0 when absent.
     const strengthAnswers = await read(`
       match $e (source: $from, target: $to) isa path, has strength $s;
-      $from has uid $fid; $to has uid $tid; select $fid, $tid, $s;
+      $from has aid $fid; $to has aid $tid; select $fid, $tid, $s;
     `).catch(() => '[]')
     for (const row of parseAnswers(strengthAnswers as unknown[])) {
       const s = row.s as number
@@ -277,7 +278,7 @@ export const world = (): PersistentWorld => {
 
     const resistanceAnswers = await read(`
       match $e (source: $from, target: $to) isa path, has resistance $a;
-      $from has uid $fid; $to has uid $tid; select $fid, $tid, $a;
+      $from has aid $fid; $to has aid $tid; select $fid, $tid, $a;
     `).catch(() => '[]')
     for (const row of parseAnswers(resistanceAnswers as unknown[])) {
       const a = row.a as number
@@ -288,10 +289,26 @@ export const world = (): PersistentWorld => {
 
     const pending = await read(`
       match (sender: $f, receiver: $to) isa signal, has success false, has data $d;
-      $to has uid $tid; select $tid, $d;
+      $to has aid $tid; select $tid, $d;
     `).catch(() => '[]')
     for (const row of parseAnswers(pending as unknown[])) {
       net.enqueue({ receiver: row.tid as string, data: row.d })
+    }
+
+    // Restore actor tags (capability tags + topic subscriptions) into in-memory actors.
+    // Capability tags drive all: routing; sub: tags drive topic fan-out.
+    const tagAnswers = await read(`
+      match $u isa actor, has aid $id, has tag $tag; select $id, $tag;
+    `).catch(() => '[]')
+    const tagsByAid = new Map<string, string[]>()
+    for (const row of parseAnswers(tagAnswers as unknown[])) {
+      const aid = row.id as string
+      const tag = row.tag as string
+      if (!tagsByAid.has(aid)) tagsByAid.set(aid, [])
+      tagsByAid.get(aid)!.push(tag)
+    }
+    for (const [aid, tags] of tagsByAid) {
+      net.get(aid)?.subscribe(tags)
     }
   }
 
@@ -300,7 +317,7 @@ export const world = (): PersistentWorld => {
       const [from, to] = edge.split('→')
       if (!from || !to) continue
       writeSilent(`
-        match $from isa unit, has uid "${from.trim()}"; $to isa unit, has uid "${to.trim()}";
+        match $from isa actor, has aid "${from.trim()}"; $to isa actor, has aid "${to.trim()}";
         not { (source: $from, target: $to) isa path; };
         insert (source: $from, target: $to) isa path,
           has strength ${str}, has resistance ${net.resistance[edge] || 0}, has traversals 0, has revenue 0.0;
@@ -314,7 +331,7 @@ export const world = (): PersistentWorld => {
     if (!id) return net.add(id)
     const uid = opts?.group ? `${opts.group}/${id}` : id
     writeSilent(`
-      insert $u isa unit, has uid "${uid}", has name "${id}", has unit-kind "${kind}", has status "active",
+      insert $u isa actor, has aid "${uid}", has name "${id}", has actor-type "${kind}", has status "active",
         has success-rate 0.5, has activity-score 0.0, has sample-count 0,
         has reputation 0.0, has balance 0.0, has generation 0;
     `).catch(() => {})
@@ -357,9 +374,9 @@ export const world = (): PersistentWorld => {
     const safeTo = to.replace(/[^a-zA-Z0-9_:.-]/g, '')
     try {
       const rows = await readParsed(
-        `match $u isa unit, has uid "${safeUid}";
-         $s isa unit, has uid "${safeFrom}";
-         $t isa unit, has uid "${safeTo}";
+        `match $u isa actor, has aid "${safeUid}";
+         $s isa actor, has aid "${safeFrom}";
+         $t isa actor, has aid "${safeTo}";
          { (sender: $u, receiver: $t) isa signal; } or
          { (sender: $s, receiver: $u) isa signal; };
          select $u; limit 1;`,
@@ -448,7 +465,7 @@ export const world = (): PersistentWorld => {
     const [worldTagRows, actorTagRows] = await Promise.all([
       readParsed(`match $sk isa skill, has tag $t; select $t;`).catch(() => [] as Record<string, unknown>[]),
       readParsed(
-        `match $u isa unit, has uid "${safeUid}"; (source: $u, target: $to) isa path; $to has tag $t; select $t;`,
+        `match $u isa actor, has aid "${safeUid}"; (source: $u, target: $to) isa path; $to has tag $t; select $t;`,
       ).catch(() => [] as Record<string, unknown>[]),
     ])
     const worldTags = new Set(worldTagRows.map((r) => r.t as string))
@@ -460,7 +477,7 @@ export const world = (): PersistentWorld => {
   const reveal = async (uid: string): Promise<MemoryCard> => {
     const safeUid = escapeStr(uid)
     const [unitRows, hypoRows, signalRows, pathRows, groupRows, capRows, frontierTags] = await Promise.all([
-      readParsed(`match $u isa unit, has uid "${safeUid}", has unit-kind $k; select $k;`).catch(
+      readParsed(`match $u isa actor, has aid "${safeUid}", has actor-type $k; select $k;`).catch(
         () => [] as Record<string, unknown>[],
       ),
       readParsed(
@@ -468,20 +485,20 @@ export const world = (): PersistentWorld => {
          $s contains "${safeUid}"; { $st = "confirmed"; } or { $st = "testing"; }; select $s, $n, $st;`,
       ).catch(() => [] as Record<string, unknown>[]),
       readParsed(
-        `match $u isa unit, has uid "${safeUid}";
+        `match $u isa actor, has aid "${safeUid}";
          (sender: $u) isa signal, has data $d, has success $ok; select $d, $ok; limit 200;`,
       ).catch(() => [] as Record<string, unknown>[]),
       readParsed(
-        `match $u isa unit, has uid "${safeUid}";
-         (source: $u, target: $to) isa path, has strength $s; $to has uid $tid;
+        `match $u isa actor, has aid "${safeUid}";
+         (source: $u, target: $to) isa path, has strength $s; $to has aid $tid;
          select $tid, $s; sort $s desc; limit 20;`,
       ).catch(() => [] as Record<string, unknown>[]),
       readParsed(
-        `match $u isa unit, has uid "${safeUid}";
+        `match $u isa actor, has aid "${safeUid}";
          (member: $u, group: $g) isa membership; $g has name $gn; select $gn;`,
       ).catch(() => [] as Record<string, unknown>[]),
       readParsed(
-        `match $u isa unit, has uid "${safeUid}";
+        `match $u isa actor, has aid "${safeUid}";
          (provider: $u, offered: $sk) isa capability, has price $p;
          $sk has skill-id $sid, has name $sn; select $sid, $sn, $p;`,
       ).catch(() => [] as Record<string, unknown>[]),
@@ -520,20 +537,22 @@ export const world = (): PersistentWorld => {
     })
     // Delete relations first (TypeDB requires entity role-players to be removed before entity delete)
     await Promise.allSettled([
-      writeSilent(`match $u isa unit, has uid "${safeUid}"; $sig (sender: $u) isa signal; delete $sig isa signal;`),
-      writeSilent(`match $u isa unit, has uid "${safeUid}"; $p (source: $u) isa path; delete $p isa path;`),
-      writeSilent(`match $u isa unit, has uid "${safeUid}"; $p (target: $u) isa path; delete $p isa path;`),
-      writeSilent(`match $u isa unit, has uid "${safeUid}"; $m (member: $u) isa membership; delete $m isa membership;`),
+      writeSilent(`match $u isa actor, has aid "${safeUid}"; $sig (sender: $u) isa signal; delete $sig isa signal;`),
+      writeSilent(`match $u isa actor, has aid "${safeUid}"; $p (source: $u) isa path; delete $p isa path;`),
+      writeSilent(`match $u isa actor, has aid "${safeUid}"; $p (target: $u) isa path; delete $p isa path;`),
       writeSilent(
-        `match $u isa unit, has uid "${safeUid}"; $cap (provider: $u) isa capability; delete $cap isa capability;`,
+        `match $u isa actor, has aid "${safeUid}"; $m (member: $u) isa membership; delete $m isa membership;`,
+      ),
+      writeSilent(
+        `match $u isa actor, has aid "${safeUid}"; $cap (provider: $u) isa capability; delete $cap isa capability;`,
       ),
     ])
-    await writeSilent(`match $u isa unit, has uid "${safeUid}"; delete $u isa unit;`).catch(() => {})
+    await writeSilent(`match $u isa actor, has aid "${safeUid}"; delete $u isa actor;`).catch(() => {})
     // Cascade personal group
     const escPGid = `group:${safeUid}`.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
     writeSilent(`match $g isa group, has gid "${escPGid}"; $m (group: $g) isa membership; delete $m isa membership;`)
     writeSilent(`match $g isa group, has gid "${escPGid}"; delete $g isa group;`)
-    // In-memory: remove unit from runtime (orphaned paths decay via L3 fade)
+    // In-memory: remove actor from runtime (orphaned paths decay via L3 fade)
     if (net.has(uid)) net.remove(uid)
   }
 
@@ -674,11 +693,11 @@ export const world = (): PersistentWorld => {
     const uid = s.receiver.includes(':') ? s.receiver.split(':')[0] : s.receiver
     if (net.has(uid)) {
       writeSilent(`
-        match $u isa unit, has uid "${uid}", has sample-count $sc;
+        match $u isa actor, has aid "${uid}", has sample-count $sc;
         delete $sc of $u; insert $u has sample-count ($sc + 1);
       `)
       writeSilent(`
-        match $u isa unit, has uid "${uid}";
+        match $u isa actor, has aid "${uid}";
         not { $u has sample-count; };
         insert $u has sample-count 1;
       `)
@@ -704,8 +723,8 @@ export const world = (): PersistentWorld => {
     }
     writeSilent(`
       match
-        $from isa unit, has uid "${uidFrom}";
-        $to isa unit, has uid "${uid}";
+        $from isa actor, has aid "${uidFrom}";
+        $to isa actor, has aid "${uid}";
       insert (sender: $from, receiver: $to) isa signal,
         has data "${dataStr}",
         has amount 0.0,
@@ -736,7 +755,7 @@ export const world = (): PersistentWorld => {
       return { dissolved: true }
     }
 
-    // PEP-3: capability check — skip if the unit has the task handler
+    // PEP-3: capability check — skip if the actor has the task handler
     // registered in-memory. The handler IS the capability; a runtime route
     // like `ceo:route` or `marketing-cmo:respond` is wired via chairman-chain
     // and won't have a corresponding TypeDB skill entry. Only check TypeDB
@@ -748,7 +767,7 @@ export const world = (): PersistentWorld => {
       const hasLocalHandler = localUnit?.has(skill) || localUnit?.has('default')
       if (!hasLocalHandler) {
         const ok = await readParsed(
-          `match $u isa unit, has uid "${uid}"; $sk isa skill, has skill-id "${skill}";
+          `match $u isa actor, has aid "${uid}"; $sk isa skill, has skill-id "${skill}";
            (provider: $u, offered: $sk) isa capability; select $u;`,
         ).catch(() => [])
         if (!ok.length) {
@@ -759,7 +778,7 @@ export const world = (): PersistentWorld => {
       }
     }
 
-    // PEP-3.5: lifecycle gate — skip retired/deprecated/past-sunset units (5-min cache)
+    // PEP-3.5: lifecycle gate — skip retired/deprecated/past-sunset actors (5-min cache)
     const lcCached = lifecycleCache.get(uid)
     const lcNow = Date.now()
     let lcStatus: string | undefined
@@ -769,7 +788,7 @@ export const world = (): PersistentWorld => {
       lcSunsetAt = lcCached.sunsetAt
     } else {
       const lcRows = await readParsed(`
-        match $u isa unit, has uid "${escapeStr(uid)}";
+        match $u isa actor, has aid "${escapeStr(uid)}";
         optional { $u has adl-status $st; }
         optional { $u has sunset-at $sun; }
         select $st, $sun;
@@ -831,7 +850,7 @@ export const world = (): PersistentWorld => {
         inputSchema = schemaCached.schema
       } else {
         const schemaRows = await readParsed(`
-          match $u isa unit, has uid "${escapeStr(uid)}"; $sk isa skill, has skill-id "${escapeStr(skill)}";
+          match $u isa actor, has aid "${escapeStr(uid)}"; $sk isa skill, has skill-id "${escapeStr(skill)}";
           (provider: $u, offered: $sk) isa capability; $sk has input-schema $is;
           select $is;
         `).catch(() => [])
@@ -872,11 +891,11 @@ export const world = (): PersistentWorld => {
     const outcome = await net.ask(s, from, timeout)
     if (!outcome.dissolved) {
       writeSilent(`
-        match $u isa unit, has uid "${uid}", has sample-count $sc;
+        match $u isa actor, has aid "${uid}", has sample-count $sc;
         delete $sc of $u; insert $u has sample-count ($sc + 1);
       `)
       writeSilent(`
-        match $u isa unit, has uid "${uid}";
+        match $u isa actor, has aid "${uid}";
         not { $u has sample-count; };
         insert $u has sample-count 1;
       `)
@@ -886,32 +905,32 @@ export const world = (): PersistentWorld => {
 
   // ── Capability + lifecycle gates ────────────────────────────────────────
 
-  // capable: declare that a unit can perform a skill (creates capability relation)
+  // capable: declare that a actor can perform a skill (creates capability relation)
   // GATE: REGISTER → CAPABLE requires unit_exists (status "active")
-  const capable = async (unitId: string, skillId: string, price = 0) => {
-    // Pre-gate: verify unit exists with status "active" before declaring capability
-    if (!(await canDeclareCapability(unitId))) {
-      return // Dissolve: unit doesn't exist or not active, silently fail
+  const capable = async (actorId: string, skillId: string, price = 0) => {
+    // Pre-gate: verify actor exists with status "active" before declaring capability
+    if (!(await canDeclareCapability(actorId))) {
+      return // Dissolve: actor doesn't exist or not active, silently fail
     }
     writeSilent(`
-      match $u isa unit, has uid "${unitId}"; $s isa skill, has skill-id "${skillId}";
+      match $u isa actor, has aid "${actorId}"; $s isa skill, has skill-id "${skillId}";
       not { (provider: $u, offered: $s) isa capability; };
       insert (provider: $u, offered: $s) isa capability, has price ${price};
     `).catch(() => {})
   }
 
-  // canDeclareCapability: gate — unit must exist with status "active"
+  // canDeclareCapability: gate — actor must exist with status "active"
   const canDeclareCapability = async (uid: string): Promise<boolean> => {
     const rows = await readParsed(`
-      match $u isa unit, has uid "${uid}", has status "active"; select $u;
+      match $u isa actor, has aid "${uid}", has status "active"; select $u;
     `).catch(() => [])
     return rows.length > 0
   }
 
-  // canBeDiscovered: gate — unit must have at least one capability relation
+  // canBeDiscovered: gate — actor must have at least one capability relation
   const canBeDiscovered = async (uid: string): Promise<boolean> => {
     const rows = await readParsed(`
-      match $u isa unit, has uid "${uid}"; (provider: $u, offered: $s) isa capability; select $s;
+      match $u isa actor, has aid "${uid}"; (provider: $u, offered: $s) isa capability; select $s;
     `).catch(() => [])
     return rows.length > 0
   }
@@ -960,21 +979,35 @@ export const world = (): PersistentWorld => {
 
   // ── Tag subscription ───────────────────────────────────────────────────
 
-  // subscribe: add tags to a unit so it receives matching tasks
-  const subscribe = (unitId: string, tags: string[]) => {
+  // subscribe: add capability tags to a actor so it receives matching tasks
+  const subscribe = (actorId: string, tags: string[]) => {
     for (const tag of tags) {
       writeSilent(`
-        match $u isa unit, has uid "${unitId}";
+        match $u isa actor, has aid "${actorId}";
         insert $u has tag "${escapeStr(tag)}";
       `).catch(() => {})
     }
+    net.get(actorId)?.subscribe(tags)
   }
 
-  // tasksFor: find open tasks matching a unit's tags, ranked by overlap × pheromone
-  const tasksFor = async (unitId: string): Promise<TaskMatch[]> => {
-    // Get unit's tags
+  // subscribeTopic: opt a actor into a signal topic (e.g. "news:crypto").
+  // Stored as tag "sub:news:crypto" in TypeDB and in-memory.
+  // Same pheromone mechanics: strengthens on delivery, fades via L3 if ignored.
+  const subscribeTopic = (actorId: string, topic: string) => {
+    const tag = `sub:${topic}`
+    writeSilent(`
+      match $u isa actor, has aid "${escapeStr(actorId)}";
+      not { $u has tag "${escapeStr(tag)}"; };
+      insert $u has tag "${escapeStr(tag)}";
+    `).catch(() => {})
+    net.get(actorId)?.subscribe([tag])
+  }
+
+  // tasksFor: find open tasks matching a actor's tags, ranked by overlap × pheromone
+  const tasksFor = async (actorId: string): Promise<TaskMatch[]> => {
+    // Get actor's tags
     const unitTags = await readParsed(`
-      match $u isa unit, has uid "${unitId}", has tag $tag;
+      match $u isa actor, has aid "${actorId}", has tag $tag;
       select $tag;
     `).catch(() => [])
     const tags = unitTags.map((r) => r.tag as string)
@@ -1002,7 +1035,7 @@ export const world = (): PersistentWorld => {
     // Score: overlap × priority + pheromone strength
     return [...taskMap.entries()]
       .map(([id, t]) => {
-        const edge = `${unitId}→builder:${id}`
+        const edge = `${actorId}→builder:${id}`
         const strength = net.sense(edge)
         return { id, name: t.name, priority: t.priority, tags: t.tags, overlap: t.overlap, strength }
       })
@@ -1010,7 +1043,7 @@ export const world = (): PersistentWorld => {
   }
 
   // dissolve: graceful exit — drains pending signals, marks status "dissolved" in TypeDB,
-  // emits final dissolve signal on all paths touching this unit, does NOT delete records.
+  // emits final dissolve signal on all paths touching this actor, does NOT delete records.
   // L3 fade handles trail decay naturally. Use forget() for GDPR erasure.
   const dissolve = async (
     uid: string,
@@ -1019,7 +1052,7 @@ export const world = (): PersistentWorld => {
     const dissolvedAt = new Date().toISOString()
     const safeUid = escapeStr(uid)
 
-    // 1. Drain any pending signals addressed to this unit from the queue
+    // 1. Drain any pending signals addressed to this actor from the queue
     let drainedSignals = 0
     let i = net.queue.length
     while (i--) {
@@ -1033,18 +1066,18 @@ export const world = (): PersistentWorld => {
     // 2. Mark status "dissolved" + dissolved-at timestamp in TypeDB
     const ts = dissolvedAt.replace('Z', '')
     writeSilent(`
-      match $u isa unit, has uid "${safeUid}", has status $s;
+      match $u isa actor, has aid "${safeUid}", has status $s;
       delete $s of $u;
       insert $u has status "dissolved", has dissolved-at ${ts};
     `).catch(() => {})
-    // Handle units that may not yet have a status attribute
+    // Handle actors that may not yet have a status attribute
     writeSilent(`
-      match $u isa unit, has uid "${safeUid}";
+      match $u isa actor, has aid "${safeUid}";
       not { $u has status $s; };
       insert $u has status "dissolved", has dissolved-at ${ts};
     `).catch(() => {})
 
-    // 3. Find all paths touching this unit and emit a final dissolve signal on each
+    // 3. Find all paths touching this actor and emit a final dissolve signal on each
     const touchingEdges = Object.keys({ ...net.strength, ...net.resistance }).filter((e) => {
       const [from, to] = e.split('→')
       const fromId = from?.split(':')[0]
@@ -1105,6 +1138,7 @@ export const world = (): PersistentWorld => {
     canBeDiscovered,
     selfCheckoff,
     subscribe,
+    subscribeTopic,
     tasksFor,
     dissolve,
     hasPathRelationship,

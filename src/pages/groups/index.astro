@@ -1,0 +1,21 @@
+---
+export const prerender = false
+import Layout from "@/layouts/Layout.astro"
+import { GroupList } from "@/components/groups/GroupList"
+
+// SSR-seed: fetch the group list server-side using the user's session cookie
+// so the island hydrates with data already in-hand (no loading flash).
+let initialData: unknown[] | null = null
+try {
+  const res = await fetch(new URL("/api/groups", Astro.url), {
+    headers: { cookie: Astro.request.headers.get("cookie") ?? "" },
+  })
+  if (res.ok) initialData = await res.json()
+} catch {
+  initialData = null
+}
+---
+
+<Layout title="Groups — ONE" description="Your teams, communities, and DAOs.">
+  <GroupList client:load initialData={initialData} />
+</Layout>

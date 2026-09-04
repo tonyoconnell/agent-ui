@@ -287,7 +287,7 @@ export function SendSheet({ open, onOpenChange, wallet, chain, onSend }: SendShe
             </div>
 
             {/* Warning */}
-            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-sm text-amber-600 dark:text-amber-500">
+            <div className="p-3 bg-[hsl(var(--color-gold)_/_0.1)] border border-[hsl(var(--color-gold)_/_0.2)] rounded-xl text-sm text-[hsl(var(--color-gold))] dark:text-[hsl(var(--color-gold))]">
               <strong>Double-check the address!</strong> Transactions cannot be reversed.
             </div>
           </>

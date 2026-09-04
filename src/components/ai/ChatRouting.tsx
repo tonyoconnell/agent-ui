@@ -39,7 +39,7 @@ export function ChatRouting() {
     setMessages((prev) => [...prev, { id: crypto.randomUUID(), role, text }])
   }, [])
 
-  // Build the in-browser world once — 3 units, pure routing, no network
+  // Build the in-browser world once — 3 actors, pure routing, no network
   useEffect(() => {
     const net = createWorld()
     netRef.current = net
@@ -133,7 +133,10 @@ export function ChatRouting() {
       <div className="border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-sm font-semibold tracking-tight">Routing Chat</h1>
-          <Badge variant="outline" className="text-[10px] font-mono border-emerald-800/50 text-emerald-400">
+          <Badge
+            variant="outline"
+            className="text-[10px] font-mono border-[hsl(var(--color-tertiary-bright)_/_0.5)] text-[hsl(var(--color-tertiary-bright))]"
+          >
             no LLM
           </Badge>
         </div>
@@ -161,15 +164,21 @@ export function ChatRouting() {
             <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground/40">
               <span className="px-1.5 py-0.5 rounded bg-muted/50">you</span>
               <span>{'\u2192'}</span>
-              <span className="px-1.5 py-0.5 rounded bg-blue-900/20 text-blue-400/50">router</span>
+              <span className="px-1.5 py-0.5 rounded bg-[hsl(var(--color-primary-bright)/0.15)] text-[hsl(var(--color-primary-bright)/0.5)]">
+                router
+              </span>
               <span>
                 {'\u2192'} [sell,test] {'\u2192'}
               </span>
-              <span className="px-1.5 py-0.5 rounded bg-emerald-900/20 text-emerald-400/50">seller</span>
+              <span className="px-1.5 py-0.5 rounded bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright)/0.5)]">
+                seller
+              </span>
               <span>
                 {'\u2192'} emit {'\u2192'}
               </span>
-              <span className="px-1.5 py-0.5 rounded bg-violet-900/20 text-violet-400/50">buyer</span>
+              <span className="px-1.5 py-0.5 rounded bg-[hsl(var(--color-secondary-bright)/0.15)] text-[hsl(var(--color-secondary-bright)/0.5)]">
+                buyer
+              </span>
             </div>
             <p className="text-xs text-muted-foreground/40 max-w-sm text-center">
               Your message becomes a signal tagged [sell, test]. The substrate routes it to a seller subscribed to those
@@ -200,8 +209,8 @@ export function ChatRouting() {
                   className={cn(
                     'w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5',
                     isSeller
-                      ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-800/40'
-                      : 'bg-violet-900/40 text-violet-400 border border-violet-800/40',
+                      ? 'bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright))] border border-[hsl(var(--color-tertiary-bright)/0.2)]'
+                      : 'bg-[hsl(var(--color-secondary-bright)/0.15)] text-[hsl(var(--color-secondary-bright))] border border-[hsl(var(--color-secondary-bright)/0.2)]',
                   )}
                 >
                   {isSeller ? 'S' : 'B'}
@@ -213,8 +222,8 @@ export function ChatRouting() {
                   isUser
                     ? 'bg-primary text-primary-foreground'
                     : isSeller
-                      ? 'bg-emerald-950/40 text-emerald-100 border border-emerald-900/30'
-                      : 'bg-violet-950/40 text-violet-100 border border-violet-900/30',
+                      ? 'bg-[hsl(var(--color-tertiary-bright)/0.1)] text-foreground border border-[hsl(var(--color-tertiary-bright)/0.2)]'
+                      : 'bg-[hsl(var(--color-secondary-bright)/0.1)] text-foreground border border-[hsl(var(--color-secondary-bright)/0.2)]',
                 )}
               >
                 {!isUser && (
@@ -231,9 +240,12 @@ export function ChatRouting() {
         {/* Proof cards — always show after first signal, grow with each message */}
         {paths.length > 0 && (
           <div className="space-y-2 pt-3">
-            <Card className="bg-[#111118] border-slate-800 p-4">
+            <Card className="bg-card border-border p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Badge variant="outline" className="text-[10px] font-mono border-yellow-800/50 text-yellow-400">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-mono border-[hsl(var(--color-gold)/0.5)] text-[hsl(var(--color-gold))]"
+                >
                   pheromone proof
                 </Badge>
                 <span className="text-[11px] text-muted-foreground/40">
@@ -243,14 +255,14 @@ export function ChatRouting() {
               <div className="space-y-2">
                 {paths.map((p) => (
                   <div key={p.edge} className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-slate-400 flex-1 truncate">{p.edge}</span>
-                    <div className="w-32 h-2 rounded-full bg-slate-800 overflow-hidden">
+                    <span className="text-xs font-mono text-muted-foreground flex-1 truncate">{p.edge}</span>
+                    <div className="w-32 h-2 rounded-full bg-muted overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-yellow-600 to-amber-400 transition-all duration-500"
+                        className="h-full rounded-full bg-gradient-to-r from-[hsl(var(--color-gold)/0.8)] to-[hsl(var(--color-gold))] transition-all duration-500"
                         style={{ width: `${Math.min(100, (p.strength / 10) * 100)}%` }}
                       />
                     </div>
-                    <span className="text-[10px] font-mono text-yellow-500 w-10 text-right">
+                    <span className="text-[10px] font-mono text-[hsl(var(--color-gold))] w-10 text-right">
                       {p.strength.toFixed(1)}
                     </span>
                   </div>

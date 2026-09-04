@@ -1938,10 +1938,10 @@ In Neo4j, variable-length path is a query-language primitive. In TypeQL, it's a 
 
 | Move field (`one.move`)         | TQL attribute (`world.tql`)    | Move type   | TQL type | Direction                     |
 |---------------------------------|--------------------------------|-------------|----------|-------------------------------|
-| `Unit.id` (address)             | `unit.sui-unit-id`             | address     | string   | Sui → TQL on `mirrorActor()`  |
-| *derived by* `addressFor(uid)`  | `unit.wallet`                  | address     | string   | Runtime → TQL on agent sync   |
+| `Unit.id` (address)             | `actor.sui-unit-id`             | address     | string   | Sui → TQL on `mirrorActor()`  |
+| *derived by* `addressFor(uid)`  | `actor.wallet`                  | address     | string   | Runtime → TQL on agent sync   |
 | `Unit.name`                     | `unit.name`                    | String      | string   | bidirectional                 |
-| `Unit.balance`                  | `unit.balance`                 | u64         | double   | Sui → TQL via `absorb()`      |
+| `Unit.balance`                  | `actor.balance`                 | u64         | double   | Sui → TQL via `absorb()`      |
 | **`Path.strength`**             | **`path.strength`**            | u64         | double   | bidirectional — load-bearing  |
 | **`Path.resistance`**           | **`path.resistance`**          | u64         | double   | bidirectional — load-bearing  |
 | `Path.revenue`                  | `path.revenue`                 | u64         | double   | Sui → TQL via `absorb()`      |
@@ -1972,8 +1972,8 @@ In Neo4j, variable-length path is a query-language primitive. In TypeQL, it's a 
 ### TQL queries that read on-chain state
 
 ```typeql
-# Find units with an on-chain twin
-match $u isa unit, has wallet $w, has sui-unit-id $s;
+# Find actors with an on-chain twin
+match $u isa actor, has wallet $w, has sui-unit-id $s;
 select $u, $w, $s;
 
 # Paths that accumulated real revenue on-chain
@@ -1993,7 +1993,7 @@ select $p, $hw;
 - Touching `src/move/one/sources/one.move` path/signal logic — `src/schema/one.tql` and `docs/dictionary.md` are the source of truth for names
 - Debugging why `absorb()` isn't writing to TypeDB — check `world.tql` accepts the attribute type
 - Writing a TQL `fun` that needs an on-chain twin — see `src/schema/sui.tql` for parallel function signatures
-- Querying `unit.wallet` values — they're derived by `addressFor(uid)` in `src/lib/sui.ts`, not always stored
+- Querying `actor.wallet` values — they're derived by `addressFor(uid)` in `src/lib/sui.ts`, not always stored
 
 ---
 
@@ -2026,7 +2026,7 @@ fun within_budget($u: unit, $sk: skill, $amount: double) -> boolean:
 
 # POST: Does the referenced unit still exist?
 fun unit_exists($uid: string) -> boolean:
-    match $u isa unit, has uid $uid;
+    match $u isa actor, has aid $uid;
     return first true;
 
 # POST: Is a unit performing well enough to trust its output?
@@ -2072,11 +2072,17 @@ entity thing,
     owns goal,
     owns cycles-planned,
     owns escape-condition,
-    # Rubric (post-verify, any thing-type)
+    # Agent rubric (trade lifecycle VERIFY — LLM response quality)
     owns rubric-fit,
     owns rubric-form,
     owns rubric-truth,
     owns rubric-taste,
+    # Code rubric (/do W4 — security/stability/simplicity/speed)
+    owns rubric-security,
+    owns rubric-stability,
+    owns rubric-simplicity,
+    owns rubric-speed,
+    owns rubric-composite,
     plays capability:offered,
     plays blocks:blocker,
     plays blocks:blocked,
@@ -2132,17 +2138,17 @@ fun tasks_for_unit($u: unit) -> { task } :
     return { $t };
 
 # "Which units can do this task?" (task → units)
-fun units_for_task($t: task) -> { unit } :
+fun actors_for_task($t: task) -> { unit } :
     match
         $t has tag $tag;
-        $u isa unit, has tag $tag, has status "active";
+        $u isa actor, has tag $tag, has status "active";
     return { $u };
 
 # "Best unit for this task": tag overlap × pheromone strength
 fun best_unit_for_task($t: task) -> unit :
     match
         $t has tag $tag;
-        $u isa unit, has tag $tag, has status "active";
+        $u isa actor, has tag $tag, has status "active";
         (source: $any, target: $u) isa path, has strength $s;
     sort $s desc; limit 1;
     return $u;

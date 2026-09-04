@@ -649,7 +649,7 @@ await mirrorGovernance('chairman-grant', 'marketing:creative', 'g:marketing', ke
 ## See Also
 
 - [buy-and-sell.md](buy-and-sell.md) — **Commerce mechanics: list/discover/execute/settle, two ledgers, escrow, market dynamics**
-- [plan.md](plan.md) — Why Sui, the five forces
+- [plan.md](one-ie/dev.one.ie/one/plan.md) — Why Sui, the five forces
 - [the-stack.md](the-stack.md) — Two fires, one ontology
 - [lifecycle.md](one/lifecycle.md) — Register through know
 - [architecture.md](one/architecture.md) — 6 dimensions, routing, inference

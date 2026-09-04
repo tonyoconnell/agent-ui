@@ -174,15 +174,15 @@ describe('Act 2: syncTasks — Batch insertion with duplicate skipping', () => {
     vi.clearAllMocks()
   })
 
-  it('calls ensureBuilder to create system builder unit', async () => {
+  it('calls ensureBuilder to create system builder actor', async () => {
     vi.mocked(readParsed).mockResolvedValue([])
     vi.mocked(write).mockResolvedValue([])
 
     await syncTasks([])
 
     // writeSilent called during ensureBuilder
-    expect(writeSilent).toHaveBeenCalledWith(expect.stringContaining('isa unit'))
-    expect(writeSilent).toHaveBeenCalledWith(expect.stringContaining('uid "builder"'))
+    expect(writeSilent).toHaveBeenCalledWith(expect.stringContaining('isa actor'))
+    expect(writeSilent).toHaveBeenCalledWith(expect.stringContaining('aid "builder"'))
   })
 
   it('skips tasks that already exist in TypeDB', async () => {

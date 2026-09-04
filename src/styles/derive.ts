@@ -12,8 +12,8 @@ export interface BrandTokens {
 
 // Default brand — ONE's canonical palette extracted from global.css.
 export const defaultBrand: BrandTokens = {
-  background: { light: '0 0% 100%', dark: '0 0% 13%' },
-  foreground: { light: '0 0% 13%', dark: '36 8% 96%' },
+  background: { light: '0 0% 93%', dark: '0 0% 10%' },
+  foreground: { light: '0 0% 100%', dark: '0 0% 13%' },
   font: { light: '0 0% 13%', dark: '0 0% 100%' },
   primary: { light: '216 55% 25%', dark: '216 55% 25%' },
   secondary: { light: '219 14% 28%', dark: '219 14% 32%' },
@@ -24,6 +24,33 @@ export const defaultBrand: BrandTokens = {
 // Keys are CSS custom property names without the leading `--color-` prefix.
 // Values are HSL triple strings or HSL-with-alpha strings, byte-for-byte
 // matching global.css.
+// 3-step luminance ladder per brand family — bright (stroke / accent text / CTA bg),
+// mid (border, secondary stroke, ~38% alpha), dim (tint fill, ~11% alpha).
+// See /Users/toc/Server/theme.md § "Brand families as 3-step ladders" for rationale.
+// On dark surfaces, "bright" is a lightened H/S/L; on light surfaces, it's a deepened one.
+export function deriveLadder(brand: BrandTokens, mode: 'light' | 'dark'): Record<string, string> {
+  const isLight = mode === 'light'
+
+  // Hand-tuned bright cousins for the canonical brand HSLs. Same hue/sat family,
+  // luminance shifted toward whichever surface needs it. These match the
+  // `#7AA3E1`, `#8496B8`, `#78B464` family security.astro ships today.
+  const primaryBright = isLight ? '216 55% 35%' : '216 60% 68%'
+  const secondaryBright = isLight ? '219 14% 38%' : '219 18% 65%'
+  const tertiaryBright = isLight ? '105 28% 38%' : '105 35% 55%'
+
+  return {
+    'primary-bright': primaryBright,
+    'primary-mid': `${primaryBright} / 0.38`,
+    'primary-dim': `${primaryBright} / 0.11`,
+    'secondary-bright': secondaryBright,
+    'secondary-mid': `${secondaryBright} / 0.38`,
+    'secondary-dim': `${secondaryBright} / 0.11`,
+    'tertiary-bright': tertiaryBright,
+    'tertiary-mid': `${tertiaryBright} / 0.38`,
+    'tertiary-dim': `${tertiaryBright} / 0.11`,
+  }
+}
+
 export function deriveShadcn(brand: BrandTokens, mode: 'light' | 'dark'): Record<string, string> {
   const isLight = mode === 'light'
 
@@ -52,7 +79,7 @@ export function deriveShadcn(brand: BrandTokens, mode: 'light' | 'dark'): Record
 
   // Mode-specific derived values.
   const card = isLight ? '0 0% 93.3%' : '0 0% 10%'
-  const cardFg = fg
+  const cardFg = font
   const popover = isLight ? '0 0% 93.3%' : '0 0% 10%'
   const popoverFg = fg
   const muted = isLight ? '219 14% 92%' : '216 63% 17%'

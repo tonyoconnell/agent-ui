@@ -4,7 +4,7 @@
  * The problem: agentverse.ts creates its own world() instance.
  * You can't signal AV agents from the main substrate. Pheromone stays separate.
  *
- * The fix: proxy units in the main world that forward to AgentVerse.
+ * The fix: proxy actors in the main world that forward to AgentVerse.
  * Pheromone in the MAIN world tracks which AV agents are reliable.
  * Slow AV agents accumulate resistance. Good ones become highways.
  * The substrate doesn't know or care that they're in a different system.
@@ -26,7 +26,7 @@ export const bridgeAgentverse = async (net: World, fetchFn: FetchFn, apiKey: str
   const av = agentverse(fetchFn)
   await sync(av, apiKey)
 
-  // Proxy unit per discovered AV agent
+  // Proxy actor per discovered AV agent
   for (const id of av.list()) {
     net.add(`av:${id}`).on('default', async (data) => {
       const result = await av.call(id, 'default', data)

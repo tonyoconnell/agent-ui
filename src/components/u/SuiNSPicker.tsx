@@ -31,7 +31,7 @@ type ResolveState = 'idle' | 'resolving' | 'resolved' | 'not-found'
 function SpinnerIcon() {
   return (
     <svg
-      className="animate-spin h-4 w-4 text-zinc-400"
+      className="animate-spin h-4 w-4 text-muted-foreground"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
@@ -46,7 +46,7 @@ function SpinnerIcon() {
 function CheckIcon() {
   return (
     <svg
-      className="h-4 w-4 text-green-400"
+      className="h-4 w-4 text-[hsl(var(--color-tertiary-bright))]"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 20 20"
       fill="currentColor"
@@ -64,7 +64,7 @@ function CheckIcon() {
 function XIcon() {
   return (
     <svg
-      className="h-4 w-4 text-red-400"
+      className="h-4 w-4 text-[hsl(var(--color-destructive))]"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 20 20"
       fill="currentColor"
@@ -165,15 +165,15 @@ export function SuiNSPicker({ value, onChange, placeholder, disabled }: Props) {
           placeholder={placeholder ?? 'Address or SuiNS name (e.g. alice.sui)'}
           disabled={disabled}
           className={[
-            'w-full bg-zinc-900 text-white text-sm rounded-lg px-3 py-2 pr-9',
+            'w-full bg-background text-foreground text-sm rounded-lg px-3 py-2 pr-9',
             'border outline-none transition-colors',
-            'placeholder:text-zinc-500',
+            'placeholder:text-muted-foreground',
             disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-text',
             showCheck
-              ? 'border-green-500/60 focus:border-green-400'
+              ? 'border-[hsl(var(--color-tertiary-bright)/0.6)] focus:border-[hsl(var(--color-tertiary-bright))]'
               : showX
-                ? 'border-red-500/60 focus:border-red-400'
-                : 'border-zinc-700 focus:border-zinc-500',
+                ? 'border-[hsl(var(--color-destructive)/0.6)] focus:border-[hsl(var(--color-destructive))]'
+                : 'border-border focus:border-foreground/50',
           ]
             .filter(Boolean)
             .join(' ')}
@@ -193,9 +193,9 @@ export function SuiNSPicker({ value, onChange, placeholder, disabled }: Props) {
 
       {/* Sub-text feedback */}
       {showCheck && resolvedAddress && (
-        <p className="text-xs text-green-400 font-mono truncate px-1">{resolvedAddress}</p>
+        <p className="text-xs text-[hsl(var(--color-tertiary-bright))] font-mono truncate px-1">{resolvedAddress}</p>
       )}
-      {showX && <p className="text-xs text-red-400 px-1">Name not found</p>}
+      {showX && <p className="text-xs text-[hsl(var(--color-destructive))] px-1">Name not found</p>}
     </div>
   )
 }

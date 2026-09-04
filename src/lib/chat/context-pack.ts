@@ -77,7 +77,7 @@ export async function buildPack(actorUid: string): Promise<ContextPack> {
 
     // 3b. Frontier — tags the actor has already touched via paths
     readParsed(
-      `match $u isa unit, has uid "${safe}"; (source: $u, target: $to) isa path; $to has tag $t; select $t;`,
+      `match $u isa actor, has aid "${safe}"; (source: $u, target: $to) isa path; $to has tag $t; select $t;`,
     ).catch(() => [] as Record<string, unknown>[]),
   ])
 

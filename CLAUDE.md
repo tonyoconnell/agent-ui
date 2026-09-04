@@ -425,6 +425,20 @@ nanoclaw/       # CF Worker: Edge agents (webhooks → queue → LLM → channel
     lib/              # substrate.ts, tools.ts
   wrangler.toml        # Main nanoclaw (no API key, Gemma 4 default)
   wrangler.donal.toml  # Donal's CMO bot (BOT_PERSONA=donal, API key auth)
+scripts/
+  merge-loop/   # /merge pipeline: declare → classify → port → ratchet → compress → gates
+    index.ts          # Orchestrator: resolve → G0 → pipeline → G1
+    declare.ts        # Generate features.md manifest via Haiku (cached on source_sha)
+    classify.sh       # 5-step funnel: noise / secrets-halt / dedupe / reference / schema
+    secrets.regex     # 17-category extended-regex: API keys, PEM, JWT, env assignments
+    port-agents.ts    # PORT mode: zero-LLM agent.md field-rename + dead-name fix
+    translate-init.ts # Scaffold translate.md from source import scan
+    ast-rewrite.ts    # TRANSLATE mode: import/JSX/sx-prop rewrite via translate.md rules
+    extract.sh        # Gem extraction: lift one named symbol + its imports from a file
+    ratchet.sh        # snapshot/score trunk metrics; 5-dim formula; PASS≥0.40 gate
+    gates.sh          # W4 gates: ratchet / secrets / tsc / dead-names (exit 0 or 2)
+    compress.sh       # 3 sweeps: orphaned exports / AST hash dupes / tsc dead locals
+    resolve.ts        # Alias resolution: registry yml → path → GitHub auto-clone
 agents/         # Markdown agent definitions
   donal/        # OO Agency Pod — 11 marketing agents (cmo, full, citation, etc.)
   marketing/    # Marketing team (8 agents)
@@ -616,6 +630,11 @@ Five verbs. Each takes a noun that specifies what to act on.
 /sync    agents                  scan agents/**/*.md → units → TypeDB    L1
 /sync    fade/evolve/know/frontier  individual loop invocations          L3-L7
 /sync    pay <receiver> <amt>    emit payment signal (L4 economic)       L4
+
+/merge   <alias|path|url>        run the deterministic merge loop on a source repo  —
+/merge                           list candidate sources with new files since last cycle  —
+/merge   <alias> --dry-run       full loop, no fast-forward; show G0+G1 frames only  —
+/merge   <alias> --explain       print each command before executing  —
 ```
 
 ### CLI fallbacks (no dev server needed)

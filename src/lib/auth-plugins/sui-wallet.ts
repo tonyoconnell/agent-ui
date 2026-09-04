@@ -10,7 +10,7 @@
  *   3. POST /api/auth/sui-wallet/verify {address, signature, nonce} → session
  *
  * Governance integration:
- *   - Calls ensureHumanUnit() which creates unit + personal group + chairman role
+ *   - Calls ensureHumanUnit() which creates actor + personal group + chairman role
  *   - Session includes wallet + frontDoor fields for unified identity
  */
 
@@ -18,7 +18,7 @@ import { verifyPersonalMessageSignature } from '@mysten/sui/verify'
 import type { BetterAuthPlugin } from 'better-auth'
 import { APIError, createAuthEndpoint } from 'better-auth/api'
 import { z } from 'zod'
-import { ensureHumanUnit } from '../human-unit'
+import { ensureHumanUnit } from '../human-actor'
 
 const NONCE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 
@@ -161,7 +161,7 @@ export const suiWallet = (opts: SuiWalletOptions): BetterAuthPlugin => ({
           throw new APIError('UNAUTHORIZED', { message: `Signature invalid: ${msg}` })
         }
 
-        // 4. Ensure human unit exists (governance integration)
+        // 4. Ensure human actor exists (governance integration)
         const uid = `human:sui:${address}`
         const shortAddr = `${address.slice(0, 6)}…${address.slice(-4)}`
         await ensureHumanUnit(uid, { id: address, email: null, name: shortAddr })

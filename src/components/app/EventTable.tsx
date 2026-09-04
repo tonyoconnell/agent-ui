@@ -74,14 +74,14 @@ export function EventTable({ groupId: _groupId }: Props) {
     <div className="flex flex-col gap-3 h-full">
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-foreground">Signal Events</span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
-          <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--color-tertiary-bright)/0.1)] px-2 py-0.5 text-xs font-medium text-[hsl(var(--color-tertiary-bright))]">
+          <span className="size-1.5 rounded-full bg-[hsl(var(--color-tertiary-bright))] animate-pulse" />
           Live
         </span>
       </div>
 
-      {loading && events.length === 0 && <p className="text-slate-500 text-sm px-1">Loading signals...</p>}
-      {error && <p className="text-red-400 text-sm px-1">{error}</p>}
+      {loading && events.length === 0 && <p className="text-muted-foreground text-sm px-1">Loading signals...</p>}
+      {error && <p className="text-[hsl(var(--color-destructive))] text-sm px-1">{error}</p>}
 
       <div className="overflow-auto rounded-md border border-border flex-1">
         <Table>
@@ -112,7 +112,10 @@ export function EventTable({ groupId: _groupId }: Props) {
                   </TableCell>
                   <TableCell className="text-center">
                     <span
-                      className={cn('inline-block size-2 rounded-full', row.success ? 'bg-emerald-400' : 'bg-red-400')}
+                      className={cn(
+                        'inline-block size-2 rounded-full',
+                        row.success ? 'bg-[hsl(var(--color-tertiary-bright))]' : 'bg-[hsl(var(--color-destructive))]',
+                      )}
                       title={row.success ? 'success' : 'failed'}
                     />
                   </TableCell>

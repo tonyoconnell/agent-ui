@@ -3,7 +3,7 @@
 **Every identity has a Sui address. Every front door resolves to one. Every key is delegated from one.**
 
 > Identity = wallet. Ownership = who signed. Permission = role × scope × pheromone.
-> Auth is [auth.md](auth.md); this doc is the **wallet layer** under it.
+> Auth is [auth.md](one-ie/dev.one.ie/one/auth.md); this doc is the **wallet layer** under it.
 
 ---
 
@@ -391,7 +391,7 @@ Grep `/api/signals?type=auth` or `?type=handoff` to audit. Path strength on
 
 ## See Also
 
-- [auth.md](auth.md) — the auth flow, BetterAuth config, bearer vs cookie
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — the auth flow, BetterAuth config, bearer vs cookie
 - [TODO-governance.md](../docs/TODO-governance.md) — role matrix, scope enforcement
 - `src/lib/sui.ts` — `deriveKeypair`, `addressFor`, `verifyPersonalMessageSignature`
 - `src/lib/api-auth.ts` — `validateApiKey`, `resolveUnitFromSession`, `ensureHumanUnit`

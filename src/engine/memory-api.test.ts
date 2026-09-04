@@ -63,7 +63,7 @@ describe('Act 1: reveal() — Full Memory Card (7 Sections)', () => {
 
   it('reveal(uid) returns object with all 7 required fields', async () => {
     vi.mocked(readParsed)
-      .mockResolvedValueOnce([{ k: 'agent' }]) // unit kind
+      .mockResolvedValueOnce([{ k: 'agent' }]) // actor kind
       .mockResolvedValueOnce([]) // hypotheses
       .mockResolvedValueOnce([]) // signals
       .mockResolvedValueOnce([]) // highways
@@ -99,9 +99,9 @@ describe('Act 1: reveal() — Full Memory Card (7 Sections)', () => {
     expect(card.actor.firstSeen).toBeGreaterThanOrEqual(0)
   })
 
-  it('reveal() marks actor kind as "unknown" when no unit found', async () => {
+  it('reveal() marks actor kind as "unknown" when no actor found', async () => {
     vi.mocked(readParsed)
-      .mockResolvedValueOnce([]) // no unit
+      .mockResolvedValueOnce([]) // no actor
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -116,7 +116,7 @@ describe('Act 1: reveal() — Full Memory Card (7 Sections)', () => {
 
   it('reveal() collects hypotheses: pattern, confidence', async () => {
     vi.mocked(readParsed)
-      .mockResolvedValueOnce([]) // unit
+      .mockResolvedValueOnce([]) // actor
       .mockResolvedValueOnce([
         { s: 'pattern-confirmed', st: 'confirmed', n: 5 },
         { s: 'pattern-testing', st: 'testing', n: 2 },
@@ -142,7 +142,7 @@ describe('Act 1: reveal() — Full Memory Card (7 Sections)', () => {
 
   it('reveal() collects highways: from, to, strength (sorted desc by strength)', async () => {
     vi.mocked(readParsed)
-      .mockResolvedValueOnce([]) // unit
+      .mockResolvedValueOnce([]) // actor
       .mockResolvedValueOnce([]) // hypotheses
       .mockResolvedValueOnce([]) // signals
       .mockResolvedValueOnce([
@@ -164,7 +164,7 @@ describe('Act 1: reveal() — Full Memory Card (7 Sections)', () => {
 
   it('reveal() collects signals: data, success flag (limit 200)', async () => {
     vi.mocked(readParsed)
-      .mockResolvedValueOnce([]) // unit
+      .mockResolvedValueOnce([]) // actor
       .mockResolvedValueOnce([]) // hypotheses
       .mockResolvedValueOnce([
         { d: 'analyzed report', ok: true },
@@ -185,7 +185,7 @@ describe('Act 1: reveal() — Full Memory Card (7 Sections)', () => {
 
   it('reveal() collects groups: membership names', async () => {
     vi.mocked(readParsed)
-      .mockResolvedValueOnce([]) // unit
+      .mockResolvedValueOnce([]) // actor
       .mockResolvedValueOnce([]) // hypotheses
       .mockResolvedValueOnce([]) // signals
       .mockResolvedValueOnce([]) // highways
@@ -202,7 +202,7 @@ describe('Act 1: reveal() — Full Memory Card (7 Sections)', () => {
 
   it('reveal() collects capabilities: skillId, name, price', async () => {
     vi.mocked(readParsed)
-      .mockResolvedValueOnce([]) // unit
+      .mockResolvedValueOnce([]) // actor
       .mockResolvedValueOnce([]) // hypotheses
       .mockResolvedValueOnce([]) // signals
       .mockResolvedValueOnce([]) // highways
@@ -225,7 +225,7 @@ describe('Act 1: reveal() — Full Memory Card (7 Sections)', () => {
 
   it('reveal() collects frontier: unexplored tags (world \\ actor-touched)', async () => {
     vi.mocked(readParsed)
-      .mockResolvedValueOnce([]) // unit
+      .mockResolvedValueOnce([]) // actor
       .mockResolvedValueOnce([]) // hypotheses
       .mockResolvedValueOnce([]) // signals
       .mockResolvedValueOnce([]) // highways
@@ -346,11 +346,11 @@ describe('Act 3: forget() — GDPR Erasure (TypeDB)', () => {
   })
 
   it('forget(uid) deletes actor record from TypeDB', async () => {
-    await w.forget('doomed-unit')
+    await w.forget('doomed-actor')
 
     const calls = vi.mocked(writeSilent).mock.calls
     const deleteUnitCall = calls.find(
-      (c) => (c[0] as string).includes('delete $u isa unit') && (c[0] as string).includes('doomed-unit'),
+      (c) => (c[0] as string).includes('delete $u isa actor') && (c[0] as string).includes('doomed-actor'),
     )
     expect(deleteUnitCall).toBeDefined()
   })
@@ -402,7 +402,7 @@ describe('Act 3: forget() — GDPR Erasure (TypeDB)', () => {
       .mockResolvedValueOnce(undefined) // path target → OK
       .mockResolvedValueOnce(undefined) // membership → OK
       .mockResolvedValueOnce(undefined) // capability → OK
-      .mockResolvedValueOnce(undefined) // unit delete → OK
+      .mockResolvedValueOnce(undefined) // actor delete → OK
 
     // Should not throw
     await expect(w.forget('resilient')).resolves.not.toThrow()
@@ -424,7 +424,7 @@ describe('Act 3: forget() — GDPR Erasure (TypeDB)', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 4: forget() — Runtime Cleanup
 //
-// Remove unit from in-memory world. Pheromone paths decay naturally (L3 fade).
+// Remove actor from in-memory world. Pheromone paths decay naturally (L3 fade).
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Act 4: forget() — Runtime Cleanup', () => {
@@ -435,7 +435,7 @@ describe('Act 4: forget() — Runtime Cleanup', () => {
     w = world()
   })
 
-  it('forget() removes unit from runtime (net.has returns false)', async () => {
+  it('forget() removes actor from runtime (net.has returns false)', async () => {
     w.actor('alice')
     expect(w.has('alice')).toBe(true)
 
@@ -444,8 +444,8 @@ describe('Act 4: forget() — Runtime Cleanup', () => {
     expect(w.has('alice')).toBe(false)
   })
 
-  it('forget() does not throw if unit does not exist in runtime', async () => {
-    // Unit never created locally; forget should handle gracefully
+  it('forget() does not throw if actor does not exist in runtime', async () => {
+    // Actor never created locally; forget should handle gracefully
     await expect(w.forget('never-added')).resolves.not.toThrow()
   })
 
@@ -502,7 +502,7 @@ describe('Act 5: forget() Cascading Effects', () => {
   })
 
   it('forget() clears all outgoing signals from the actor', async () => {
-    await w.forget('noisy-unit')
+    await w.forget('noisy-actor')
 
     const calls = vi.mocked(writeSilent).mock.calls
     const signalClear = calls.find(
@@ -524,7 +524,7 @@ describe('Act 5: forget() Cascading Effects', () => {
     expect(pathDeletes.length).toBeGreaterThanOrEqual(2) // source + target paths
   })
 
-  it('forget() removes unit from all group memberships', async () => {
+  it('forget() removes actor from all group memberships', async () => {
     await w.forget('team-member')
 
     const calls = vi.mocked(writeSilent).mock.calls
@@ -552,7 +552,7 @@ describe('Act 6: Memory API Consistency', () => {
 
   it('reveal() + forget() cycle: reveal returns card, then forget clears it', async () => {
     vi.mocked(readParsed)
-      .mockResolvedValueOnce([{ k: 'agent' }]) // unit
+      .mockResolvedValueOnce([{ k: 'agent' }]) // actor
       .mockResolvedValueOnce([{ s: 'pattern-x', st: 'confirmed', n: 5 }]) // hypotheses
       .mockResolvedValueOnce([{ d: 'signal-1', ok: true }]) // signals
       .mockResolvedValueOnce([]) // highways
@@ -578,8 +578,8 @@ describe('Act 6: Memory API Consistency', () => {
   it('forget() is idempotent: calling twice is safe', async () => {
     vi.mocked(writeSilent).mockResolvedValue(undefined)
 
-    await w.forget('unit-x')
-    await w.forget('unit-x') // Call again
+    await w.forget('actor-x')
+    await w.forget('actor-x') // Call again
 
     // Second call should also succeed (Promise.allSettled tolerates errors)
     expect(vi.mocked(writeSilent)).toHaveBeenCalled()
@@ -589,7 +589,7 @@ describe('Act 6: Memory API Consistency', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 7: Integration — Full Memory Card Lifecycle
 //
-// Create unit → add pheromone → reveal → check card → forget → verify cleanup
+// Create actor → add pheromone → reveal → check card → forget → verify cleanup
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Act 7: Integration — Full Memory Card Lifecycle', () => {
@@ -632,7 +632,7 @@ describe('Act 7: Integration — Full Memory Card Lifecycle', () => {
     expect(w.has('charlie')).toBe(false)
   })
 
-  it('Multiple units: reveal one, forget one, others unaffected', async () => {
+  it('Multiple actors: reveal one, forget one, others unaffected', async () => {
     w.actor('alice')
     w.actor('bob')
 

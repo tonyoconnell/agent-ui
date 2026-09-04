@@ -24,11 +24,11 @@ let _allTags: string[] = []
 let _loadedAt = 0
 let _loading: Promise<PersistentWorld> | null = null
 
-/** Load unit metadata and tags from TypeDB into memory. */
+/** Load actor metadata and tags from TypeDB into memory. */
 async function loadMeta() {
   const [unitRows, tagRows] = await Promise.all([
     readParsed(`
-      match $u isa unit, has uid $id, has name $name,
+      match $u isa actor, has aid $id, has name $name,
         has success-rate $sr, has generation $g;
       select $id, $name, $sr, $g;
     `).catch(() => []),
@@ -83,12 +83,12 @@ export async function getNet(): Promise<PersistentWorld> {
   return _loading
 }
 
-/** Force reload of unit metadata + tags from TypeDB (does not re-hydrate paths). */
+/** Force reload of actor metadata + tags from TypeDB (does not re-hydrate paths). */
 export async function reloadMeta() {
   await loadMeta()
 }
 
-/** Cached unit metadata keyed by uid. */
+/** Cached actor metadata keyed by uid. */
 export function getUnitMeta(): Record<string, UnitMeta> {
   return _units
 }

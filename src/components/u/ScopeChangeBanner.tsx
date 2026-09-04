@@ -170,20 +170,24 @@ export function ScopeChangeBanner({ agentId, walletId }: ScopeChangeBannerProps)
       className={cn(
         'fixed bottom-4 left-1/2 -translate-x-1/2 z-50',
         'flex items-center gap-3',
-        'rounded-2xl border border-sky-500/20 bg-sky-950/90 backdrop-blur-sm shadow-lg',
+        'rounded-2xl border border-[hsl(var(--color-primary)/0.2)] bg-[hsl(var(--color-primary)/0.1)] backdrop-blur-sm shadow-lg',
         'px-4 py-3 text-sm',
         'animate-in fade-in slide-in-from-bottom-2 duration-200',
         'max-w-[calc(100vw-2rem)] w-full sm:w-auto sm:min-w-[340px] sm:max-w-md',
       )}
     >
-      <Info className="h-4 w-4 text-sky-400 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+      <Info
+        className="h-4 w-4 text-[hsl(var(--color-primary-bright))] shrink-0"
+        strokeWidth={1.75}
+        aria-hidden="true"
+      />
 
-      <span className="flex-1 text-sky-100/90 font-medium">Agent scope updated</span>
+      <span className="flex-1 text-[hsl(var(--color-primary-bright)/0.9)] font-medium">Agent scope updated</span>
 
       <button
         type="button"
         onClick={handleView}
-        className="text-sky-300 hover:text-sky-100 underline underline-offset-2 text-sm font-medium whitespace-nowrap transition-colors"
+        className="text-[hsl(var(--color-primary-bright)/0.75)] hover:text-[hsl(var(--color-primary-bright))] underline underline-offset-2 text-sm font-medium whitespace-nowrap transition-colors"
       >
         view changes
       </button>
@@ -192,7 +196,7 @@ export function ScopeChangeBanner({ agentId, walletId }: ScopeChangeBannerProps)
         type="button"
         aria-label="Dismiss scope change notification"
         onClick={handleDismiss}
-        className="ml-1 text-sky-400/60 hover:text-sky-200 transition-colors shrink-0"
+        className="ml-1 text-[hsl(var(--color-primary-bright)/0.4)] hover:text-[hsl(var(--color-primary-bright)/0.8)] transition-colors shrink-0"
       >
         <X className="h-4 w-4" strokeWidth={1.75} />
       </button>

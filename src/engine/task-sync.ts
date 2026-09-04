@@ -21,10 +21,10 @@ function esc(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
-/** Ensure builder unit exists */
+/** Ensure builder actor exists */
 async function ensureBuilder() {
   await writeSilent(`
-    insert $u isa unit, has uid "${UNIT_ID}", has name "Builder", has unit-kind "system",
+    insert $u isa actor, has aid "${UNIT_ID}", has name "Builder", has actor-type "system",
       has tag "system", has status "active", has success-rate 0.5, has activity-score 0.0,
       has sample-count 0, has reputation 0.0, has balance 0.0, has generation 0;
   `)
@@ -69,7 +69,7 @@ async function insertTaskBatch(batch: ParsedTask[], existingSkills: Set<string>)
   const inserts = batch.map((t, i) => renderTaskInsert(t, i, existingSkills.has(t.id))).join('\n')
   try {
     await write(`
-      match $u isa unit, has uid "${UNIT_ID}";
+      match $u isa actor, has aid "${UNIT_ID}";
       insert ${inserts}
     `)
     return batch.length
@@ -79,7 +79,7 @@ async function insertTaskBatch(batch: ParsedTask[], existingSkills: Set<string>)
     for (const t of batch) {
       try {
         await write(`
-          match $u isa unit, has uid "${UNIT_ID}";
+          match $u isa actor, has aid "${UNIT_ID}";
           insert ${renderTaskInsert(t, 0, existingSkills.has(t.id))}
         `)
         ok++

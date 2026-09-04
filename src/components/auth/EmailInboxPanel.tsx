@@ -35,10 +35,14 @@ export function EmailInboxPanel({ email, redirect = '/app' }: Props) {
   }
 
   return (
-    <div role="status" aria-live="polite" className="rounded-xl border border-violet-500/20 bg-violet-500/[0.06] p-5">
+    <div
+      role="status"
+      aria-live="polite"
+      className="rounded-xl border border-[hsl(var(--color-secondary-bright)/0.2)] bg-[hsl(var(--color-secondary-bright)/0.06)] p-5"
+    >
       <div className="mb-3 flex items-start gap-3">
         <svg
-          className="mt-0.5 h-5 w-5 shrink-0 text-violet-400"
+          className="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--color-secondary-bright)/0.8)]"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -52,11 +56,11 @@ export function EmailInboxPanel({ email, redirect = '/app' }: Props) {
           />
         </svg>
         <div>
-          <p className="text-sm font-medium text-white">Check your inbox</p>
-          <p className="mt-0.5 text-xs text-zinc-400">
-            We sent a link to <span className="text-zinc-200">{email}</span>. It&apos;s good for 5 minutes.
+          <p className="text-sm font-medium text-font">Check your inbox</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            We sent a link to <span className="text-foreground">{email}</span>. It&apos;s good for 5 minutes.
           </p>
-          <p className="mt-1 text-[10px] text-zinc-500">
+          <p className="mt-1 text-[10px] text-muted-foreground/60">
             Click the link on this device — opening it elsewhere will sign you in there.
           </p>
         </div>
@@ -69,7 +73,7 @@ export function EmailInboxPanel({ email, redirect = '/app' }: Props) {
             emitClick('ui:auth:email:password-opt-in')
             setShowPassword(true)
           }}
-          className="mt-1 flex items-center gap-1 text-xs text-zinc-400 hover:text-white"
+          className="mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-font"
         >
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -85,10 +89,10 @@ export function EmailInboxPanel({ email, redirect = '/app' }: Props) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={pwPending || attempts >= 5}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:border-violet-400/40 focus:outline-none disabled:opacity-60"
+            className="w-full rounded-xl border border-border bg-card/50 px-4 py-2.5 text-sm text-font placeholder:text-muted-foreground/40 focus:border-secondary-bright/40 focus:outline-none disabled:opacity-60"
           />
           {pwError && (
-            <p role="alert" aria-live="polite" className="text-xs text-rose-400">
+            <p role="alert" aria-live="polite" className="text-xs text-destructive">
               {pwError}
             </p>
           )}
@@ -97,11 +101,11 @@ export function EmailInboxPanel({ email, redirect = '/app' }: Props) {
               type="submit"
               disabled={pwPending || attempts >= 5}
               aria-busy={pwPending}
-              className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08] disabled:opacity-60"
+              className="flex-1 rounded-xl border border-border bg-card/30 px-4 py-2.5 text-sm font-medium text-font transition hover:bg-card/50 disabled:opacity-60"
             >
               {pwPending ? 'Signing in…' : 'Sign in'}
             </button>
-            <a href="/settings/security" className="text-xs text-zinc-500 hover:text-zinc-300">
+            <a href="/settings/security" className="text-xs text-muted-foreground hover:text-foreground">
               Forgot password?
             </a>
           </div>

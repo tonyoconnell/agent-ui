@@ -69,10 +69,10 @@ const STAGE_RECEIVER = (s: Stage) => `loop:${s}`
 export const workLoop = (net: World, session: string): WorkLoop => {
   const stages: Stage[] = []
 
-  // Ensure a loop unit exists with no-op handlers for every stage.
+  // Ensure a loop actor exists with no-op handlers for every stage.
   // Handlers are no-ops because we only care about the path, not the work.
   // The actual work runs in the developer's tools; this is instrumentation.
-  if (!net.units.loop) {
+  if (!net.actors.loop) {
     const u = net.add('loop')
     // Single catch-all: register lazy .on for each stage so signal lands and pheromone marks.
     // World's signal() auto-marks the edge from→receiver on delivery.

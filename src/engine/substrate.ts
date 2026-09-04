@@ -92,7 +92,7 @@ const evolveHandler =
   async (_: unknown, emit: (s: Signal) => void) => {
     const now = Date.now()
     const rows = await readParsed(`
-      match $u isa unit, has uid $id, has system-prompt $sp, has success-rate $sr,
+      match $u isa actor, has aid $id, has system-prompt $sp, has success-rate $sr,
             has sample-count $sc, has generation $g;
       $sr < ${EVOLUTION_THRESHOLD}; $sc >= ${EVOLUTION_MIN_SAMPLES};
       not { $u has last-evolved $le; $le > ${new Date(now - EVOLUTION_COOLDOWN_MS).toISOString().replace('Z', '')}; };
@@ -101,7 +101,7 @@ const evolveHandler =
 
     for (const u of rows) {
       emit({
-        receiver: 'world:evolve-unit',
+        receiver: 'world:evolve-actor',
         data: { id: u.id, prompt: u.sp, successRate: u.sr, sampleCount: u.sc, generation: u.g },
       })
     }
@@ -121,7 +121,7 @@ const evolveUnitHandler =
 
     // Find advisors with similar skills
     const advisorRows = await readParsed(`
-      match $u isa unit, has uid $uid, has success-rate $sr; $sr > 0.7;
+      match $u isa actor, has aid $uid, has success-rate $sr; $sr > 0.7;
       not { $uid = "${id}"; };
       select $uid, $sr; sort $sr desc; limit 3;
     `).catch(() => [])
@@ -163,9 +163,9 @@ ${prompt}
         has hypothesis-status "testing", has observations-count 0, has p-value 1.0;
     `).catch(() => {})
 
-    // Update unit
+    // Update actor
     writeSilent(`
-      match $u isa unit, has uid "${id}", has system-prompt $sp, has generation $g;
+      match $u isa actor, has aid "${id}", has system-prompt $sp, has generation $g;
       delete $sp of $u; delete $g of $u;
       insert $u has system-prompt "${newPrompt.replace(/"/g, '\\"')}",
              has generation ${(generation || 0) + 1},
@@ -331,15 +331,15 @@ export const createSubstrate = async (options: SubstrateOptions = {}) => {
     }))
   }
 
-  // ── System unit with context-aware handlers ───────────────
+  // ── System actor with context-aware handlers ───────────────
   const systemHandlers = {
     fade: fadeHandler(net),
     evolve: async (_: unknown, emit: Emit) => {
       const ctx = await getContext(getHandlerContext(config, 'world:evolve'))
       return evolveHandler(net, complete, ctx)(_, emit)
     },
-    'evolve-unit': async (data: unknown) => {
-      const ctx = await getContext(getHandlerContext(config, 'world:evolve-unit'))
+    'evolve-actor': async (data: unknown) => {
+      const ctx = await getContext(getHandlerContext(config, 'world:evolve-actor'))
       return evolveUnitHandler(net, complete, ctx)(data)
     },
     know: knowHandler(net),

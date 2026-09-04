@@ -108,7 +108,7 @@ export function PromptDock({
           {attachments.map((file, index) => (
             <div
               key={index}
-              className="flex items-center gap-1 bg-zinc-700/50 rounded-lg px-2 py-1 text-xs text-zinc-300"
+              className="flex items-center gap-1 bg-muted/50 rounded-lg px-2 py-1 text-xs text-foreground/70"
             >
               <span>{file.name}</span>
               <button
@@ -116,7 +116,7 @@ export function PromptDock({
                   emitClick('ui:prompt:remove-attachment')
                   onRemoveAttachment(index)
                 }}
-                className="text-zinc-400 hover:text-zinc-200"
+                className="text-muted-foreground hover:text-foreground"
               >
                 ✕
               </button>
@@ -160,7 +160,7 @@ export function PromptDock({
             <HoverCardContent side="top" className="w-56 p-2">
               <div className="space-y-1">
                 <button
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
                   onClick={() => {
                     emitClick('ui:prompt:attach-file')
                     document.getElementById('file-input-dock')?.click()
@@ -170,7 +170,7 @@ export function PromptDock({
                   <span>Add pictures</span>
                 </button>
                 <button
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
                   onClick={() => {
                     emitClick('ui:prompt:attach-file')
                     document.getElementById('file-input-dock')?.click()
@@ -180,7 +180,7 @@ export function PromptDock({
                   <span>Add files</span>
                 </button>
                 <button
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
                   onClick={() => {
                     emitClick('ui:prompt:camera')
                     onOpenCamera()
@@ -190,7 +190,7 @@ export function PromptDock({
                   <span>Add camera</span>
                 </button>
                 <button
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted transition-colors"
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
                   onClick={() => {
                     emitClick('ui:prompt:settings')
                     onOpenSettings()
@@ -225,7 +225,7 @@ export function PromptDock({
                 href="https://one.ie"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-blue-400 hover:underline"
+                className="text-xs text-[hsl(var(--color-primary-bright))] hover:underline"
               >
                 https://one.ie
               </a>
@@ -260,7 +260,7 @@ export function PromptDock({
                           onQuickAddModel()
                         }
                       }}
-                      className="flex-1 px-3 py-1.5 text-sm rounded-md border bg-background"
+                      className="flex-1 px-3 py-1.5 text-sm rounded-md border border-border bg-background text-font"
                     />
                     <Button
                       size="sm"
@@ -279,7 +279,7 @@ export function PromptDock({
                       href="https://openrouter.ai/models"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
+                      className="text-[hsl(var(--color-primary-bright))] hover:underline"
                     >
                       openrouter.ai/models
                     </a>
@@ -395,7 +395,7 @@ export function PromptDock({
             className={cn(
               'gap-2 shadow-lg hover:shadow-xl active:shadow-md transition-all',
               isLoading
-                ? 'bg-red-500 text-white hover:bg-red-600'
+                ? 'bg-destructive text-white hover:bg-destructive/80'
                 : 'bg-[hsl(var(--color-primary))] text-[hsl(var(--color-primary-foreground))] hover:bg-[hsl(var(--color-primary))]/90',
             )}
             onClick={() => {

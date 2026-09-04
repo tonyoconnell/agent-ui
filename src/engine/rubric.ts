@@ -1,30 +1,50 @@
 /**
  * RUBRIC — markDims: emit 4 weighted tagged edges per cycle result
  *
- * Four dimensions: fit (0.35) · form (0.20) · truth (0.30) · taste (0.15)
- * Each dimension becomes a separate tagged edge: edge:fit, edge:form, …
+ * Two rubrics:
+ *   msg  — fit (0.35) · form (0.20) · truth (0.30) · taste (0.15)    agent responses
+ *   code — security (0.35) · stability (0.30) · simplicity (0.25) · speed (0.10)  /do W4
+ *
+ * Each dimension becomes a separate tagged edge: edge:fit, edge:security, …
  *
  * Threshold:
  *   score >= 0.5 → mark(edge:dim,  score  × weight)   — path strengthens
  *   score <  0.5 → warn(edge:dim, (1-score) × weight)  — path resists
  *
- * See docs/rubrics.md for full gate semantics (w4Verify lives in rubric-score.ts).
+ * See one/rubrics.md + one/do-guide.md §4.2 for the two-rubric reconciliation.
  */
 
 import type { PersistentWorld } from './persist'
 
-export const DEFAULT_WEIGHTS = {
+export const MSG_WEIGHTS = {
   fit: 0.35,
   form: 0.2,
   truth: 0.3,
   taste: 0.15,
 } as const
 
+export const CODE_WEIGHTS = {
+  security: 0.35,
+  stability: 0.3,
+  simplicity: 0.25,
+  speed: 0.1,
+} as const
+
+// Back-compat alias — pre-existing callers (signal.ts, persist.ts) import DEFAULT_WEIGHTS.
+export const DEFAULT_WEIGHTS = MSG_WEIGHTS
+
 export type DimScores = {
   fit: number
   form: number
   truth: number
   taste: number
+}
+
+export type CodeDimScores = {
+  security: number
+  stability: number
+  simplicity: number
+  speed: number
 }
 
 export type DimWeights = {
@@ -63,6 +83,27 @@ export function markDims(net: Net, edge: string, scores: DimScores, dimensions?:
     const taggedEdge = `${edge}:${dim}`
     const score = scores[dim]
     const weight = weights[dim]
+    if (score >= 0.5) {
+      net.mark(taggedEdge, score * weight)
+    } else {
+      net.warn(taggedEdge, (1 - score) * weight)
+    }
+  }
+}
+
+/**
+ * Emit 4 tagged-edge pheromone deposits for a /do code-rubric result.
+ *
+ * Mirror of markDims for the code rubric (security/stability/simplicity/speed).
+ * Same threshold semantics: >= 0.5 mark, < 0.5 warn. Caller controls the edge
+ * prefix — pass 'loop:code:cycle' to get `loop:code:cycle:security` etc.
+ */
+export function markCodeDims(net: Net, edge: string, scores: CodeDimScores): void {
+  const dims = ['security', 'stability', 'simplicity', 'speed'] as const
+  for (const dim of dims) {
+    const taggedEdge = `${edge}:${dim}`
+    const score = scores[dim]
+    const weight = CODE_WEIGHTS[dim]
     if (score >= 0.5) {
       net.mark(taggedEdge, score * weight)
     } else {

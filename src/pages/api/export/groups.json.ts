@@ -15,7 +15,7 @@ export const GET: APIRoute = async () => {
     id,
     name: id.charAt(0).toUpperCase() + id.slice(1),
     type: 'team',
-    color: '#6366f1',
+    color: 'hsl(var(--color-primary-bright))',
     members,
   }))
 

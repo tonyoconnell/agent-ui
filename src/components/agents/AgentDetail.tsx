@@ -252,13 +252,13 @@ function AgentMemory({ agentId }: { agentId: string }) {
   const confidenceBadge = (conf: number) => {
     if (conf >= 0.85)
       return (
-        <Badge className="text-[10px] bg-emerald-900/60 text-emerald-300 border-emerald-700/50 hover:bg-emerald-900/60">
+        <Badge className="text-[10px] bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright))] border-[hsl(var(--color-tertiary-bright)/0.3)] hover:bg-[hsl(var(--color-tertiary-bright)/0.15)]">
           confirmed
         </Badge>
       )
     if (conf >= 0.5)
       return (
-        <Badge className="text-[10px] bg-amber-900/60 text-amber-300 border-amber-700/50 hover:bg-amber-900/60">
+        <Badge className="text-[10px] bg-[hsl(var(--color-gold)/0.15)] text-[hsl(var(--color-gold))] border-[hsl(var(--color-gold)/0.3)] hover:bg-[hsl(var(--color-gold)/0.15)]">
           testing
         </Badge>
       )
@@ -414,13 +414,13 @@ function ConversationHistory({ agentId }: { agentId: string }) {
   const confidenceBadge = (conf: number) => {
     if (conf >= 0.85)
       return (
-        <Badge className="text-[10px] bg-emerald-900/60 text-emerald-300 border-emerald-700/50 hover:bg-emerald-900/60">
+        <Badge className="text-[10px] bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright))] border-[hsl(var(--color-tertiary-bright)/0.3)] hover:bg-[hsl(var(--color-tertiary-bright)/0.15)]">
           confirmed
         </Badge>
       )
     if (conf >= 0.5)
       return (
-        <Badge className="text-[10px] bg-amber-900/60 text-amber-300 border-amber-700/50 hover:bg-amber-900/60">
+        <Badge className="text-[10px] bg-[hsl(var(--color-gold)/0.15)] text-[hsl(var(--color-gold))] border-[hsl(var(--color-gold)/0.3)] hover:bg-[hsl(var(--color-gold)/0.15)]">
           testing
         </Badge>
       )

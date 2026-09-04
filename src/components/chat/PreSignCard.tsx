@@ -58,7 +58,7 @@ export function PreSignCard({ payload: rawPayload, onSign, onReject }: PreSignCa
   }
 
   return (
-    <Card className="border-[#252538] bg-[#161622] text-slate-100 w-full max-w-sm">
+    <Card className="border-border bg-card text-font w-full max-w-sm">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Fingerprint className="h-5 w-5 text-primary" />
@@ -68,21 +68,21 @@ export function PreSignCard({ payload: rawPayload, onSign, onReject }: PreSignCa
 
       <CardContent className="space-y-4">
         {/* Tx summary */}
-        <p className="text-sm text-slate-300">{payload.txSummary}</p>
+        <p className="text-sm text-foreground">{payload.txSummary}</p>
 
         {/* Recipient row */}
         <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-400">To</span>
-          <span className="font-mono text-slate-200">{toDisplay}</span>
+          <span className="text-muted-foreground">To</span>
+          <span className="font-mono text-font">{toDisplay}</span>
         </div>
 
         {/* Countdown */}
         <div className="flex items-center justify-between text-sm">
-          <span className="flex items-center gap-1 text-slate-400">
+          <span className="flex items-center gap-1 text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
             Expires in
           </span>
-          <span className={isExpired ? 'text-destructive font-semibold' : 'text-slate-200'}>
+          <span className={isExpired ? 'text-destructive font-semibold' : 'text-font'}>
             {isExpired ? 'Expired' : formatCountdown(msRemaining)}
           </span>
         </div>
@@ -115,7 +115,7 @@ export function PreSignCard({ payload: rawPayload, onSign, onReject }: PreSignCa
           type="button"
           onClick={handleReject}
           disabled={isPending}
-          className="text-sm text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
+          className="text-sm text-muted-foreground hover:text-font transition-colors disabled:opacity-50"
         >
           Cancel
         </button>

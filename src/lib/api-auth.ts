@@ -12,7 +12,7 @@
 
 import { getKeyPrefix, verifyKey } from '@/lib/api-key'
 import { auth } from '@/lib/auth'
-import { ensureHumanUnit } from '@/lib/human-unit'
+import { ensureHumanUnit } from '@/lib/human-actor'
 
 // Re-export for backward compatibility
 export { ensureHumanUnit }
@@ -32,7 +32,7 @@ export interface AuthContext {
   role?: string
   scopeGroups?: string[]
   scopeSkills?: string[]
-  realUser?: string // originating human identity when acting as another unit
+  realUser?: string // originating human identity when acting as another actor
   actAs?: string // explicit act-as request (validated, identity swapped)
   ownerOf?: string[] // agents this user has chairman membership in
   tier?: Tier // Platform BaaS tier (free|builder|scale|world|enterprise). Populated when locals is passed.
@@ -307,7 +307,7 @@ export async function getRoleForUser(uid: string, gid?: string): Promise<string 
   const groupFilter = gid ? `$g isa group, has gid "${safeGid}";` : ''
   try {
     const rows = await readParsed(
-      `match $u isa unit, has uid "${safeUid}";
+      `match $u isa actor, has aid "${safeUid}";
        ${groupFilter}
        (member: $u, group: $g) isa membership, has member-role $r;
        select $r; limit 1;`,
@@ -317,7 +317,7 @@ export async function getRoleForUser(uid: string, gid?: string): Promise<string 
 
     if (!gid) return undefined
     const ancestorRows = await readParsed(
-      `match $u isa unit, has uid "${safeUid}";
+      `match $u isa actor, has aid "${safeUid}";
        $child isa group, has gid "${safeGid}";
        let $ancestor in ancestors-of($child);
        (member: $u, group: $ancestor) isa membership, has member-role $r;
@@ -336,7 +336,7 @@ export async function getGroupsForUser(
   const safeUid = uid.replace(/[^a-zA-Z0-9_:.-]/g, '')
   try {
     const rows = await readParsed(`
-      match $u isa unit, has uid "${safeUid}";
+      match $u isa actor, has aid "${safeUid}";
       (member: $u, group: $g) isa membership, has member-role $r;
       $g has gid $gid, has name $gname;
       select $gid, $gname, $r;
@@ -513,7 +513,7 @@ export async function resolveUnitFromSession(request: Request, locals?: App.Loca
     const ownershipGroup = `g:owns:${actAsTarget}`
     const membershipRows = await readParsed(`
       match
-        $u isa unit, has uid "${esc(uid)}";
+        $u isa actor, has aid "${esc(uid)}";
         $g isa group, has gid "${esc(ownershipGroup)}";
         (member: $u, group: $g) isa membership, has member-role $r;
         select $r;

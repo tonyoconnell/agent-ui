@@ -154,18 +154,18 @@ export function OntologyPrefs({
   // ── Shared element classes ───────────────────────────────────────────────────
 
   const inputCls = cn(
-    'w-full rounded bg-[#161622] border border-[#252538] px-2 py-1 text-xs text-slate-200',
-    'focus:outline-none focus:border-[#3b82f6] transition',
+    'w-full rounded bg-card border border-border px-2 py-1 text-xs text-font',
+    'focus:outline-none focus:border-primary-bright transition',
   )
 
   const actionBtnCls = cn(
-    'rounded-md border border-[#252538] bg-[#161622] px-2 py-1 text-xs text-slate-100',
-    'hover:border-[#3b82f6] transition',
+    'rounded-md border border-border bg-card px-2 py-1 text-xs text-font',
+    'hover:border-primary-bright transition',
   )
 
   const disabledInputCls = cn(inputCls, 'cursor-not-allowed opacity-50')
   const disabledBtnCls = cn(
-    'rounded-md border border-transparent bg-transparent px-2 py-1 text-xs text-slate-600',
+    'rounded-md border border-transparent bg-transparent px-2 py-1 text-xs text-muted-foreground/60',
     'cursor-not-allowed',
   )
 
@@ -174,22 +174,22 @@ export function OntologyPrefs({
   return (
     <aside
       className={cn(
-        'fixed top-0 right-0 h-full w-80 bg-[#0d0d14] border-l border-[#252538]',
-        'z-50 flex flex-col transition-transform duration-200 text-slate-200',
+        'fixed top-0 right-0 h-full w-80 bg-card border-l border-border',
+        'z-50 flex flex-col transition-transform duration-200 text-font',
         open ? 'translate-x-0' : 'translate-x-full',
       )}
       aria-hidden={!open}
     >
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-[#252538] px-3 py-2 shrink-0">
-        <span className="text-[10px] uppercase tracking-wider text-slate-500">Customize</span>
+      <header className="flex items-center justify-between border-b border-border px-3 py-2 shrink-0">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Customize</span>
         <button
           type="button"
           onClick={() => {
             emitClick('ui:ontology:prefs-close', { gid })
             onClose()
           }}
-          className="rounded px-1.5 py-0.5 text-xs text-slate-400 hover:bg-[#161622] hover:text-slate-100 transition"
+          className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-font transition"
           aria-label="Close preferences"
         >
           ✕
@@ -201,8 +201,8 @@ export function OntologyPrefs({
         {/* ── Section 1: Vocabulary ──────────────────────────────────────── */}
         <section className="space-y-3">
           <div>
-            <div className="text-xs font-medium text-slate-200">Vocabulary</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">What this group calls each dimension</div>
+            <div className="text-xs font-medium text-font">Vocabulary</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">What this group calls each dimension</div>
           </div>
 
           <div className="space-y-2">
@@ -210,7 +210,7 @@ export function OntologyPrefs({
               <div key={key} className="flex items-center gap-2">
                 <label
                   htmlFor={`label-${key}`}
-                  className="w-14 shrink-0 text-[10px] uppercase tracking-wider text-slate-500"
+                  className="w-14 shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground"
                 >
                   {DIMENSION_DISPLAY[key]}
                 </label>
@@ -230,24 +230,26 @@ export function OntologyPrefs({
           <button
             type="button"
             onClick={handleReset}
-            className="text-[10px] text-slate-500 hover:text-[#3b82f6] transition underline underline-offset-2"
+            className="text-[10px] text-muted-foreground hover:text-primary-bright transition underline underline-offset-2"
           >
             Reset to defaults
           </button>
         </section>
 
         {/* ── Section 2: Group parameters ───────────────────────────────── */}
-        <section className="space-y-3 border-t border-[#252538] pt-4">
+        <section className="space-y-3 border-t border-border pt-4">
           <div>
-            <div className="text-xs font-medium text-slate-200">Group parameters</div>
+            <div className="text-xs font-medium text-font">Group parameters</div>
             {!isChairman && (
-              <div className="text-[10px] text-slate-500 mt-0.5">Chairman role required to edit. Reading is fine.</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                Chairman role required to edit. Reading is fine.
+              </div>
             )}
           </div>
 
           {/* Group name */}
           <div className="space-y-1">
-            <div className="text-[10px] uppercase tracking-wider text-slate-500">Group name</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Group name</div>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -274,8 +276,8 @@ export function OntologyPrefs({
           {/* Sensitivity */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">Sensitivity</div>
-              <span className="text-[10px] text-slate-400 font-mono">{localSensitivity.toFixed(2)}</span>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Sensitivity</div>
+              <span className="text-[10px] text-muted-foreground font-mono">{localSensitivity.toFixed(2)}</span>
             </div>
             <div className="flex gap-2 items-center">
               <input
@@ -287,7 +289,7 @@ export function OntologyPrefs({
                 onChange={(e) => setLocalSensitivity(Number(e.currentTarget.value))}
                 disabled={!isChairman}
                 title={!isChairman ? 'Chairman role required' : undefined}
-                className={cn('flex-1 accent-[#3b82f6]', !isChairman && 'cursor-not-allowed opacity-50')}
+                className={cn('flex-1 accent-primary-bright', !isChairman && 'cursor-not-allowed opacity-50')}
                 aria-label="Sensitivity"
               />
               <button
@@ -306,8 +308,8 @@ export function OntologyPrefs({
           {/* Fade rate */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">Fade rate</div>
-              <span className="text-[10px] text-slate-400 font-mono">{localFadeRate.toFixed(2)}</span>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Fade rate</div>
+              <span className="text-[10px] text-muted-foreground font-mono">{localFadeRate.toFixed(2)}</span>
             </div>
             <div className="flex gap-2 items-center">
               <input
@@ -319,7 +321,7 @@ export function OntologyPrefs({
                 onChange={(e) => setLocalFadeRate(Number(e.currentTarget.value))}
                 disabled={!isChairman}
                 title={!isChairman ? 'Chairman role required' : undefined}
-                className={cn('flex-1 accent-[#3b82f6]', !isChairman && 'cursor-not-allowed opacity-50')}
+                className={cn('flex-1 accent-primary-bright', !isChairman && 'cursor-not-allowed opacity-50')}
                 aria-label="Fade rate"
               />
               <button
@@ -338,8 +340,8 @@ export function OntologyPrefs({
           {/* Toxicity threshold */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">Toxicity threshold</div>
-              <span className="text-[10px] text-slate-400 font-mono">{localToxicity}</span>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Toxicity threshold</div>
+              <span className="text-[10px] text-muted-foreground font-mono">{localToxicity}</span>
             </div>
             <div className="flex gap-2 items-center">
               <input
@@ -351,7 +353,7 @@ export function OntologyPrefs({
                 onChange={(e) => setLocalToxicity(Number(e.currentTarget.value))}
                 disabled={!isChairman}
                 title={!isChairman ? 'Chairman role required' : undefined}
-                className={cn('flex-1 accent-[#3b82f6]', !isChairman && 'cursor-not-allowed opacity-50')}
+                className={cn('flex-1 accent-primary-bright', !isChairman && 'cursor-not-allowed opacity-50')}
                 aria-label="Toxicity threshold"
               />
               <button

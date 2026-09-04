@@ -90,7 +90,7 @@ When creating charts, use this format:
     {
       "label": "Data Series",
       "data": [100, 200],
-      "color": "#10b981"
+      "color": "hsl(var(--color-tertiary-bright))"
     }
   ]
 }

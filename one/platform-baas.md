@@ -224,7 +224,7 @@ This matters for the BaaS pitch:
 - **Permission = Role × Pheromone.** Membership role (chairman, ceo,
   operator, agent, board, auditor) + path strength = authorization.
   RBAC + ABAC + ReBAC compose in one TQL query. No OPA sidecar, no
-  IAM service. Per [auth.md § Governance](auth.md) (locked 2026-04-18).
+  IAM service. Per [auth.md § Governance](one-ie/dev.one.ie/one/auth.md) (locked 2026-04-18).
 - **Two auth front doors, one contract.** Humans sign in via BetterAuth
   cookies; CLI + SDK callers use API keys. Both resolve to the same
   `AuthContext = { user, role, permissions, keyId, isValid }` via
@@ -561,8 +561,7 @@ need state, memory, pheromone-style learning, agent discovery, and
 x402 commerce. The graph is the durable asset; routing is the on-ramp.
 
 ### "What about enterprise compliance and data isolation?"
-Covered by the governance layer locked 2026-04-18 (per [auth.md §
-Governance](auth.md)). RBAC via `membership.role`, ABAC via TQL
+Covered by the governance layer locked 2026-04-18 (per [](one-ie/dev.one.ie/one/auth.md)). RBAC via `membership.role`, ABAC via TQL
 attribute policies, ReBAC via pheromone path state — all in one query,
 no IAM sidecar. Data isolation comes from group hierarchy: a World tier
 customer becomes a tree root with scoped paths and private signals.
@@ -632,7 +631,7 @@ Read this doc before planning. Read the TODO when building.
 - [release.md](release.md) — `/release` → `/releases/` bundle (agents + docs + sdk + mcp + .claude + web)
 - [buy-and-sell.md](buy-and-sell.md) — LIST / DISCOVER / EXECUTE / SETTLE mechanics for commerce verbs
 - [platform-baas-todo.md](platform-baas-todo.md) — 4 cycles, 32 tasks, waves + rubric
-- [auth.md](auth.md) — identity, API keys, wallets, BetterAuth + agent onboarding, governance
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — identity, API keys, wallets, BetterAuth + agent onboarding, governance
 - [groups.md](groups.md) — multi-tenancy, personal + world + org hierarchy, RBAC+ABAC+ReBAC
 - [groups-todo.md](groups-todo.md) — personal group auto-create + schema additions (PROPOSED)
 - [pricing.md](pricing.md) — 5 tiers, loop gates, revenue projections

@@ -24,10 +24,10 @@ define
 
 # Move: struct Unit has key, store { id: UID, tasks: VecMap<String, address> }
 # Sui: Owned object — fast path, no consensus needed
-entity unit,
-    owns unit-id @key,
+entity actor,
+    owns aid @key,
     owns name,
-    owns unit-type,               # "agent", "llm", "oracle", "worker"
+    owns actor-type,               # "agent", "llm", "oracle", "worker"
     owns owner,                   # Sui address (who controls this unit)
     owns status,                  # "active", "proven", "at-risk", "dissolved"
     owns success-rate,            # 0.0 - 1.0
@@ -108,7 +108,7 @@ relation escrow,
 # ATTRIBUTES
 # =============================================================================
 
-attribute unit-id, value string;
+attribute aid, value string;
 attribute gid, value string;
 attribute signal-id, value string;
 attribute path-id, value string;
@@ -120,7 +120,7 @@ attribute owner, value string;
 attribute receiver, value string;
 attribute sender, value string;
 attribute task-name, value string;
-attribute unit-type, value string;
+attribute actor-type, value string;
 attribute group-type, value string;
 attribute path-type, value string;
 attribute status, value string;
@@ -181,26 +181,26 @@ rule toxic-flow:
 # --- Unit Status (Classification — from ants-at-work Pattern 1) ---
 
 # Move: emit(UnitProven { unit_id })
-rule proven-unit:
+rule proven-actor:
     when {
-        $u isa unit, has success-rate $sr, has activity-score $as, has sample-count $sc;
+        $u isa actor, has success-rate $sr, has activity-score $as, has sample-count $sc;
         $sr >= 0.75; $as >= 50.0; $sc >= 30;
         $f (target: $u) isa path, has strength $s;
         $s >= 20.0;
     } then { $u has status "proven"; };
 
 # Move: emit(UnitAtRisk { unit_id })
-rule at-risk-unit:
+rule at-risk-actor:
     when {
-        $u isa unit;
+        $u isa actor;
         $f (target: $u) isa path, has resistance $r, has strength $s;
         $r > $s; $r >= 10.0;
     } then { $u has status "at-risk"; };
 
 # Move: emit(UnitDissolved { unit_id }) — apoptosis (Spark 6)
-rule dissolved-unit:
+rule dissolved-actor:
     when {
-        $u isa unit, has activity-score $as, has sample-count $sc;
+        $u isa actor, has activity-score $as, has sample-count $sc;
         $as < 1.0; $sc >= 10;
         not { $f (target: $u) isa path, has strength $s; $s >= 1.0; };
     } then { $u has status "dissolved"; };
@@ -237,23 +237,23 @@ rule escrow-expired:
 
 # --- Discovery (the core value) ---
 
-fun best($type: string) -> unit:
+fun best($type: string) -> actor:
     match
-        $u isa unit, has unit-type $type, has status "proven";
+        $u isa actor, has actor-type $type, has status "proven";
         $f (target: $u) isa path, has strength $s;
     sort $s desc; limit 1;
     return $u;
 
-fun proven() -> { unit }:
-    match $u isa unit, has status "proven";
+fun proven() -> { actor }:
+    match $u isa actor, has status "proven";
     return { $u };
 
-fun at_risk() -> { unit }:
-    match $u isa unit, has status "at-risk";
+fun at_risk() -> { actor }:
+    match $u isa actor, has status "at-risk";
     return { $u };
 
-fun dissolved() -> { unit }:
-    match $u isa unit, has status "dissolved";
+fun dissolved() -> { actor }:
+    match $u isa actor, has status "dissolved";
     return { $u };
 
 # --- Flow Analysis ---
@@ -284,13 +284,13 @@ fun closing() -> { flow }:
 
 fun confidence($type: string) -> double:
     match
-        $u isa unit, has unit-type $type;
+        $u isa actor, has actor-type $type;
         $f (target: $u) isa path, has strength $s;
     return sum($s) / 100.0;
 
 # --- Colony Analysis ---
 
-fun group_members($gid: string) -> { unit }:
+fun group_members($gid: string) -> { actor }:
     match
         $g isa group, has gid $gid;
         $m (group: $g, member: $u) isa membership;
@@ -313,7 +313,7 @@ fun splitting_groups() -> { group }:
 
 fun success_rate($uid: string) -> double:
     match
-        $u isa unit, has unit-id $uid;
+        $u isa actor, has aid $uid;
         $f (target: $u) isa path, has hits $h, has misses $m;
     return sum($h) / (sum($h) + sum($m));
 

@@ -23,9 +23,9 @@ export function MemoryCard({ data, onClose }: Props) {
   }
 
   const confidenceColor = (confidence: number) => {
-    if (confidence >= 0.7) return 'bg-green-500/20 text-green-400 border-green-500/30'
-    if (confidence >= 0.5) return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-    return 'bg-slate-500/20 text-slate-400 border-slate-500/30'
+    if (confidence >= 0.7) return 'bg-tertiary/20 text-tertiary-bright border-tertiary/40'
+    if (confidence >= 0.5) return 'bg-gold/20 text-gold border-gold/40'
+    return 'bg-muted text-muted-foreground border-border'
   }
 
   const recentSignals = signals.slice(-5)
@@ -35,15 +35,15 @@ export function MemoryCard({ data, onClose }: Props) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-0.5">
-          <span className="font-bold text-slate-100">{actor.uid}</span>
-          <span className="text-xs text-slate-500">{actor.kind}</span>
-          <span className="text-xs text-slate-500">Since {new Date(actor.firstSeen).toLocaleDateString()}</span>
+          <span className="font-bold text-font">{actor.uid}</span>
+          <span className="text-xs text-muted-foreground">{actor.kind}</span>
+          <span className="text-xs text-muted-foreground">Since {new Date(actor.firstSeen).toLocaleDateString()}</span>
         </div>
         {onClose && (
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 text-slate-400 hover:text-slate-100"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-font"
             onClick={() => {
               emitClick('ui:memory:close')
               onClose()
@@ -57,11 +57,11 @@ export function MemoryCard({ data, onClose }: Props) {
       {/* Hypotheses */}
       {hypotheses.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Learned</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Learned</p>
           <div className="flex flex-col gap-1.5">
             {hypotheses.map((h, i) => (
               <div key={i} className="flex items-start justify-between gap-2">
-                <span className="text-slate-300 flex-1">{h.pattern}</span>
+                <span className="text-foreground flex-1">{h.pattern}</span>
                 <span
                   className={`shrink-0 rounded border px-1.5 py-0.5 text-xs font-medium ${confidenceColor(h.confidence)}`}
                 >
@@ -76,15 +76,18 @@ export function MemoryCard({ data, onClose }: Props) {
       {/* Highways */}
       {highways.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Proven paths</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Proven paths</p>
           <div className="flex flex-col gap-1.5">
             {highways.map((h, i) => (
               <div key={i} className="flex flex-col gap-0.5">
-                <span className="text-slate-300">
+                <span className="text-foreground">
                   {h.from} → {h.to}
                 </span>
-                <div className="h-1 w-[100px] rounded-full bg-slate-700">
-                  <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.min(100, h.strength)}%` }} />
+                <div className="h-1 w-[100px] rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary-bright"
+                    style={{ width: `${Math.min(100, h.strength)}%` }}
+                  />
                 </div>
               </div>
             ))}
@@ -95,10 +98,10 @@ export function MemoryCard({ data, onClose }: Props) {
       {/* Groups */}
       {groups.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Groups</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Groups</p>
           <div className="flex flex-wrap gap-1">
             {groups.map((group, i) => (
-              <Badge key={i} variant="outline" className="text-xs text-slate-300 border-slate-600">
+              <Badge key={i} variant="outline" className="text-xs text-foreground border-border">
                 {group}
               </Badge>
             ))}
@@ -109,12 +112,12 @@ export function MemoryCard({ data, onClose }: Props) {
       {/* Capabilities */}
       {capabilities.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Skills</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Skills</p>
           <div className="flex flex-col gap-1">
             {capabilities.map((cap, i) => (
-              <div key={i} className="flex items-center justify-between text-slate-300">
+              <div key={i} className="flex items-center justify-between text-foreground">
                 <span>{cap.name}</span>
-                <span className="text-slate-500 text-xs">{cap.price > 0 ? `$${cap.price}` : 'free'}</span>
+                <span className="text-muted-foreground text-xs">{cap.price > 0 ? `$${cap.price}` : 'free'}</span>
               </div>
             ))}
           </div>
@@ -124,10 +127,10 @@ export function MemoryCard({ data, onClose }: Props) {
       {/* Frontier */}
       {frontier.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Unexplored</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Unexplored</p>
           <div className="flex flex-wrap gap-1">
             {frontier.map((tag, i) => (
-              <Badge key={i} variant="outline" className="text-xs text-slate-500 border-slate-700">
+              <Badge key={i} variant="outline" className="text-xs text-muted-foreground border-border">
                 {tag}
               </Badge>
             ))}
@@ -138,12 +141,14 @@ export function MemoryCard({ data, onClose }: Props) {
       {/* Recent signals */}
       {recentSignals.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Recent</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Recent</p>
           <div className="flex flex-col gap-1">
             {recentSignals.map((signal, i) => (
               <div key={i} className="flex items-center gap-2">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${signal.success ? 'bg-green-500' : 'bg-red-500'}`} />
-                <span className="text-slate-400 truncate">
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${signal.success ? 'bg-tertiary-bright' : 'bg-destructive'}`}
+                />
+                <span className="text-muted-foreground truncate">
                   {signal.data.length > 40 ? `${signal.data.slice(0, 40)}…` : signal.data}
                 </span>
               </div>
@@ -157,7 +162,7 @@ export function MemoryCard({ data, onClose }: Props) {
         <Button
           variant="outline"
           size="sm"
-          className="text-xs text-slate-400 border-slate-700 hover:text-slate-100 hover:border-slate-500"
+          className="text-xs text-muted-foreground border-border hover:text-font hover:border-border"
           onClick={() => {
             emitClick('ui:memory:export')
             handleExport()

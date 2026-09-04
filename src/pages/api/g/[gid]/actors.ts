@@ -1,8 +1,8 @@
 /**
- * GET /api/g/:gid/units — Public units for a specific group
+ * GET /api/g/:gid/actors — Public actors for a specific group
  *
- * Mirrors /api/export/units but filtered by group membership.
- * Returns units that belong to the given group only.
+ * Mirrors /api/export/actors but filtered by group membership.
+ * Returns actors that belong to the given group only.
  * No auth required — public data.
  */
 import type { APIRoute } from 'astro'
@@ -10,7 +10,7 @@ import { readParsed } from '@/lib/typedb'
 
 export const prerender = false
 
-type UnitListing = {
+type ActorListing = {
   uid: string
   name: string
   kind?: string
@@ -25,17 +25,17 @@ export const GET: APIRoute = async ({ params }) => {
     const rows = await readParsed(`
       match
         $g isa group, has gid "${gid}";
-        $u isa unit, has uid $id, has name $n;
+        $u isa actor, has aid $id, has name $n;
         (member: $u, group: $g) isa membership;
       select $id, $n;
     `)
 
-    const units: UnitListing[] = rows.map((r) => ({
+    const actors: ActorListing[] = rows.map((r) => ({
       uid: r.id as string,
       name: r.n as string,
     }))
 
-    return Response.json(units, {
+    return Response.json(actors, {
       headers: { 'Cache-Control': 'public, max-age=5' },
     })
   } catch {

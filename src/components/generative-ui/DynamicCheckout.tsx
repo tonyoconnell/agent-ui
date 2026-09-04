@@ -105,7 +105,7 @@ export function DynamicCheckout({ data }: { data: CheckoutData }) {
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Shipping:</span>
-            <span className="font-bold text-green-600">FREE</span>
+            <span className="font-bold text-[hsl(var(--color-tertiary-bright))]">FREE</span>
           </div>
           <div className="flex justify-between items-center pt-3 border-t">
             <span className="font-semibold">Total:</span>

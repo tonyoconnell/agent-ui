@@ -54,12 +54,12 @@ const DEFAULT_LAYERS: LayerState = {
 }
 
 const COLORS = {
-  groups: '#6366f1',
-  people: '#3b82f6',
-  things: '#10b981',
-  paths: '#f59e0b',
-  events: '#fbbf24',
-  insight: '#a855f7',
+  groups: 'hsl(var(--color-primary-bright))',
+  people: 'hsl(var(--color-primary-bright))',
+  things: 'hsl(var(--color-tertiary-bright))',
+  paths: 'hsl(var(--color-gold))',
+  events: 'hsl(var(--color-gold))',
+  insight: 'hsl(var(--color-secondary-bright))',
 } as const
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
@@ -394,10 +394,10 @@ function OntologyEditorInner({ initialGroup, isAuthenticated }: Props) {
       })(),
     }
     setExtraNodes((prev) => [...prev, newNode])
-    emitClick('ui:ontology:add-unit', { kind, id })
+    emitClick('ui:ontology:add-actor', { kind, id })
     // Show TqlPreview so the owner can optionally persist the draft
     setPendingAction({
-      kind: 'add-unit',
+      kind: 'add-actor',
       uid: id,
       name: kind,
       actorType: 'agent',
@@ -407,10 +407,10 @@ function OntologyEditorInner({ initialGroup, isAuthenticated }: Props) {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen w-full flex-col bg-[#0a0a0f] text-slate-200">
+    <div className="flex h-screen w-full flex-col bg-background text-font">
       {/* Header */}
-      <header className="flex items-center gap-3 border-b border-[#252538] bg-[#0d0d14] px-4 py-2">
-        <span className="font-mono text-sm text-slate-400">/ontology</span>
+      <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-2">
+        <span className="font-mono text-sm text-muted-foreground">/ontology</span>
         <GroupSwitcher value={group} onChange={handleGroupChange} agents={agentList} />
         <SkinSwitcher variant="compact" />
 
@@ -422,20 +422,20 @@ function OntologyEditorInner({ initialGroup, isAuthenticated }: Props) {
             setPrefsOpen(true)
           }}
           title="Customize vocabulary and group parameters"
-          className="rounded border border-[#252538] px-2 py-0.5 text-xs text-slate-400 hover:bg-[#161622] hover:text-slate-100 transition-colors"
+          className="rounded border border-border px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-font transition-colors"
           aria-label="Open preferences"
         >
           ⚙
         </button>
 
         {/* View / Edit toggle */}
-        <div className="ml-auto flex items-center gap-1 rounded-md border border-[#252538] p-0.5">
+        <div className="ml-auto flex items-center gap-1 rounded-md border border-border p-0.5">
           <button
             type="button"
             onClick={handleModeToggle}
             className={cn(
               'rounded px-2 py-0.5 text-xs',
-              mode === 'view' ? 'bg-[#252538] text-slate-100' : 'text-slate-400',
+              mode === 'view' ? 'bg-border text-font' : 'text-muted-foreground',
             )}
           >
             view
@@ -447,7 +447,7 @@ function OntologyEditorInner({ initialGroup, isAuthenticated }: Props) {
             title={!isAuthenticated ? 'Sign in to edit' : 'Edit mode'}
             className={cn(
               'rounded px-2 py-0.5 text-xs',
-              mode === 'edit' ? 'bg-[#252538] text-slate-100' : 'text-slate-400',
+              mode === 'edit' ? 'bg-border text-font' : 'text-muted-foreground',
               !isAuthenticated && 'cursor-not-allowed opacity-40',
             )}
           >
@@ -462,23 +462,23 @@ function OntologyEditorInner({ initialGroup, isAuthenticated }: Props) {
       {/* Body: left rail + canvas + right inspector */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left rail */}
-        <aside className="w-44 shrink-0 border-r border-[#252538] bg-[#0d0d14] p-3 overflow-y-auto">
+        <aside className="w-44 shrink-0 border-r border-border bg-card p-3 overflow-y-auto">
           <LayerToggle value={layers} onChange={handleLayerChange} colors={COLORS} />
 
           {/* Time slider */}
-          <div className="mt-6 border-t border-[#252538] pt-3">
+          <div className="mt-6 border-t border-border pt-3">
             <TimeSlider value={time} onChange={setTime} />
           </div>
 
-          <div className="mt-4 border-t border-[#252538] pt-3 text-xs text-slate-500">
-            <div>{agentList.length} units</div>
+          <div className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+            <div>{agentList.length} actors</div>
             <div>{highwayList.length} paths</div>
           </div>
         </aside>
 
         {/* Canvas */}
         <main
-          className="relative flex-1 bg-[#0a0a0f]"
+          className="relative flex-1 bg-background"
           onDragOver={(e) => editable && e.preventDefault()}
           onDrop={handleDrop}
         >
@@ -497,13 +497,13 @@ function OntologyEditorInner({ initialGroup, isAuthenticated }: Props) {
             nodesDraggable={editable}
             nodesConnectable={editable}
           >
-            <Background color="#252538" gap={20} />
+            <Background color="hsl(var(--color-border))" gap={20} />
             <Panel
               position="top-right"
-              className="rounded border border-[#252538] bg-[#161622] px-2 py-1 text-xs text-slate-400"
+              className="rounded border border-border bg-muted px-2 py-1 text-xs text-muted-foreground"
             >
               {Object.values(layers).filter(Boolean).length} of 6 layers
-              {editable ? <span className="ml-2 text-emerald-400">edit</span> : null}
+              {editable ? <span className="ml-2 text-tertiary-bright">edit</span> : null}
             </Panel>
             <EditPalette visible={mode === 'edit'} enabled={editable} />
           </ReactFlow>

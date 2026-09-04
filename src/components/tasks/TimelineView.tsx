@@ -22,21 +22,21 @@ type Props = {
 function pillBg(status: Task['task_status']): string {
   switch (status) {
     case 'open':
-      return 'bg-slate-700'
+      return 'bg-muted'
     case 'picked':
-      return 'bg-blue-500/50'
+      return 'bg-[hsl(var(--color-primary-bright)/0.15)]'
     case 'done':
-      return 'bg-amber-500/50'
+      return 'bg-[hsl(var(--color-gold)/0.15)]'
     case 'verified':
-      return 'bg-emerald-500/50'
+      return 'bg-[hsl(var(--color-tertiary-bright)/0.15)]'
     case 'failed':
-      return 'bg-red-500/50'
+      return 'bg-[hsl(var(--color-destructive)/0.15)]'
     case 'blocked':
-      return 'bg-gray-600 opacity-50'
+      return 'bg-muted opacity-50'
     case 'dissolved':
-      return 'bg-red-900/30 opacity-30'
+      return 'bg-[hsl(var(--color-destructive)/0.1)] opacity-30'
     default:
-      return 'bg-slate-700'
+      return 'bg-muted'
   }
 }
 
@@ -75,7 +75,7 @@ function TaskPill({ task, onSelect }: TaskPillProps) {
       type="button"
       title={title}
       onClick={handleClick}
-      className={`inline-flex items-center justify-center rounded px-1.5 h-5 text-[10px] font-mono text-white cursor-pointer border border-white/10 hover:border-white/30 transition-colors${extra} ${bg}`}
+      className={`inline-flex items-center justify-center rounded px-1.5 h-5 text-[10px] font-mono text-font cursor-pointer border border-border hover:border-[hsl(var(--color-primary-mid))] transition-colors${extra} ${bg}`}
       style={{ minWidth: '32px', maxWidth: '60px' }}
     >
       {label}
@@ -85,7 +85,7 @@ function TaskPill({ task, onSelect }: TaskPillProps) {
 
 export function TimelineView({ tasks, onSelect }: Props) {
   if (tasks.length === 0) {
-    return <div className="flex items-center justify-center h-32 text-slate-500 text-sm">No tasks yet</div>
+    return <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">No tasks yet</div>
   }
 
   // ── 1. Build matrix: cycleKey → WaveKey → Task[] ─────────────────────────
@@ -119,13 +119,13 @@ export function TimelineView({ tasks, onSelect }: Props) {
           gridTemplateColumns: `80px repeat(${colCount}, minmax(100px, 1fr))`,
           gridTemplateRows: `32px repeat(5, 72px)`,
           gap: '1px',
-          backgroundColor: '#252538',
+          backgroundColor: 'hsl(var(--color-border))',
         }}
       >
         {/* ── Header row ───────────────────────────────────────────────── */}
 
         {/* Top-left label cell */}
-        <div className="flex items-center justify-center bg-[#0a0a0f] text-[10px] font-mono text-slate-500 px-2">
+        <div className="flex items-center justify-center bg-background text-[10px] font-mono text-muted-foreground px-2">
           Wave ×cycle
         </div>
 
@@ -133,7 +133,7 @@ export function TimelineView({ tasks, onSelect }: Props) {
         {cycles.map((c) => (
           <div
             key={c}
-            className="flex items-center justify-center bg-[#0f0f18] text-xs font-mono text-slate-300 border-b border-[#252538]"
+            className="flex items-center justify-center bg-muted text-xs font-mono text-foreground border-b border-border"
           >
             {c}
           </div>
@@ -143,9 +143,9 @@ export function TimelineView({ tasks, onSelect }: Props) {
         {WAVES.map((wave) => (
           <>
             {/* Left label cell */}
-            <div key={`label-${wave.key}`} className="flex items-center gap-2 px-3 bg-[#0a0a0f]">
+            <div key={`label-${wave.key}`} className="flex items-center gap-2 px-3 bg-background">
               <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: wave.color }} />
-              <span className="text-[11px] font-medium text-slate-300 leading-tight">{wave.label}</span>
+              <span className="text-[11px] font-medium text-foreground leading-tight">{wave.label}</span>
             </div>
 
             {/* Task cells per cycle */}
@@ -154,7 +154,7 @@ export function TimelineView({ tasks, onSelect }: Props) {
               return (
                 <div
                   key={`cell-${wave.key}-${c}`}
-                  className="bg-[#0d0d16] flex flex-wrap content-start gap-1 p-1.5 overflow-hidden"
+                  className="bg-card flex flex-wrap content-start gap-1 p-1.5 overflow-hidden"
                 >
                   {cellTasks.map((t) => (
                     <TaskPill key={t.tid} task={t} onSelect={onSelect} />

@@ -24,7 +24,7 @@ describe('/ontology — C2 edit mode', () => {
 
   it('edit-mode signals follow the ui:ontology:* contract per .claude/rules/ui.md', () => {
     const expectedSignalIds = [
-      'ui:ontology:add-unit', // drag-drop from palette
+      'ui:ontology:add-actor', // drag-drop from palette
       'ui:ontology:draw-path', // ReactFlow onConnect
       'ui:ontology:node-click', // open inspector
       'ui:ontology:inspector-close',

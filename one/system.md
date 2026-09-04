@@ -396,7 +396,7 @@ ontology, and every layer stays consistent forever.
 - [one-ontology.md](one-ontology.md) — The 6 dimensions, formal definitions
 - [dictionary.md](dictionary.md) — Canonical names, dead names, verbs
 - [governance-todo.md](governance-todo.md) — Permission = Role × Pheromone, schema lock
-- [auth.md](auth.md) — API keys, session cookies, role lookup
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — API keys, session cookies, role lookup
 - [routing.md](routing.md) — How signals find their path (deterministic + stochastic)
 - [speed.md](speed.md) — Latency budgets per layer
 - [system-todo.md](system-todo.md) — Known gaps + hardening task list

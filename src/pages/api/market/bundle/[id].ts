@@ -154,7 +154,7 @@ export const GET: APIRoute = async ({ params }) => {
  *
  * Emits a signal with receiver = bundleId (e.g. "bundle:scout:analyst").
  * The substrate routes to the first contained path; cascade runs via .then() continuations
- * on the providing units — the bundle is a facade.
+ * on the providing actors — the bundle is a facade.
  *
  * Body (optional): { data?: unknown }
  */

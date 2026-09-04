@@ -1,7 +1,7 @@
 /**
  * POST /api/marketplace/list — seller LIST endpoint
  *
- * Creates a capability relation in TypeDB so the unit can offer a skill at a price.
+ * Creates a capability relation in TypeDB so the actor can offer a skill at a price.
  * Tier gate: Builder+ only — free tier cannot sell.
  *
  * Body: { receiver: string, price: number, tags?: string[] }
@@ -72,7 +72,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     await write(`
-      match $u isa unit, has uid "${uid.replace(/"/g, '')}";
+      match $u isa actor, has aid "${uid.replace(/"/g, '')}";
       insert $s isa skill, has skill-id "${skillId.replace(/"/g, '')}", has name "${skillName.replace(/"/g, '')}", has price ${price}${tagTql};
              (provider: $u, offered: $s) isa capability, has price ${price};
     `)

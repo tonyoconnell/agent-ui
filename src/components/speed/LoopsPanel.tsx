@@ -71,25 +71,25 @@ export function LoopsPanel() {
         const t = timings?.[key as keyof LoopTimings]
         const fired = t && t.lastAtMs > 0
         return (
-          <div key={key} className="flex items-center gap-2 px-3 py-2 rounded-md bg-slate-800/40">
-            <span className="w-24 font-mono text-xs text-slate-300 shrink-0">{name}</span>
-            <span className="flex-1 text-xs text-slate-500">{desc}</span>
-            <span className="text-xs text-slate-600 shrink-0 w-20 text-right font-mono">{cadence}</span>
+          <div key={key} className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/40">
+            <span className="w-24 font-mono text-xs text-muted-foreground shrink-0">{name}</span>
+            <span className="flex-1 text-xs text-muted-foreground">{desc}</span>
+            <span className="text-xs text-muted-foreground shrink-0 w-20 text-right font-mono">{cadence}</span>
             <span
               className={cn(
                 'text-xs font-mono shrink-0 w-20 text-right',
-                fired ? 'text-emerald-400' : 'text-slate-600',
+                fired ? 'text-[hsl(var(--color-tertiary-bright))]' : 'text-muted-foreground',
               )}
             >
               {fired ? relativeTime(t!.lastAtMs) : '—'}
             </span>
-            <span className="text-xs font-mono text-slate-500 shrink-0 w-16 text-right">
+            <span className="text-xs font-mono text-muted-foreground shrink-0 w-16 text-right">
               {t ? countdown(t.nextAtMs) : '—'}
             </span>
           </div>
         )
       })}
-      {!timings && <p className="text-xs text-slate-600 text-center py-2">loading loop state...</p>}
+      {!timings && <p className="text-xs text-muted-foreground text-center py-2">loading loop state...</p>}
     </div>
   )
 }

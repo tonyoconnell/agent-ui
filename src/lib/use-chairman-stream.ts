@@ -1,5 +1,5 @@
 /**
- * useChairmanStream — Live `unit-hired` subscription via WsHub.
+ * useChairmanStream — Live `actor-hired` subscription via WsHub.
  *
  * Mirrors the reconnect state machine from use-task-websocket.ts:
  *   - Exponential backoff (1s → 30s max, 3 attempts)
@@ -8,14 +8,14 @@
  *     has no polling fallback — it's event-native or it's stale).
  *
  * State:
- *   - units: every 'unit-hired' frame received, accumulated
+ *   - actors: every 'actor-hired' frame received, accumulated
  *   - pending: roles the user requested to hire but which haven't landed yet
  *     (painted as ghost nodes by OrgChart)
  *   - addPending(roles): seed pending synchronously on Build Team click
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { WsMessage, WsUnitHired } from '@/types/task'
+import type { WsActorHired, WsMessage } from '@/types/task'
 
 const GATEWAY_URL = (import.meta.env.PUBLIC_GATEWAY_URL as string | undefined) ?? ''
 
@@ -34,7 +34,7 @@ export interface HiredUnitEvent {
 export interface UseChairmanStreamState {
   connected: boolean
   reconnectAttempt: number
-  units: HiredUnitEvent[]
+  actors: HiredUnitEvent[]
   pending: string[]
   addPending: (roles: string[]) => void
 }
@@ -47,7 +47,7 @@ export function useChairmanStream(): UseChairmanStreamState {
 
   const [connected, setConnected] = useState(false)
   const [attempt, setAttempt] = useState(0)
-  const [units, setUnits] = useState<HiredUnitEvent[]>([])
+  const [actors, setUnits] = useState<HiredUnitEvent[]>([])
   const [pending, setPending] = useState<string[]>([])
 
   const addPending = useCallback((roles: string[]) => {
@@ -56,8 +56,8 @@ export function useChairmanStream(): UseChairmanStreamState {
 
   useEffect(() => {
     const handleMessage = (msg: WsMessage) => {
-      if (msg.type !== 'unit-hired') return
-      const hired = msg as WsUnitHired
+      if (msg.type !== 'actor-hired') return
+      const hired = msg as WsActorHired
       const event: HiredUnitEvent = {
         uid: hired.uid,
         name: hired.uid,
@@ -136,5 +136,5 @@ export function useChairmanStream(): UseChairmanStreamState {
     }
   }, [])
 
-  return { connected, reconnectAttempt: attempt, units, pending, addPending }
+  return { connected, reconnectAttempt: attempt, actors, pending, addPending }
 }

@@ -38,31 +38,31 @@ export function SkillInspector({ skillId, name, price: initialPrice, onClose }: 
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-        <span className="text-sm font-medium text-slate-100">{name}</span>
+        <span className="text-sm font-medium text-font">{name}</span>
         {onClose && (
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-100">
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-font">
             ✕
           </button>
         )}
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-4">
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-slate-400">Price (USD per call)</span>
+          <span className="text-xs text-muted-foreground">Price (USD per call)</span>
           <input
             type="number"
             min={0}
             step={0.01}
             value={price}
             onChange={(e) => setPrice(Number(e.target.value))}
-            className="bg-[#161622] border border-[#252538] rounded px-2 py-1 text-sm text-slate-100 w-full"
+            className="bg-card border border-border rounded px-2 py-1 text-sm text-font w-full"
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-slate-400">Pricing mode</span>
+          <span className="text-xs text-muted-foreground">Pricing mode</span>
           <select
             value={mode}
             onChange={(e) => setMode(e.target.value as Mode)}
-            className="bg-[#161622] border border-[#252538] rounded px-2 py-1 text-sm text-slate-100"
+            className="bg-card border border-border rounded px-2 py-1 text-sm text-font"
           >
             <option value="flat">Flat — fixed fee</option>
             <option value="per-use">Per-use — pay per signal</option>
@@ -70,7 +70,7 @@ export function SkillInspector({ skillId, name, price: initialPrice, onClose }: 
           </select>
         </label>
         <div className="flex flex-col gap-1">
-          <span className="text-xs text-slate-400">Visibility</span>
+          <span className="text-xs text-muted-foreground">Visibility</span>
           <div className="flex gap-1">
             {visOptions.map((v) => (
               <button
@@ -78,7 +78,9 @@ export function SkillInspector({ skillId, name, price: initialPrice, onClose }: 
                 type="button"
                 onClick={() => setVisibility(v)}
                 className={`px-3 py-1 rounded text-xs capitalize ${
-                  visibility === v ? 'bg-indigo-600 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                  visibility === v
+                    ? 'bg-[hsl(var(--color-secondary-bright))] text-white'
+                    : 'bg-muted hover:bg-muted/80 text-foreground'
                 }`}
               >
                 {v}
@@ -90,12 +92,12 @@ export function SkillInspector({ skillId, name, price: initialPrice, onClose }: 
           type="button"
           onClick={save}
           disabled={isPending}
-          className="mt-1 px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-sm text-white self-start"
+          className="mt-1 px-3 py-1 rounded bg-[hsl(var(--color-secondary-bright))] hover:bg-[hsl(var(--color-secondary-mid))] disabled:opacity-50 text-sm text-white self-start"
         >
           {isPending ? 'Saving…' : 'Save'}
         </button>
-        {status === 'ok' && <p className="text-xs text-green-400">Saved.</p>}
-        {status === 'error' && <p className="text-xs text-red-400">Save failed.</p>}
+        {status === 'ok' && <p className="text-xs text-[hsl(var(--color-tertiary-bright))]">Saved.</p>}
+        {status === 'error' && <p className="text-xs text-[hsl(var(--color-destructive))]">Save failed.</p>}
       </div>
     </div>
   )

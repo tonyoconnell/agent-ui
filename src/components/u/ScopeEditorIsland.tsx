@@ -270,8 +270,8 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
           <Card className="border-border/60">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-500/10 ring-1 ring-sky-500/20">
-                  <Wallet className="h-4 w-4 text-sky-400" strokeWidth={1.75} />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--color-primary-bright)/0.15)] ring-1 ring-[hsl(var(--color-primary-bright)/0.2)]">
+                  <Wallet className="h-4 w-4 text-[hsl(var(--color-primary-bright))]" strokeWidth={1.75} />
                 </div>
                 <div>
                   <CardTitle className="text-base font-semibold tracking-tight">Agent Address</CardTitle>
@@ -290,13 +290,13 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
           <Card className="border-border/60">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 ring-1 ring-emerald-500/20">
-                  <Shield className="h-4 w-4 text-emerald-400" strokeWidth={1.75} />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--color-tertiary-bright)/0.15)] ring-1 ring-[hsl(var(--color-tertiary-bright)/0.2)]">
+                  <Shield className="h-4 w-4 text-[hsl(var(--color-tertiary-bright))]" strokeWidth={1.75} />
                 </div>
                 <div>
                   <CardTitle className="text-base font-semibold tracking-tight">Daily Cap</CardTitle>
                   <CardDescription className="text-xs">
-                    Maximum spend per epoch (MIST = smallest SUI unit)
+                    Maximum spend per epoch (MIST = smallest SUI actor)
                   </CardDescription>
                 </div>
               </div>
@@ -314,7 +314,7 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
                   <div
                     className={cn(
                       'h-full rounded-full transition-all',
-                      usedPct >= 90 ? 'bg-rose-400' : usedPct >= 60 ? 'bg-amber-400' : 'bg-emerald-400',
+                      usedPct >= 90 ? 'bg-destructive' : usedPct >= 60 ? 'bg-gold' : 'bg-tertiary-bright',
                     )}
                     style={{ width: `${usedPct}%` }}
                   />
@@ -343,9 +343,11 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
 
               {/* Paused badge */}
               {scope.paused && (
-                <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-                  <AlertCircle className="h-4 w-4 text-amber-400 shrink-0" strokeWidth={1.75} />
-                  <span className="text-xs text-amber-300 font-medium">Wallet is paused — spend() will abort</span>
+                <div className="flex items-center gap-2 rounded-lg border border-[hsl(var(--color-gold)/0.2)] bg-[hsl(var(--color-gold)/0.05)] px-3 py-2">
+                  <AlertCircle className="h-4 w-4 text-[hsl(var(--color-gold))] shrink-0" strokeWidth={1.75} />
+                  <span className="text-xs text-[hsl(var(--color-gold))] font-medium">
+                    Wallet is paused — spend() will abort
+                  </span>
                 </div>
               )}
             </CardContent>
@@ -355,8 +357,8 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
           <Card className="border-border/60">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10 ring-1 ring-violet-500/20">
-                  <Shield className="h-4 w-4 text-violet-400" strokeWidth={1.75} />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--color-secondary-bright)/0.15)] ring-1 ring-[hsl(var(--color-secondary-bright)/0.2)]">
+                  <Shield className="h-4 w-4 text-[hsl(var(--color-secondary-bright))]" strokeWidth={1.75} />
                 </div>
                 <div>
                   <CardTitle className="text-base font-semibold tracking-tight">Allowlist</CardTitle>
@@ -385,7 +387,7 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
                         type="button"
                         aria-label={`Remove ${shortAddr(addr)}`}
                         onClick={() => removeEntry(addr)}
-                        className="ml-3 shrink-0 text-muted-foreground hover:text-rose-400 transition-colors"
+                        className="ml-3 shrink-0 text-muted-foreground hover:text-destructive transition-colors"
                       >
                         <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
                       </button>
@@ -438,7 +440,7 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
                     variant="secondary"
                     className={cn(
                       'rounded-full text-[10px] px-2 py-0',
-                      scope.paused ? 'bg-amber-500/10 text-amber-300' : 'bg-emerald-500/10 text-emerald-300',
+                      scope.paused ? 'bg-gold/10 text-gold' : 'bg-tertiary-bright/10 text-tertiary-bright',
                     )}
                   >
                     {scope.paused ? 'Paused' : 'Active'}
@@ -450,17 +452,17 @@ export function ScopeEditorIsland({ agentId }: ScopeEditorIslandProps) {
 
           {/* Error */}
           {error && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-rose-500/20 bg-rose-500/5 px-3 py-3">
-              <X className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" strokeWidth={1.75} />
-              <p className="text-xs text-rose-300">{error}</p>
+            <div className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-3">
+              <X className="h-4 w-4 text-destructive shrink-0 mt-0.5" strokeWidth={1.75} />
+              <p className="text-xs text-destructive">{error}</p>
             </div>
           )}
 
           {/* Success */}
           {saveOk && !error && (
-            <div className="flex items-center gap-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5">
-              <Shield className="h-4 w-4 text-emerald-400 shrink-0" strokeWidth={1.75} />
-              <p className="text-xs text-emerald-300 font-medium">Scope saved successfully.</p>
+            <div className="flex items-center gap-2.5 rounded-lg border border-[hsl(var(--color-tertiary-bright)/0.2)] bg-[hsl(var(--color-tertiary-bright)/0.05)] px-3 py-2.5">
+              <Shield className="h-4 w-4 text-[hsl(var(--color-tertiary-bright))] shrink-0" strokeWidth={1.75} />
+              <p className="text-xs text-[hsl(var(--color-tertiary-bright))] font-medium">Scope saved successfully.</p>
             </div>
           )}
 

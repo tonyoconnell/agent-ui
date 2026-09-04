@@ -66,7 +66,7 @@ describe('/ontology — C2.5 owner-grade extension', () => {
     const actions = [
       { kind: 'mark' as const, from: 'agent:a', to: 'agent:b', strength: 1 },
       { kind: 'warn' as const, from: 'agent:a', to: 'agent:b', weight: 1 },
-      { kind: 'add-unit' as const, uid: 'agent:new', name: 'new', actorType: 'agent' as const },
+      { kind: 'add-actor' as const, uid: 'agent:new', name: 'new', actorType: 'agent' as const },
       { kind: 'rename-group' as const, gid: 'g:x', oldName: 'old', newName: 'new' },
       { kind: 'set-sensitivity' as const, gid: 'g:x', sensitivity: 0.6 },
       { kind: 'set-fade-rate' as const, gid: 'g:x', fadeRate: 0.05 },

@@ -8,7 +8,7 @@
  * 4. Blocks callers with restricted env (no matching key) → dissolved
  * 5. Fails open on malformed perm-env JSON
  *
- * Strategy: create a world(), inject an llm unit into net.units directly
+ * Strategy: create a world(), inject an llm unit into net.actors directly
  * (units is a Record<string, Unit> on the World interface), signal it,
  * then assert whether mockComplete was called.
  */
@@ -54,7 +54,7 @@ describe('ADL Cycle 2: LLM env permission gate', () => {
 
     const net = world()
     const llmUnit = llm('test-llm', mockComplete)
-    net.units['test-llm'] = llmUnit
+    net.actors['test-llm'] = llmUnit
 
     net.signal({ receiver: 'test-llm:complete', data: { prompt: 'test' } }, 'caller-id')
     await new Promise((r) => setTimeout(r, 50))
@@ -71,7 +71,7 @@ describe('ADL Cycle 2: LLM env permission gate', () => {
 
     const net = world()
     const llmUnit = llm('test-llm', mockComplete)
-    net.units['test-llm'] = llmUnit
+    net.actors['test-llm'] = llmUnit
 
     net.signal({ receiver: 'test-llm:complete', data: { prompt: 'test' } }, 'caller-id')
     await new Promise((r) => setTimeout(r, 50))
@@ -90,7 +90,7 @@ describe('ADL Cycle 2: LLM env permission gate', () => {
 
     const net = world()
     const llmUnit = llm('test-llm', mockComplete)
-    net.units['test-llm'] = llmUnit
+    net.actors['test-llm'] = llmUnit
 
     net.signal({ receiver: 'test-llm:complete', data: { prompt: 'test' } }, 'caller-id')
     await new Promise((r) => setTimeout(r, 50))
@@ -109,7 +109,7 @@ describe('ADL Cycle 2: LLM env permission gate', () => {
 
     const net = world()
     const llmUnit = llm('test-llm', mockComplete)
-    net.units['test-llm'] = llmUnit
+    net.actors['test-llm'] = llmUnit
 
     net.signal({ receiver: 'test-llm:complete', data: { prompt: 'test' } }, 'caller-id')
     await new Promise((r) => setTimeout(r, 50))
@@ -126,7 +126,7 @@ describe('ADL Cycle 2: LLM env permission gate', () => {
 
     const net = world()
     const llmUnit = llm('test-llm', mockComplete)
-    net.units['test-llm'] = llmUnit
+    net.actors['test-llm'] = llmUnit
 
     net.signal({ receiver: 'test-llm:complete', data: { prompt: 'test' } }, 'caller-id')
     await new Promise((r) => setTimeout(r, 50))

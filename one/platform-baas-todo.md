@@ -29,7 +29,7 @@ updated: 2026-04-20
 >
 > **Source of truth:**
 > - [platform-baas.md](platform-baas.md) — **strategy**: why BaaS wins, persona fit, moat, rollout thesis
-> - [auth.md](auth.md) — identity, API keys, BetterAuth + `/api/auth/agent`, wallet derivation, `resolveUnitFromSession`, governance (Role × Pheromone locked 2026-04-18)
+> - [auth.md](one-ie/dev.one.ie/one/auth.md) — identity, API keys, BetterAuth + `/api/auth/agent`, wallet derivation, `resolveUnitFromSession`, governance (Role × Pheromone locked 2026-04-18)
 > - [groups.md](groups.md) — multi-tenancy, personal group auto-create (`group:{uid}`), hierarchy forest, visibility + signal scope, RBAC+ABAC+ReBAC
 > - [groups-todo.md](groups-todo.md) — personal group schema additions + auto-create cycle (PROPOSED)
 > - [pricing.md](pricing.md) — 5 tiers, 3 deploy options, loop gates, revenue projections
@@ -123,7 +123,7 @@ mode and wires tier-based quotas + metering for the connected path.
 |---|---|---|---|
 | T-B1-00a | `packages/cli/src/commands/init.ts` — verify `npx oneie` scaffold runs **standalone**: no `ONE_API_KEY` required, no `api.one.ie` calls in the generated code, LLM calls go direct to OpenRouter with developer's key, `wrangler deploy` works on developer's own CF account. Add a `.env.example` with a commented-out `ONE_API_KEY` line that explains the Layer 0 → Layer 1 upgrade. | edit | release, standalone |
 | T-B1-00b | `packages/cli/src/commands/init.ts` — on scaffold generation, detect whether a `ONE_API_KEY` is present in the developer's env; if yes, inject `import { SubstrateClient } from '@oneie/sdk'` into the claw runtime and wire a fallback `emit → api.one.ie/api/signal` path. If not, leave the scaffold pure-standalone. **Zero-config Layer 1 upgrade**: no code change, just set the env var. | edit | release, connect |
-| T-B1-01 | `src/lib/api-auth.ts` — extend `AuthContext` with `tier: 'free' \| 'builder' \| 'scale' \| 'world' \| 'enterprise'`. Read from `unit` entity owning the key (via `user-id`) and cache alongside existing key cache (5-min TTL); invalidate through existing `invalidateKeyCache(keyId)` path. **Both front doors must populate tier**: `validateApiKey()` for CLI/SDK callers AND `resolveUnitFromSession()` for BetterAuth cookie/bearer sessions (per [auth.md § Unified identity flow](auth.md)). One contract, one cache, two callers. | edit | auth, tier |
+| T-B1-01 | `src/lib/api-auth.ts` — extend `AuthContext` with `tier: 'free' \| 'builder' \| 'scale' \| 'world' \| 'enterprise'`. Read from `unit` entity owning the key (via `user-id`) and cache alongside existing key cache (5-min TTL); invalidate through existing `invalidateKeyCache(keyId)` path. **Both front doors must populate tier**: `validateApiKey()` for CLI/SDK callers AND `resolveUnitFromSession()` for BetterAuth cookie/bearer sessions (per [auth.md § Unified identity flow](one-ie/dev.one.ie/one/auth.md)). One contract, one cache, two callers. | edit | auth, tier |
 | T-B1-02 | `src/lib/tier-limits.ts` — new: `TIER_LIMITS` config (agents, apiCalls/mo, loops[], storage), `checkTierLimit(auth, resource)` → `{ok}` or `{error, status: 402}`. Match keys and phrasing to `docs/pricing.md` | new | tier, limits |
 | T-B1-03 | `src/lib/metering.ts` — new: count API calls per key per month in D1 (`INSERT INTO meter (key_id, month, calls) ... ON CONFLICT UPDATE SET calls = calls + 1`), `getUsage(keyId, month)`. Fire-and-forget on the hot path, counted durably in D1 | new | meter |
 | T-B1-04 | `src/pages/api/signal.ts` — add `checkTierLimit(auth, 'apiCall')` before routing; return 402 with tier info + upgrade URL on limit; mark `baas:rate-limit` warn on exceeded | edit | signal, meter |
@@ -167,7 +167,7 @@ Hosted webhook option for BaaS developers who don't have their own hosting.
 | T-B2-03 | `src/pages/api/dashboard/agents.ts` — GET: list agents in the developer's **personal group** (`group:{uid}`) via `(group: $g, member: $a) isa membership` — NOT a flat table. Scope by uid from `AuthContext`. Returns (uid, name, status, signal_count, last_active, role). Per [groups.md § The three kinds of group an actor lives in](groups.md). | new | api, dashboard, groups |
 | T-B2-04 | `src/pages/api/billing/subscribe.ts` — POST: create Stripe Checkout session for tier upgrade. Webhook: update tier in TypeDB on payment success. | new | billing, stripe |
 | T-B2-05 | `src/pages/api/billing/portal.ts` — GET: redirect to Stripe Customer Portal (manage subscription, cancel, change plan) | new | billing, stripe |
-| T-B2-06 | `src/pages/api/auth/agent.ts` — extend the existing zero-friction endpoint: on new unit creation, set `tier: 'free'` on the `unit` entity (default) and return `quickstart` snippet in response body. Humans who arrive via BetterAuth (`/api/auth/sign-up/email`) mint a programmatic key by calling `/api/auth/agent` with their bound uid (per [auth.md § Returning agents](auth.md)). **No new signup endpoint** — the existing two front doors handle it. | edit | auth, onboard |
+| T-B2-06 | `src/pages/api/auth/agent.ts` — extend the existing zero-friction endpoint: on new unit creation, set `tier: 'free'` on the `unit` entity (default) and return `quickstart` snippet in response body. Humans who arrive via BetterAuth (`/api/auth/sign-up/email`) mint a programmatic key by calling `/api/auth/agent` with their bound uid (per [auth.md § Returning agents](one-ie/dev.one.ie/one/auth.md)). **No new signup endpoint** — the existing two front doors handle it. | edit | auth, onboard |
 | T-B2-07 | `src/pages/api/webhooks/hosted.ts` — POST: register a hosted webhook for a developer's agent (ONE runs the Telegram/Discord endpoint on behalf of the developer) | new | webhook, hosted |
 | T-B2-08 | `src/pages/signup.astro` — developer signup page: BetterAuth email+password form → session cookie → auto-mint API key via `/api/auth/agent` → show key + personal group id (`group:{uid}`) + quickstart snippet inline. Use `resolveUnitFromSession()` for the session handoff. | new | page, onboard |
 | T-B2-09 | Update `@oneie/sdk` SubstrateClient: add `client.usage()` method that calls `/api/dashboard/usage` — developer can check their usage from code | edit | sdk |
@@ -362,7 +362,7 @@ two world roots, revenue-sharing on cross-root `mark()`.
 ## See Also
 
 - [platform-baas.md](platform-baas.md) — **strategy**: why BaaS wins, persona fit, unit economics, moat
-- [auth.md](auth.md) — identity, API keys, wallet derivation, BetterAuth + agent onboarding, governance (Role × Pheromone)
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — identity, API keys, wallet derivation, BetterAuth + agent onboarding, governance (Role × Pheromone)
 - [groups.md](groups.md) — multi-tenancy, personal + world + org hierarchy, RBAC+ABAC+ReBAC
 - [groups-todo.md](groups-todo.md) — personal group + schema additions (PROPOSED — feeds Cycle 4 private paths)
 - [TODO-publish-toolkit.md](publish-toolkit-todo.md) — publish SDK/CLI/MCP/templates (prerequisite)

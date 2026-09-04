@@ -321,10 +321,10 @@ async function calculateRiskScore(params: z.infer<typeof riskScoreParams>) {
             : 'High Risk',
       color:
         analysis.riskAssessment.overallScore < 30
-          ? '#10b981'
+          ? 'hsl(var(--color-tertiary-bright))'
           : analysis.riskAssessment.overallScore < 60
-            ? '#f59e0b'
-            : '#ef4444',
+            ? 'hsl(var(--color-gold))'
+            : 'hsl(var(--color-destructive))',
     },
     categories: [
       {

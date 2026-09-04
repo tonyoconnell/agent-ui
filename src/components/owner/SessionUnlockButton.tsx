@@ -223,7 +223,7 @@ export function SessionUnlockButton({
   return (
     <div className={cn('space-y-3', className)}>
       {!isLocalhost && (
-        <p className="text-xs text-amber-400" role="alert">
+        <p className="text-xs text-[hsl(var(--color-gold))]" role="alert">
           Warning: daemonUrl is not localhost — refusing to operate over non-local origin.
         </p>
       )}
@@ -237,7 +237,8 @@ export function SessionUnlockButton({
             variant="default"
             className={cn(
               'transition-colors',
-              status === 'error' && 'bg-amber-600/80 hover:bg-amber-600 text-white border-amber-500/50',
+              status === 'error' &&
+                'bg-[hsl(var(--color-gold)/0.8)] hover:bg-[hsl(var(--color-gold))] text-white border-[hsl(var(--color-gold)/0.5)]',
               status === 'unknown' && 'opacity-60',
             )}
             aria-label="Unlock owner session"
@@ -250,12 +251,12 @@ export function SessionUnlockButton({
         {status === 'unlocked' && (
           <>
             <div
-              className="inline-flex items-center gap-2 px-3 py-2 bg-green-500/10 border border-green-500/30 rounded-md text-sm text-green-400"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-[hsl(var(--color-tertiary-bright)/0.1)] border border-[hsl(var(--color-tertiary-bright)/0.3)] rounded-md text-sm text-[hsl(var(--color-tertiary-bright))]"
               aria-live="polite"
               role="status"
             >
               <span
-                className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_6px_2px_rgba(74,222,128,0.4)]"
+                className="w-2 h-2 rounded-full bg-[hsl(var(--color-tertiary-bright))] shadow-[0_0_6px_2px_hsl(var(--color-tertiary-bright)/0.4)]"
                 aria-hidden="true"
               />
               <span className="font-mono text-xs">{label()}</span>
@@ -264,7 +265,7 @@ export function SessionUnlockButton({
               onClick={handleLockClick}
               disabled={isPending}
               variant="outline"
-              className="border-slate-600 text-slate-400 hover:border-slate-400 hover:text-white text-xs"
+              className="border-border text-muted-foreground hover:border-foreground hover:text-foreground text-xs"
               aria-label="Lock owner session now"
             >
               Lock now
@@ -274,7 +275,7 @@ export function SessionUnlockButton({
       </div>
 
       {errorMsg !== undefined && (
-        <p className="text-xs text-red-400 font-mono" role="alert">
+        <p className="text-xs text-[hsl(var(--color-destructive))] font-mono" role="alert">
           {errorMsg}
         </p>
       )}

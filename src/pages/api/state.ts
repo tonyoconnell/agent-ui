@@ -1,12 +1,12 @@
 /**
  * GET /api/state — Full world state for UI
  *
- * Primary: reads KV snapshots (paths.json, units.json, highways.json, toxic.json)
+ * Primary: reads KV snapshots (paths.json, actors.json, highways.json, toxic.json)
  *   — written by sync worker every minute, 0ms reads from CF edge cache.
  *
  * Fallback: waits up to 5s for in-memory TypeDB world (local dev).
  *
- * Returns: { units, edges, highways, tags, tagMap, stats }
+ * Returns: { actors, edges, highways, tags, tagMap, stats }
  */
 import type { APIRoute } from 'astro'
 import { readParsed } from '@/lib/typedb'
@@ -14,12 +14,12 @@ import { readParsed } from '@/lib/typedb'
 const isToxic = (s: number, r: number) => r >= 10 && r > s * 2 && r + s > 5
 
 const emptyState = () => ({
-  units: [],
+  actors: [],
   edges: [],
   highways: [],
   tags: [],
   tagMap: {},
-  stats: { units: 0, proven: 0, highways: 0, edges: 0, tags: 0, revenue: 0 },
+  stats: { actors: 0, proven: 0, highways: 0, edges: 0, tags: 0, revenue: 0 },
   loading: true,
 })
 
@@ -28,7 +28,7 @@ type KVEnv = { KV?: KVNamespace }
 async function fromKV(kv: KVNamespace) {
   const [pathsRaw, unitsRaw, toxicRaw] = await Promise.all([
     kv.get('paths.json'),
-    kv.get('units.json'),
+    kv.get('actors.json'),
     kv.get('toxic.json'),
   ])
 
@@ -44,7 +44,7 @@ async function fromKV(kv: KVNamespace) {
     unitsRaw ? JSON.parse(unitsRaw) : []
   const toxicSet = new Set<string>(toxicRaw ? JSON.parse(toxicRaw) : [])
 
-  const units = unitRows.map((u) => ({
+  const actors = unitRows.map((u) => ({
     id: u.uid,
     name: u.name,
     kind: u.kind ?? 'agent',
@@ -65,14 +65,14 @@ async function fromKV(kv: KVNamespace) {
   const highways = edges.filter((e) => !e.toxic && e.strength >= 50)
 
   return {
-    units,
+    actors,
     edges,
     highways,
     tags: [],
     tagMap: {},
     stats: {
-      units: units.length,
-      proven: units.filter((u) => u.status === 'proven').length,
+      actors: actors.length,
+      proven: actors.filter((u) => u.status === 'proven').length,
       highways: highways.length,
       edges: edges.length,
       tags: 0,
@@ -84,18 +84,18 @@ async function fromKV(kv: KVNamespace) {
 async function fromTypeDB() {
   const [unitRows, pathRows] = await Promise.all([
     readParsed(`
-      match $u isa unit, has uid $id, has name $n, has unit-kind $k,
+      match $u isa actor, has aid $id, has name $n, has actor-type $k,
             has success-rate $sr, has generation $g;
       select $id, $n, $k, $sr, $g;
     `).catch(() => []),
     readParsed(`
       match $p (source: $s, target: $t) isa path, has strength $str, has resistance $r;
-            $s has uid $sid; $t has uid $tid;
+            $s has aid $sid; $t has aid $tid;
       select $sid, $tid, $str, $r;
     `).catch(() => []),
   ])
 
-  const units = unitRows.map((r) => ({
+  const actors = unitRows.map((r) => ({
     id: r.id as string,
     name: r.n as string,
     kind: r.k as string,
@@ -120,14 +120,14 @@ async function fromTypeDB() {
   const highways = edges.filter((e) => !e.toxic && e.strength >= 50)
 
   return {
-    units,
+    actors,
     edges,
     highways,
     tags: [],
     tagMap: {},
     stats: {
-      units: units.length,
-      proven: units.filter((u) => u.status === 'proven').length,
+      actors: actors.length,
+      proven: actors.filter((u) => u.status === 'proven').length,
       highways: highways.length,
       edges: edges.length,
       tags: 0,

@@ -244,7 +244,7 @@ export function WalletOnboardingCarousel({ open, onOpenChange, wallets, onClose 
               </Card>
 
               {/* Private Key Section */}
-              <Card className="border-amber-500/30 bg-amber-50 dark:bg-amber-950/30">
+              <Card className="border-[hsl(var(--color-gold)/0.3)] bg-[hsl(var(--color-gold)/0.05)]">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <span>⚠️</span> Private Key
@@ -252,7 +252,7 @@ export function WalletOnboardingCarousel({ open, onOpenChange, wallets, onClose 
                   <p className="text-xs text-muted-foreground mt-1">Keep this secret. Never share with anyone!</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <code className="block bg-background p-3 rounded text-xs font-mono break-all border border-amber-500/30">
+                  <code className="block bg-background p-3 rounded text-xs font-mono break-all border border-[hsl(var(--color-gold)/0.3)]">
                     {currentWallet.privateKey}
                   </code>
                   <div className="flex gap-2">
@@ -272,7 +272,7 @@ export function WalletOnboardingCarousel({ open, onOpenChange, wallets, onClose 
               </Card>
 
               {/* Recovery Phrase Section */}
-              <Card className="border-green-500/30 bg-green-50 dark:bg-green-950/30">
+              <Card className="border-[hsl(var(--color-tertiary)/0.3)] bg-[hsl(var(--color-tertiary)/0.05)]">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
                     <span>🔑</span> Recovery Phrase
@@ -280,7 +280,7 @@ export function WalletOnboardingCarousel({ open, onOpenChange, wallets, onClose 
                   <p className="text-xs text-muted-foreground mt-1">Use this to restore your wallet anywhere</p>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="bg-background p-3 rounded border border-green-500/30">
+                  <div className="bg-background p-3 rounded border border-[hsl(var(--color-tertiary)/0.3)]">
                     <p className="text-sm font-mono">{currentWallet.mnemonic}</p>
                   </div>
                   <div className="flex gap-2">
@@ -368,9 +368,15 @@ export function WalletOnboardingCarousel({ open, onOpenChange, wallets, onClose 
 
 function showToast(message: string, type: 'success' | 'info' | 'error' = 'info') {
   const toast = document.createElement('div')
-  const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+  const bgColor =
+    type === 'success'
+      ? 'hsl(var(--color-tertiary))'
+      : type === 'error'
+        ? 'hsl(var(--color-destructive))'
+        : 'hsl(var(--color-primary))'
 
-  toast.className = `fixed bottom-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300`
+  toast.className = `fixed bottom-4 right-4 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300`
+  toast.style.backgroundColor = bgColor
   toast.style.transform = 'translateY(100px)'
   toast.style.opacity = '0'
   toast.textContent = message

@@ -328,9 +328,13 @@ function SkillCard({ listing, onHire, onBounty }: SkillCardProps) {
         {(isProven || isToxic) && (
           <div className="flex gap-1.5">
             {isProven && (
-              <Badge className="bg-secondary-bright/20 text-secondary-bright border-secondary-bright/30 text-xs">proven</Badge>
+              <Badge className="bg-secondary-bright/20 text-secondary-bright border-secondary-bright/30 text-xs">
+                proven
+              </Badge>
             )}
-            {isToxic && <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-xs">toxic</Badge>}
+            {isToxic && (
+              <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-xs">toxic</Badge>
+            )}
           </div>
         )}
 

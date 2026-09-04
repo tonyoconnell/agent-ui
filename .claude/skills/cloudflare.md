@@ -416,7 +416,7 @@ bun wrangler deployments view <ID> --name=one-gateway
 ```bash
 time curl -X POST https://api.one.ie/typedb/query \
   -H 'Content-Type: application/json' \
-  -d '{"query": "match $u isa unit; limit 1; select $u;", "transactionType": "read"}' \
+  -d '{"query": "match $u isa actor; limit 1; select $u;", "transactionType": "read"}' \
   -o /dev/null
 ```
 

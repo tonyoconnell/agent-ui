@@ -5,7 +5,7 @@ vi.mock('@/lib/typedb', () => ({
 }))
 
 import { readParsed } from '@/lib/typedb'
-import { GET } from '@/pages/api/g/[gid]/units'
+import { GET } from '@/pages/api/g/[gid]/actors'
 
 const mockReadParsed = vi.mocked(readParsed)
 
@@ -15,10 +15,10 @@ function makeContext(gid: string) {
   } as unknown as Parameters<typeof GET>[0]
 }
 
-describe('GET /api/g/[gid]/units', () => {
+describe('GET /api/g/[gid]/actors', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('returns units filtered by group membership', async () => {
+  it('returns actors filtered by group membership', async () => {
     mockReadParsed.mockResolvedValueOnce([
       { id: 'marketing:creative', n: 'Creative' },
       { id: 'marketing:cmo', n: 'CMO' },

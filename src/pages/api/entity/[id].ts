@@ -1,5 +1,5 @@
 /**
- * GET /api/entity/:id — Single unit or group profile
+ * GET /api/entity/:id — Single actor or group profile
  *
  * Returns: { kind, spec, stats, wallet, recentSignals[] }
  * Caching: 1s
@@ -9,7 +9,7 @@ import type { APIRoute } from 'astro'
 import { readParsed } from '@/lib/typedb'
 
 type EntityResponse = {
-  kind: 'unit' | 'group' | 'not-found'
+  kind: 'actor' | 'group' | 'not-found'
   id: string
   spec?: {
     name: string
@@ -51,7 +51,7 @@ export const GET: APIRoute = async ({ params }): Promise<Response> => {
     // Stage 1a — core required attrs only (name + uid)
     const unitRows = await readParsed(`
       match
-        $u isa unit, has uid "${id}", has name $name;
+        $u isa actor, has aid "${id}", has name $name;
       select $name;
     `).catch(() => [])
 
@@ -59,16 +59,16 @@ export const GET: APIRoute = async ({ params }): Promise<Response> => {
       // Stage 1b — optional attrs, each in its own query to survive missing data
       const [kindRows, modelRows, spRows, genRows, srRows, balRows, repRows, scRows, walletRows, luRows] =
         await Promise.all([
-          readParsed(`match $u isa unit, has uid "${id}", has unit-kind $k; select $k;`).catch(() => []),
-          readParsed(`match $u isa unit, has uid "${id}", has model $m; select $m;`).catch(() => []),
-          readParsed(`match $u isa unit, has uid "${id}", has system-prompt $sp; select $sp;`).catch(() => []),
-          readParsed(`match $u isa unit, has uid "${id}", has generation $g; select $g;`).catch(() => []),
-          readParsed(`match $u isa unit, has uid "${id}", has success-rate $sr; select $sr;`).catch(() => []),
-          readParsed(`match $u isa unit, has uid "${id}", has balance $bal; select $bal;`).catch(() => []),
-          readParsed(`match $u isa unit, has uid "${id}", has reputation $rep; select $rep;`).catch(() => []),
-          readParsed(`match $u isa unit, has uid "${id}", has sample-count $sc; select $sc;`).catch(() => []),
-          readParsed(`match $u isa unit, has uid "${id}", has wallet $w; select $w;`).catch(() => []),
-          readParsed(`match $u isa unit, has uid "${id}", has last-used $lu; select $lu;`).catch(() => []),
+          readParsed(`match $u isa actor, has aid "${id}", has actor-type $k; select $k;`).catch(() => []),
+          readParsed(`match $u isa actor, has aid "${id}", has model $m; select $m;`).catch(() => []),
+          readParsed(`match $u isa actor, has aid "${id}", has system-prompt $sp; select $sp;`).catch(() => []),
+          readParsed(`match $u isa actor, has aid "${id}", has generation $g; select $g;`).catch(() => []),
+          readParsed(`match $u isa actor, has aid "${id}", has success-rate $sr; select $sr;`).catch(() => []),
+          readParsed(`match $u isa actor, has aid "${id}", has balance $bal; select $bal;`).catch(() => []),
+          readParsed(`match $u isa actor, has aid "${id}", has reputation $rep; select $rep;`).catch(() => []),
+          readParsed(`match $u isa actor, has aid "${id}", has sample-count $sc; select $sc;`).catch(() => []),
+          readParsed(`match $u isa actor, has aid "${id}", has wallet $w; select $w;`).catch(() => []),
+          readParsed(`match $u isa actor, has aid "${id}", has last-used $lu; select $lu;`).catch(() => []),
         ])
 
       const r = {
@@ -86,7 +86,7 @@ export const GET: APIRoute = async ({ params }): Promise<Response> => {
       }
 
       const tagRows = await readParsed(`
-        match $u isa unit, has uid "${id}", has tag $tag;
+        match $u isa actor, has aid "${id}", has tag $tag;
         select $tag;
       `).catch(() => [])
 
@@ -97,20 +97,20 @@ export const GET: APIRoute = async ({ params }): Promise<Response> => {
         readParsed(`
           match
             $s (sender: $from, receiver: $to) isa signal;
-            $from has uid "${id}";
+            $from has aid "${id}";
             $s has ts $ts, has data $data, has amount $amt, has success $ok;
-            $from has uid $fid, has name $fn;
-            $to has uid $tid, has name $tn;
+            $from has aid $fid, has name $fn;
+            $to has aid $tid, has name $tn;
           sort $ts desc; limit 5;
           select $fid, $fn, $tid, $tn, $data, $amt, $ok, $ts;
         `).catch(() => []),
         readParsed(`
           match
             $s (sender: $from, receiver: $to) isa signal;
-            $to has uid "${id}";
+            $to has aid "${id}";
             $s has ts $ts, has data $data, has amount $amt, has success $ok;
-            $from has uid $fid, has name $fn;
-            $to has uid $tid, has name $tn;
+            $from has aid $fid, has name $fn;
+            $to has aid $tid, has name $tn;
           sort $ts desc; limit 5;
           select $fid, $fn, $tid, $tn, $data, $amt, $ok, $ts;
         `).catch(() => []),
@@ -138,7 +138,7 @@ export const GET: APIRoute = async ({ params }): Promise<Response> => {
       }))
 
       const response: EntityResponse = {
-        kind: 'unit',
+        kind: 'actor',
         id,
         spec: {
           name: r.name as string,

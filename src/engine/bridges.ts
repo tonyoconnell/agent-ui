@@ -1,7 +1,7 @@
 /**
- * Bridge Units — Chain RPCs as substrate units.
+ * Bridge Actors — Chain RPCs as substrate actors.
  *
- * Wraps BlockchainService (src/lib/chains.ts) as three substrate units:
+ * Wraps BlockchainService (src/lib/chains.ts) as three substrate actors:
  *   bridge:evm  — ETH, Base, Arb, Polygon (via llamarpc)
  *   bridge:sol  — Solana (via mainnet-beta RPC)
  *   bridge:btc  — Bitcoin (via Blockstream REST)

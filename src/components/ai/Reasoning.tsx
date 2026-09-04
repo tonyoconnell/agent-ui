@@ -24,7 +24,7 @@ export function Reasoning({ steps }: ReasoningProps) {
             <div key={s.step} className="flex items-start gap-3">
               <div className="mt-0.5 shrink-0">
                 {s.completed ? (
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[hsl(var(--color-tertiary-bright))]">
                     <Check className="h-3 w-3 text-white" />
                   </div>
                 ) : (

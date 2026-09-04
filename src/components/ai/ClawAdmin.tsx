@@ -137,8 +137,8 @@ export function ClawAdmin({ clawUrl, adminName = 'admin' }: ClawAdminProps) {
   return (
     <div className="flex h-screen bg-background text-foreground">
       {/* Sidebar: conversation list */}
-      <div className="w-80 border-r overflow-y-auto">
-        <div className="p-4 border-b">
+      <div className="w-80 border-r border-border overflow-y-auto">
+        <div className="p-4 border-b border-border">
           <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">Live Conversations</h2>
           <p className="text-xs text-muted-foreground mt-1">{conversations.length} active</p>
         </div>
@@ -148,8 +148,8 @@ export function ClawAdmin({ clawUrl, adminName = 'admin' }: ClawAdminProps) {
             type="button"
             onClick={() => setSelected(c.group_id)}
             className={cn(
-              'w-full text-left p-3 border-b hover:bg-accent/50 transition-colors',
-              selected === c.group_id && 'bg-accent',
+              'w-full text-left p-3 border-b border-border hover:bg-muted/50 transition-colors',
+              selected === c.group_id && 'bg-muted',
             )}
           >
             <div className="flex justify-between items-start">
@@ -172,13 +172,15 @@ export function ClawAdmin({ clawUrl, adminName = 'admin' }: ClawAdminProps) {
       {/* Main: conversation detail + reply */}
       <div className="flex-1 flex flex-col">
         {/* Broadcast bar — always visible at top */}
-        <div className="border-b bg-green-950/30 p-4">
+        <div className="border-b border-border bg-[hsl(var(--color-tertiary-bright)/0.1)] p-4">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-medium uppercase tracking-wider text-green-400">Broadcast to all</span>
+              <span className="text-xs font-medium uppercase tracking-wider text-[hsl(var(--color-tertiary-bright))]">
+                Broadcast to all
+              </span>
               <span className="text-xs text-muted-foreground">({conversations.length} conversations)</span>
               {broadcastResult && (
-                <span className="text-xs text-green-400 ml-auto">
+                <span className="text-xs text-[hsl(var(--color-tertiary-bright))] ml-auto">
                   Sent to {broadcastResult.sent}/{broadcastResult.total} channels
                 </span>
               )}
@@ -201,12 +203,12 @@ export function ClawAdmin({ clawUrl, adminName = 'admin' }: ClawAdminProps) {
                 }}
                 placeholder="Type a message to send to every student…"
                 rows={1}
-                className="flex-1 resize-none rounded-2xl border border-green-500/30 bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="flex-1 resize-none rounded-2xl border border-[hsl(var(--color-tertiary-bright)/0.3)] bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-tertiary-bright))]"
               />
               <Button
                 type="submit"
                 disabled={!broadcast.trim() || broadcasting}
-                className="bg-green-600 hover:bg-green-700 rounded-2xl px-4"
+                className="bg-[hsl(var(--color-tertiary-bright))] hover:bg-[hsl(var(--color-tertiary-mid))] rounded-2xl px-4"
               >
                 {broadcasting ? 'Sending…' : 'Broadcast'}
               </Button>
@@ -227,14 +229,16 @@ export function ClawAdmin({ clawUrl, adminName = 'admin' }: ClawAdminProps) {
                       className={cn(
                         'max-w-[80%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap',
                         m.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
+                          ? 'bg-[hsl(var(--color-primary-bright))] text-background'
                           : m.sender === adminName
-                            ? 'bg-green-500/20 text-foreground border border-green-500/30'
+                            ? 'bg-[hsl(var(--color-tertiary-bright)/0.2)] text-foreground border border-[hsl(var(--color-tertiary-bright)/0.3)]'
                             : 'bg-muted text-foreground',
                       )}
                     >
                       {m.sender === adminName && (
-                        <div className="text-xs font-medium text-green-400 mb-1">{adminName} (you)</div>
+                        <div className="text-xs font-medium text-[hsl(var(--color-tertiary-bright))] mb-1">
+                          {adminName} (you)
+                        </div>
                       )}
                       {m.content}
                       <div className="text-xs opacity-40 mt-1">{timeAgo(m.ts)}</div>
@@ -247,7 +251,7 @@ export function ClawAdmin({ clawUrl, adminName = 'admin' }: ClawAdminProps) {
 
             {/* Reply dock */}
             <form
-              className="border-t p-4"
+              className="border-t border-border p-4"
               onSubmit={(e) => {
                 e.preventDefault()
                 sendReply()
@@ -265,12 +269,12 @@ export function ClawAdmin({ clawUrl, adminName = 'admin' }: ClawAdminProps) {
                   }}
                   placeholder={`Reply as ${adminName}…`}
                   rows={1}
-                  className="flex-1 resize-none rounded-2xl border bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="flex-1 resize-none rounded-2xl border border-border bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-tertiary-bright))]"
                 />
                 <Button
                   type="submit"
                   disabled={!reply.trim() || loading}
-                  className="bg-green-600 hover:bg-green-700 rounded-2xl px-4"
+                  className="bg-[hsl(var(--color-tertiary-bright))] hover:bg-[hsl(var(--color-tertiary-mid))] rounded-2xl px-4"
                 >
                   {loading ? '…' : `Send as ${adminName}`}
                 </Button>

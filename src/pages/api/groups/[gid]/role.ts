@@ -34,7 +34,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
     if (body.role === 'chairman') {
       writeSilent(`
         match $g isa group, has gid "${esc(gid)}";
-          $u isa unit, has uid "${esc(ctx.user)}";
+          $u isa actor, has aid "${esc(ctx.user)}";
           $m (group: $g, member: $u) isa membership, has member-role $r;
         delete $r of $m;
         insert $m has member-role "admin";
@@ -44,7 +44,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
     // Update target member's role
     writeSilent(`
       match $g isa group, has gid "${esc(gid)}";
-        $u isa unit, has uid "${esc(body.uid)}";
+        $u isa actor, has aid "${esc(body.uid)}";
         $m (group: $g, member: $u) isa membership, has member-role $r;
       delete $r of $m;
       insert $m has member-role "${esc(body.role)}";

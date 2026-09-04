@@ -53,15 +53,15 @@ export function FilterBar({ capabilities, onFilter }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-2 py-3">
-      <span className="text-xs text-slate-500 shrink-0">Filter:</span>
+      <span className="text-xs text-muted-foreground shrink-0">Filter:</span>
 
       <button
         type="button"
         onClick={toggleFree}
         className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
           showFreeOnly
-            ? 'bg-green-500/20 text-green-400 border-green-500/40'
-            : 'text-slate-400 border-slate-700 hover:border-slate-600'
+            ? 'bg-[hsl(var(--color-tertiary-bright)/0.2)] text-[hsl(var(--color-tertiary-bright))] border-[hsl(var(--color-tertiary-bright)/0.4)]'
+            : 'text-muted-foreground border-border hover:border-border/60'
         }`}
       >
         Free
@@ -74,8 +74,8 @@ export function FilterBar({ capabilities, onFilter }: Props) {
           onClick={() => toggleTag(tag)}
           className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
             selectedTags.has(tag)
-              ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40'
-              : 'text-slate-400 border-slate-700 hover:border-slate-600'
+              ? 'bg-[hsl(var(--color-primary-bright)/0.2)] text-[hsl(var(--color-primary-bright))] border-[hsl(var(--color-primary-bright)/0.4)]'
+              : 'text-muted-foreground border-border hover:border-border/60'
           }`}
         >
           {tag}
@@ -90,7 +90,7 @@ export function FilterBar({ capabilities, onFilter }: Props) {
             setShowFreeOnly(false)
             onFilter(capabilities)
           }}
-          className="text-xs text-slate-600 hover:text-slate-400 ml-1"
+          className="text-xs text-muted-foreground hover:text-foreground ml-1"
         >
           clear
         </button>

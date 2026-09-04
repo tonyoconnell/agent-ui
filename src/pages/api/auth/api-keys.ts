@@ -1,8 +1,8 @@
 /**
- * POST /api/auth/api-keys — Generate a new API key for an authenticated unit
+ * POST /api/auth/api-keys — Generate a new API key for an authenticated actor
  *
  * Requires authentication via existing API key (Authorization: Bearer api_xxx).
- * Creates a new api-key entity in TypeDB linked to the caller's unit.
+ * Creates a new api-key entity in TypeDB linked to the caller's actor.
  *
  * Input:  { permissions?: string } (default: "read,write")
  * Output: { apiKey, keyId, permissions }
@@ -66,15 +66,15 @@ export const POST: APIRoute = async ({ request }) => {
         has expires-at ${expiresAt}${scopeClauses};
     `)
 
-    // Link to unit via api-authorization
+    // Link to actor via api-authorization
     await write(`
       match
         $k isa api-key, has api-key-id "${esc(keyId)}";
-        $u isa unit, has uid "${esc(auth.user)}";
+        $u isa actor, has aid "${esc(auth.user)}";
       insert
-        (api-key: $k, authorized-unit: $u) isa api-authorization;
+        (api-key: $k, authorized-actor: $u) isa api-authorization;
     `).catch(() => {
-      // Unit might not exist yet (key was created for a user-id, not a unit)
+      // Actor might not exist yet (key was created for a user-id, not a actor)
     })
 
     return new Response(

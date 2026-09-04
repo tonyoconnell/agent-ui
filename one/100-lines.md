@@ -135,7 +135,7 @@ fun unit_classification($u: unit) -> string:
         else "active";
 
 # Who should handle this task? Follow the strongest path.
-fun optimal_route($from: unit, $task: task) -> unit:
+fun optimal_route($from: unit, $task: task) -> actor:
     match (source: $from, target: $to) isa path, has strength $s;
           (provider: $to, skill: $task) isa capability;
     sort $s desc; limit 1; return $to;
@@ -153,7 +153,7 @@ fun ready_tasks() -> { task }:
     return { $t };
 
 # Which units have earned trust through repeated success?
-fun proven_units() -> { unit }:
+fun proven_actors() -> { actor }:
     match $u isa unit, has status "proven";
     return { $u };
 

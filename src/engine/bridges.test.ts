@@ -1,8 +1,8 @@
 /**
- * Bridge units — substrate integration tests.
+ * Bridge actors — substrate integration tests.
  *
  * Verifies that bridge:evm, bridge:sol, bridge:btc register correctly
- * as substrate units and return schema-valid results. RPC calls are
+ * as substrate actors and return schema-valid results. RPC calls are
  * mocked via vi.mock('@/lib/chains') — no live network required.
  */
 
@@ -25,13 +25,13 @@ import { registerBridges } from './bridges'
 
 // Minimal World stub satisfying the handler interface
 function makeWorld() {
-  const units: Record<string, Record<string, (data: unknown) => unknown>> = {}
+  const actors: Record<string, Record<string, (data: unknown) => unknown>> = {}
 
   const unitProxy = (id: string) => {
-    units[id] = {}
+    actors[id] = {}
     const self = {
       on(name: string, fn: (data: unknown) => unknown) {
-        units[id][name] = fn
+        actors[id][name] = fn
         return self
       },
     }
@@ -40,7 +40,7 @@ function makeWorld() {
 
   return {
     add: (id: string) => unitProxy(id),
-    _units: units,
+    _units: actors,
   }
 }
 
@@ -53,7 +53,7 @@ describe('registerBridges', () => {
     registerBridges(world as any)
   })
 
-  it('registers bridge:evm, bridge:sol, bridge:btc units', () => {
+  it('registers bridge:evm, bridge:sol, bridge:btc actors', () => {
     expect(world._units['bridge:evm']).toBeDefined()
     expect(world._units['bridge:sol']).toBeDefined()
     expect(world._units['bridge:btc']).toBeDefined()

@@ -307,7 +307,7 @@ async function getPriceHistory(params: z.infer<typeof priceHistoryParams>) {
             {
               label: 'Price (USD)',
               data: prices.map((p: { price: number }) => p.price),
-              color: change >= 0 ? '#10b981' : '#ef4444',
+              color: change >= 0 ? 'hsl(var(--color-tertiary-bright))' : 'hsl(var(--color-destructive))',
             },
           ],
         },
@@ -317,7 +317,7 @@ async function getPriceHistory(params: z.infer<typeof priceHistoryParams>) {
             {
               label: 'Volume (USD)',
               data: volumes.map((v: { volume: number }) => v.volume),
-              color: '#3b82f6',
+              color: 'hsl(var(--color-primary-bright))',
             },
           ],
         },

@@ -39,16 +39,16 @@ export const GET: APIRoute = async () => {
       const tick = async () => {
         if (closed) return
         try {
-          const [edges, units, skills] = await Promise.all([
+          const [edges, actors, skills] = await Promise.all([
             readParsed(`
               match $e (source: $from, target: $to) isa path,
                 has strength $s, has resistance $r, has traversals $t, has revenue $rev;
-              $from has uid $fid; $to has uid $tid;
+              $from has aid $fid; $to has aid $tid;
               sort $s desc; limit 50;
               select $fid, $tid, $s, $r, $t, $rev;
             `).catch(() => []),
             readParsed(`
-              match $u isa unit, has uid $id, has name $name, has status $st, has success-rate $sr;
+              match $u isa actor, has aid $id, has name $name, has status $st, has success-rate $sr;
               select $id, $name, $st, $sr;
             `).catch(() => []),
             readParsed(`
@@ -71,15 +71,15 @@ export const GET: APIRoute = async () => {
             }))
 
           const stats = {
-            units: (units as R[]).length,
+            actors: (actors as R[]).length,
             highways: highways.length,
             edges: (edges as R[]).length,
             skills: (skills as R[]).length,
             revenue: (edges as R[]).reduce((sum, e) => sum + ((e.rev as number) || 0), 0),
-            proven: (units as R[]).filter((u) => u.st === 'proven').length,
+            proven: (actors as R[]).filter((u) => u.st === 'proven').length,
           }
 
-          send('state', { highways, stats, units, ts: Date.now() })
+          send('state', { highways, stats, actors, ts: Date.now() })
         } catch {
           send('error', { message: 'TypeDB query failed', ts: Date.now() })
         }

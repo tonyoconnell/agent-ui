@@ -136,7 +136,7 @@ export function ReceiveSheet({ open, onOpenChange, wallet, chain }: ReceiveSheet
               w-full p-4
               bg-muted/50 rounded-xl
               border-2 border-dashed
-              ${copied ? 'border-green-500/50 bg-green-500/5' : 'border-border hover:border-primary/40'}
+              ${copied ? 'border-tertiary-bright/50 bg-tertiary-bright/5' : 'border-border hover:border-primary/40'}
               transition-all duration-200
               text-left
               active:scale-[0.99]
@@ -147,7 +147,7 @@ export function ReceiveSheet({ open, onOpenChange, wallet, chain }: ReceiveSheet
               <span
                 className={`
                   text-xs font-medium
-                  ${copied ? 'text-green-500' : 'text-muted-foreground'}
+                  ${copied ? 'text-tertiary-bright' : 'text-muted-foreground'}
                 `}
               >
                 {copied ? 'Copied to clipboard!' : 'Tap to copy'}
@@ -165,7 +165,7 @@ export function ReceiveSheet({ open, onOpenChange, wallet, chain }: ReceiveSheet
               w-full p-3
               bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl
               border border-primary/20
-              ${copiedLink ? 'border-green-500/50 bg-green-500/5' : 'hover:border-primary/40'}
+              ${copiedLink ? 'border-tertiary-bright/50 bg-tertiary-bright/5' : 'hover:border-primary/40'}
               transition-all duration-200
               text-left
               active:scale-[0.99]

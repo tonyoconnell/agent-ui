@@ -60,52 +60,52 @@ type ChainStyle = {
 
 const CHAIN_STYLES: Record<string, ChainStyle> = {
   eth: {
-    tile: 'bg-indigo-500/10',
-    icon: 'text-indigo-400',
-    ring: 'ring-indigo-500/20',
-    accent: 'text-indigo-300',
-    surface: 'from-indigo-500/10 via-background to-background',
-    dot: 'bg-indigo-400',
+    tile: 'bg-[hsl(var(--color-primary-bright)/0.15)]',
+    icon: 'text-[hsl(var(--color-primary-bright))]',
+    ring: 'ring-[hsl(var(--color-primary-mid)/0.2)]',
+    accent: 'text-[hsl(var(--color-primary-mid))]',
+    surface: 'from-[hsl(var(--color-primary-bright)/0.15)] via-background to-background',
+    dot: 'bg-[hsl(var(--color-primary-bright))]',
   },
   btc: {
-    tile: 'bg-orange-500/10',
-    icon: 'text-orange-400',
-    ring: 'ring-orange-500/20',
-    accent: 'text-orange-300',
-    surface: 'from-orange-500/10 via-background to-background',
-    dot: 'bg-orange-400',
+    tile: 'bg-[hsl(var(--color-gold)/0.15)]',
+    icon: 'text-[hsl(var(--color-gold))]',
+    ring: 'ring-[hsl(var(--color-gold)/0.2)]',
+    accent: 'text-[hsl(var(--color-gold)/0.8)]',
+    surface: 'from-[hsl(var(--color-gold)/0.15)] via-background to-background',
+    dot: 'bg-[hsl(var(--color-gold))]',
   },
   sol: {
-    tile: 'bg-fuchsia-500/10',
-    icon: 'text-fuchsia-400',
-    ring: 'ring-fuchsia-500/20',
-    accent: 'text-fuchsia-300',
-    surface: 'from-fuchsia-500/10 via-background to-background',
-    dot: 'bg-fuchsia-400',
+    tile: 'bg-[hsl(var(--color-secondary-bright)/0.15)]',
+    icon: 'text-[hsl(var(--color-secondary-bright))]',
+    ring: 'ring-[hsl(var(--color-secondary-mid)/0.2)]',
+    accent: 'text-[hsl(var(--color-secondary-mid))]',
+    surface: 'from-[hsl(var(--color-secondary-bright)/0.15)] via-background to-background',
+    dot: 'bg-[hsl(var(--color-secondary-bright))]',
   },
   sui: {
-    tile: 'bg-sky-500/10',
-    icon: 'text-sky-400',
-    ring: 'ring-sky-500/20',
-    accent: 'text-sky-300',
-    surface: 'from-sky-500/10 via-background to-background',
-    dot: 'bg-sky-400',
+    tile: 'bg-[hsl(var(--color-primary-bright)/0.15)]',
+    icon: 'text-[hsl(var(--color-primary-bright))]',
+    ring: 'ring-[hsl(var(--color-primary-mid)/0.2)]',
+    accent: 'text-[hsl(var(--color-primary-mid))]',
+    surface: 'from-[hsl(var(--color-primary-bright)/0.15)] via-background to-background',
+    dot: 'bg-[hsl(var(--color-primary-bright))]',
   },
   usdc: {
-    tile: 'bg-blue-500/10',
-    icon: 'text-blue-400',
-    ring: 'ring-blue-500/20',
-    accent: 'text-blue-300',
-    surface: 'from-blue-500/10 via-background to-background',
-    dot: 'bg-blue-400',
+    tile: 'bg-[hsl(var(--color-primary-bright)/0.15)]',
+    icon: 'text-[hsl(var(--color-primary-bright))]',
+    ring: 'ring-[hsl(var(--color-primary-mid)/0.2)]',
+    accent: 'text-[hsl(var(--color-primary-mid))]',
+    surface: 'from-[hsl(var(--color-primary-bright)/0.15)] via-background to-background',
+    dot: 'bg-[hsl(var(--color-primary-bright))]',
   },
   one: {
-    tile: 'bg-emerald-500/10',
-    icon: 'text-emerald-400',
-    ring: 'ring-emerald-500/20',
-    accent: 'text-emerald-300',
-    surface: 'from-emerald-500/10 via-background to-background',
-    dot: 'bg-emerald-400',
+    tile: 'bg-[hsl(var(--color-tertiary-bright)/0.15)]',
+    icon: 'text-[hsl(var(--color-tertiary-bright))]',
+    ring: 'ring-[hsl(var(--color-tertiary-mid)/0.2)]',
+    accent: 'text-[hsl(var(--color-tertiary-bright))]',
+    surface: 'from-[hsl(var(--color-tertiary-bright)/0.15)] via-background to-background',
+    dot: 'bg-[hsl(var(--color-tertiary-bright))]',
   },
   unknown: {
     tile: 'bg-muted',
@@ -128,13 +128,13 @@ const TX_ICONS: Record<string, ComponentType<{ className?: string; strokeWidth?:
 }
 
 const TX_TILE: Record<string, string> = {
-  send: 'bg-rose-500/10 text-rose-400 ring-rose-500/20',
-  receive: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20',
-  swap: 'bg-blue-500/10 text-blue-400 ring-blue-500/20',
-  mint: 'bg-violet-500/10 text-violet-400 ring-violet-500/20',
-  burn: 'bg-orange-500/10 text-orange-400 ring-orange-500/20',
-  deploy: 'bg-slate-500/10 text-slate-400 ring-slate-500/20',
-  interact: 'bg-amber-500/10 text-amber-400 ring-amber-500/20',
+  send: 'bg-[hsl(var(--color-destructive)/0.15)] text-destructive ring-[hsl(var(--color-destructive)/0.2)]',
+  receive: 'bg-[hsl(var(--color-tertiary-bright)/0.15)] text-tertiary-bright ring-[hsl(var(--color-tertiary-mid)/0.2)]',
+  swap: 'bg-[hsl(var(--color-primary-bright)/0.15)] text-[hsl(var(--color-primary-bright))] ring-[hsl(var(--color-primary-mid)/0.2)]',
+  mint: 'bg-[hsl(var(--color-secondary-bright)/0.15)] text-[hsl(var(--color-secondary-bright))] ring-[hsl(var(--color-secondary-mid)/0.2)]',
+  burn: 'bg-[hsl(var(--color-gold)/0.15)] text-[hsl(var(--color-gold))] ring-[hsl(var(--color-gold)/0.2)]',
+  deploy: 'bg-muted/10 text-muted-foreground ring-border',
+  interact: 'bg-[hsl(var(--color-gold)/0.15)] text-[hsl(var(--color-gold))] ring-[hsl(var(--color-gold)/0.2)]',
 }
 
 // Sui RPC endpoint (public mainnet)
@@ -153,7 +153,7 @@ const CHAINS = [
     id: 'eth',
     name: 'Ethereum',
     symbol: 'ETH',
-    color: 'from-blue-500 to-indigo-600',
+    color: 'from-[hsl(var(--color-primary-bright))] to-[hsl(var(--color-primary-bright)/0.7)]',
     icon: '⟠',
     decimals: 18,
     explorer: 'https://etherscan.io',
@@ -164,7 +164,7 @@ const CHAINS = [
     id: 'btc',
     name: 'Bitcoin',
     symbol: 'BTC',
-    color: 'from-orange-400 to-orange-600',
+    color: 'from-[hsl(var(--color-gold))] to-[hsl(var(--color-gold)/0.7)]',
     icon: '₿',
     decimals: 8,
     explorer: 'https://blockstream.info',
@@ -175,7 +175,7 @@ const CHAINS = [
     id: 'sol',
     name: 'Solana',
     symbol: 'SOL',
-    color: 'from-purple-500 to-pink-500',
+    color: 'from-[hsl(var(--color-secondary-bright))] to-[hsl(var(--color-secondary-bright)/0.7)]',
     icon: '◎',
     decimals: 9,
     explorer: 'https://solscan.io',
@@ -186,7 +186,7 @@ const CHAINS = [
     id: 'sui',
     name: 'Sui',
     symbol: 'SUI',
-    color: 'from-cyan-400 to-blue-500',
+    color: 'from-[hsl(var(--color-primary-bright))] to-[hsl(var(--color-primary-bright)/0.7)]',
     icon: '💧',
     decimals: 9,
     explorer: 'https://suiscan.xyz',
@@ -197,7 +197,7 @@ const CHAINS = [
     id: 'usdc',
     name: 'USDC',
     symbol: 'USDC',
-    color: 'from-blue-400 to-blue-600',
+    color: 'from-[hsl(var(--color-primary-bright))] to-[hsl(var(--color-primary-bright)/0.7)]',
     icon: '💵',
     decimals: 6,
     explorer: 'https://etherscan.io',
@@ -208,7 +208,7 @@ const CHAINS = [
     id: 'one',
     name: 'ONEIE',
     symbol: 'ONE',
-    color: 'from-emerald-400 to-teal-600',
+    color: 'from-[hsl(var(--color-tertiary-bright))] to-[hsl(var(--color-tertiary-bright)/0.7)]',
     icon: '①',
     decimals: 18,
     explorer: 'https://etherscan.io',
@@ -538,7 +538,7 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
     id: 'unknown',
     name: 'Unknown',
     symbol: '???',
-    color: 'from-gray-400 to-gray-600',
+    color: 'from-muted-foreground to-muted',
     icon: '🔗',
     decimals: 18,
     explorer: '#',
@@ -930,7 +930,7 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
                 <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors shrink-0">
                   {copied ? (
                     <>
-                      <Check className="h-4 w-4 text-emerald-400" strokeWidth={2} />
+                      <Check className="h-4 w-4 text-tertiary-bright" strokeWidth={2} />
                       <span className="hidden sm:inline">Copied</span>
                     </>
                   ) : (
@@ -956,13 +956,13 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
           <ActionTile
             icon={ArrowDownLeft}
             label="Receive"
-            toneClasses="bg-emerald-500/10 text-emerald-400 ring-emerald-500/20"
+            toneClasses="bg-[hsl(var(--color-tertiary-bright)/0.15)] text-tertiary-bright ring-[hsl(var(--color-tertiary-mid)/0.2)]"
             onClick={() => setShowReceiveDialog(true)}
           />
           <ActionTile
             icon={ExternalLink}
             label="Explorer"
-            toneClasses="bg-slate-500/10 text-slate-300 ring-slate-500/20"
+            toneClasses="bg-muted/10 text-muted-foreground ring-border"
             onClick={() => window.open(getExplorerAddressUrl(), '_blank')}
           />
           <ActionTile
@@ -970,7 +970,7 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
             label={fetchingTx ? 'Fetching' : 'Fetch TX'}
             loading={fetchingTx}
             disabled={fetchingTx || !supportsLiveFetch}
-            toneClasses="bg-violet-500/10 text-violet-300 ring-violet-500/20"
+            toneClasses="bg-[hsl(var(--color-secondary-bright)/0.15)] text-[hsl(var(--color-secondary-bright))] ring-[hsl(var(--color-secondary-mid)/0.2)]"
             onClick={fetchBlockchainTransactions}
           />
           <ActionTile
@@ -978,13 +978,13 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
             label={fetchingBalance ? 'Refreshing' : 'Refresh'}
             loading={fetchingBalance}
             disabled={fetchingBalance || !supportsLiveFetch}
-            toneClasses="bg-cyan-500/10 text-cyan-300 ring-cyan-500/20"
+            toneClasses="bg-[hsl(var(--color-primary-bright)/0.15)] text-[hsl(var(--color-primary-bright))] ring-[hsl(var(--color-primary-mid)/0.2)]"
             onClick={fetchLiveBalance}
           />
           <ActionTile
             icon={KeyRound}
             label="Export Key"
-            toneClasses="bg-amber-500/10 text-amber-300 ring-amber-500/20"
+            toneClasses="bg-[hsl(var(--color-gold)/0.15)] text-[hsl(var(--color-gold))] ring-[hsl(var(--color-gold)/0.2)]"
             onClick={() => setShowExportDialog(true)}
           />
         </div>
@@ -996,8 +996,8 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
             <Card className="border-border/60">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 ring-1 ring-blue-500/20">
-                    <ArrowLeftRight className="h-4 w-4 text-blue-400" strokeWidth={1.75} />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--color-primary-bright)/0.15)] ring-1 ring-[hsl(var(--color-primary-mid)/0.2)]">
+                    <ArrowLeftRight className="h-4 w-4 text-[hsl(var(--color-primary-bright))]" strokeWidth={1.75} />
                   </div>
                   <div>
                     <CardTitle className="text-base font-semibold tracking-tight">Transaction History</CardTitle>
@@ -1075,8 +1075,8 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
                             <div
                               className={cn(
                                 'font-semibold tabular-nums text-sm',
-                                tx.type === 'receive' && 'text-emerald-400',
-                                tx.type === 'send' && 'text-rose-400',
+                                tx.type === 'receive' && 'text-tertiary-bright',
+                                tx.type === 'send' && 'text-destructive',
                               )}
                             >
                               {tx.type === 'receive' ? '+' : tx.type === 'send' ? '−' : ''}
@@ -1099,8 +1099,8 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
             <Card className="border-border/60">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10 ring-1 ring-violet-500/20">
-                    <Activity className="h-4 w-4 text-violet-400" strokeWidth={1.75} />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--color-secondary-bright)/0.15)] ring-1 ring-[hsl(var(--color-secondary-mid)/0.2)]">
+                    <Activity className="h-4 w-4 text-[hsl(var(--color-secondary-bright))]" strokeWidth={1.75} />
                   </div>
                   <CardTitle className="text-base font-semibold tracking-tight">Activity</CardTitle>
                 </div>
@@ -1112,13 +1112,13 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Sent</span>
-                  <span className="font-semibold tabular-nums text-rose-400">
+                  <span className="font-semibold tabular-nums text-destructive">
                     {transactions.filter((t) => t.type === 'send').length}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Received</span>
-                  <span className="font-semibold tabular-nums text-emerald-400">
+                  <span className="font-semibold tabular-nums text-tertiary-bright">
                     {transactions.filter((t) => t.type === 'receive').length}
                   </span>
                 </div>
@@ -1172,15 +1172,17 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
             )}
 
             {/* Security Reminder */}
-            <Card className="border-amber-500/20 bg-amber-500/5">
+            <Card className="border-[hsl(var(--color-gold)/0.2)] bg-[hsl(var(--color-gold)/0.05)]">
               <CardContent className="pt-5 pb-5">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20 shrink-0">
-                    <ShieldAlert className="h-4 w-4 text-amber-400" strokeWidth={1.75} />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--color-gold)/0.1)] ring-1 ring-[hsl(var(--color-gold)/0.2)] shrink-0">
+                    <ShieldAlert className="h-4 w-4 text-[hsl(var(--color-gold))]" strokeWidth={1.75} />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-semibold text-sm text-amber-300 mb-0.5">Security Reminder</h4>
-                    <p className="text-xs text-amber-200/80 leading-relaxed">
+                    <h4 className="font-semibold text-sm text-[hsl(var(--color-gold)/0.9)] mb-0.5">
+                      Security Reminder
+                    </h4>
+                    <p className="text-xs text-[hsl(var(--color-gold)/0.7)] leading-relaxed">
                       Never share your private key. Back up your recovery phrase securely.
                     </p>
                   </div>
@@ -1320,27 +1322,27 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20">
-                <KeyRound className="h-4 w-4 text-amber-400" strokeWidth={1.75} />
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--color-gold)/0.1)] ring-1 ring-[hsl(var(--color-gold)/0.2)]">
+                <KeyRound className="h-4 w-4 text-[hsl(var(--color-gold))]" strokeWidth={1.75} />
               </span>
               <span className="font-semibold tracking-tight">Export Private Key</span>
             </DialogTitle>
             <DialogDescription>Your private key gives full access to this wallet</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/5">
+            <div className="p-4 rounded-2xl border border-destructive/20 bg-destructive/5">
               <div className="flex items-start gap-2.5 mb-2">
-                <ShieldAlert className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" strokeWidth={1.75} />
-                <p className="text-sm font-semibold text-rose-300">Security Warning</p>
+                <ShieldAlert className="h-4 w-4 text-destructive shrink-0 mt-0.5" strokeWidth={1.75} />
+                <p className="text-sm font-semibold text-destructive/90">Security Warning</p>
               </div>
-              <ul className="text-xs text-rose-200/80 space-y-1 pl-6 leading-relaxed">
+              <ul className="text-xs text-destructive/70 space-y-1 pl-6 leading-relaxed">
                 <li>Never share your private key with anyone</li>
                 <li>Anyone with this key can steal your funds</li>
                 <li>Store it in a secure, offline location</li>
               </ul>
             </div>
 
-            {keyRevealError && <p className="text-sm text-red-400">{keyRevealError}</p>}
+            {keyRevealError && <p className="text-sm text-destructive">{keyRevealError}</p>}
 
             {!revealedKey ? (
               <button
@@ -1377,8 +1379,8 @@ export function WalletDetailPage({ walletId }: WalletDetailPageProps) {
               </button>
             ) : (
               <div className="space-y-3">
-                <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5">
-                  <code className="text-xs font-mono break-all text-amber-200/90">
+                <div className="p-4 rounded-2xl border border-[hsl(var(--color-gold)/0.3)] bg-[hsl(var(--color-gold)/0.05)]">
+                  <code className="text-xs font-mono break-all text-[hsl(var(--color-gold)/0.9)]">
                     {revealedKey || 'No key stored for this wallet'}
                   </code>
                 </div>

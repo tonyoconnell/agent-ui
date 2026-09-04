@@ -137,7 +137,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return badRequest('kdfVersion must be an integer ≥1')
   }
 
-  // kind is accepted and stored in the future (agent TypeDB unit) — validated but not echoed
+  // kind is accepted and stored in the future (agent TypeDB actor) — validated but not echoed
   const _kind = typeof body.kind === 'string' ? body.kind : 'agent'
   const expiresAt =
     body.expiresAt === undefined || body.expiresAt === null
@@ -200,15 +200,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
         has key-status "active",
         has created ${now};
     `)
-    // Link key to unit (best-effort — key still resolves via user-id)
+    // Link key to actor (best-effort — key still resolves via user-id)
     await write(`
       match
         $k isa api-key, has api-key-id "${esc(keyId)}";
-        $u isa unit, has uid "${esc(uid)}";
+        $u isa actor, has aid "${esc(uid)}";
       insert
-        (api-key: $k, authorized-unit: $u) isa api-authorization;
+        (api-key: $k, authorized-actor: $u) isa api-authorization;
     `).catch(() => {
-      /* unit may not exist in TypeDB yet — acceptable; key resolves via user-id */
+      /* actor may not exist in TypeDB yet — acceptable; key resolves via user-id */
     })
   } catch (e) {
     console.error('[agents/register] TypeDB api-key insert failed', e)

@@ -188,7 +188,7 @@ describe('POST /api/auth/agent re-mint gate', () => {
   it('step 8a: returning + no auth + enforce mode → 403', async () => {
     vi.stubEnv('AUTH_AGENT_REMINT_MODE', 'enforce')
 
-    // existing unit found
+    // existing actor found
     mockReadParsed.mockResolvedValueOnce([{ n: 'swift-scout' }])
     // resolveUnitFromSession: no bearer, no cookie → isValid: false
     // (no Authorization header, no Cookie header)
@@ -206,7 +206,7 @@ describe('POST /api/auth/agent re-mint gate', () => {
   it('step 8b: returning + valid bearer + enforce mode → 200', async () => {
     vi.stubEnv('AUTH_AGENT_REMINT_MODE', 'enforce')
 
-    // existing unit found
+    // existing actor found
     mockReadParsed.mockResolvedValueOnce([{ n: 'swift-scout' }])
     // validateApiKey: bearer valid for swift-scout
     mockReadParsed.mockResolvedValueOnce([

@@ -9,7 +9,7 @@ import { kyselyAdapter } from '@better-auth/kysely-adapter'
 import { betterAuth } from 'better-auth'
 import { bearer, magicLink, mcp } from 'better-auth/plugins'
 import { Kysely } from 'kysely'
-import { ensureHumanUnit } from '@/lib/human-unit'
+import { ensureHumanUnit } from '@/lib/human-actor'
 import { sendEmail } from '@/lib/notify/email'
 import { passkeyWebauthn } from './auth-plugins/passkey-webauthn'
 import { suiWallet } from './auth-plugins/sui-wallet'
@@ -136,6 +136,14 @@ export function createAuth() {
         create: {
           after: async (session: { userId: string }) => {
             try {
+              // Check if an actor already exists (e.g. agent registered via /api/auth/agent)
+              // If so, skip — we don't want to overwrite actor-type "agent" with "human"
+              const { readParsed } = await import('@/lib/typedb')
+              const existing = await readParsed(`
+                match $u isa actor, has aid "${session.userId.replace(/"/g, '\\"')}";
+                select $u;
+              `).catch(() => [])
+              if ((existing as unknown[]).length > 0) return
               await ensureHumanUnit(session.userId, { id: session.userId })
             } catch (e) {
               console.error('[session.create.after] ensureHumanUnit failed', e)

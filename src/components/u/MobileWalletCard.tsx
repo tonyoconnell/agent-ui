@@ -137,7 +137,9 @@ export function MobileWalletCard({
             `}
           >
             <code className="text-xs font-mono text-muted-foreground">{truncatedAddress}</code>
-            <span className={`text-xs ${copied ? 'text-green-500 font-medium' : 'text-muted-foreground'}`}>
+            <span
+              className={`text-xs ${copied ? 'text-[hsl(var(--color-tertiary-bright))] font-medium' : 'text-muted-foreground'}`}
+            >
               {copied ? 'Copied!' : 'Copy'}
             </span>
           </button>
@@ -193,9 +195,9 @@ function ActionButton({
   onClick: (e: React.MouseEvent) => void
 }) {
   const colorClasses = {
-    green: 'bg-green-500/10 text-green-600 hover:bg-green-500/20 active:bg-green-500/30',
-    blue: 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 active:bg-blue-500/30',
-    purple: 'bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 active:bg-purple-500/30',
+    green: 'bg-tertiary-bright/10 text-tertiary-bright hover:bg-tertiary-bright/20 active:bg-tertiary-bright/30',
+    blue: 'bg-primary-bright/10 text-primary-bright hover:bg-primary-bright/20 active:bg-primary-bright/30',
+    purple: 'bg-secondary-bright/10 text-secondary-bright hover:bg-secondary-bright/20 active:bg-secondary-bright/30',
   }
 
   const icons = {

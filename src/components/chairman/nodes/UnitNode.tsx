@@ -2,10 +2,20 @@ import { Handle, type NodeProps, Position } from '@xyflow/react'
 import { useEffect, useState } from 'react'
 
 const C = {
-  bg: '#0a0a0f',
-  ceo: { bg: '#0f1140', border: '#4f46e5', text: '#a5b4fc', accent: '#6366f1' },
-  director: { bg: '#150d2e', border: '#6d28d9', text: '#c084fc', accent: '#7c3aed' },
-  hired: '#10b981',
+  bg: 'hsl(var(--color-background))',
+  ceo: {
+    bg: 'hsl(var(--color-card))',
+    border: 'hsl(var(--color-primary-bright))',
+    text: 'hsl(var(--color-primary-bright))',
+    accent: 'hsl(var(--color-primary-bright))',
+  },
+  director: {
+    bg: 'hsl(var(--color-card))',
+    border: 'hsl(var(--color-secondary-bright))',
+    text: 'hsl(var(--color-secondary-bright))',
+    accent: 'hsl(var(--color-secondary-bright))',
+  },
+  hired: 'hsl(var(--color-tertiary-bright))',
 }
 
 interface UnitData {
@@ -72,7 +82,7 @@ export function UnitNode({ data }: NodeProps) {
       />
 
       <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-semibold text-slate-100">{d.role.toUpperCase()}</span>
+        <span className="text-sm font-semibold text-font">{d.role.toUpperCase()}</span>
         {!isHiring && (
           <span
             className="text-[9px] px-1.5 py-0.5 rounded-full"
@@ -88,13 +98,15 @@ export function UnitNode({ data }: NodeProps) {
       </div>
 
       {wallet && (
-        <div className="text-[9px] font-mono truncate max-w-[148px] mt-0.5 text-slate-600">{wallet.slice(0, 18)}…</div>
+        <div className="text-[9px] font-mono truncate max-w-[148px] mt-0.5 text-muted-foreground">
+          {wallet.slice(0, 18)}…
+        </div>
       )}
 
       {!isHiring && skills.length > 0 && (
         <div className="flex gap-1 flex-wrap mt-2">
           {skills.slice(0, 3).map((s) => (
-            <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-[#1a1a2e] text-slate-500">
+            <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-card text-muted-foreground">
               {s}
             </span>
           ))}

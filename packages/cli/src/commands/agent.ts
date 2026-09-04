@@ -246,11 +246,6 @@ export async function runAgent(options: AgentOptions = {}): Promise<void> {
         }
 
         try {
-          await execAsync(
-            `git clone --depth 1 https://github.com/one-ie/web.git "${webPath}"`
-          );
-          await fs.remove(path.join(webPath, ".git"));
-
           const envContent = `# Organization Configuration
 ORG_NAME=${context.organization}
 ORG_WEBSITE=${context.website || "https://example.com"}
@@ -261,7 +256,12 @@ ONE_BACKEND=off
 PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
 CONVEX_DEPLOYMENT=dev:your-deployment
 `;
-          await fs.writeFile(path.join(webPath, ".env.local"), envContent, "utf-8");
+          const { setupWeb } = await import("../setup-web.js");
+          await setupWeb({
+            basePath,
+            webPath,
+            envContent,
+          });
 
           websiteCloned = true;
           if (!options.quiet && spinner) {

@@ -1,7 +1,7 @@
 /**
  * POST /api/tasks/import-roadmap — Import roadmap as tagged skills
  *
- * Creates skills with tags, capabilities on a "builder" unit,
+ * Creates skills with tags, capabilities on a "builder" actor,
  * and initial paths with pheromone from completed items.
  */
 import type { APIRoute } from 'astro'
@@ -101,7 +101,13 @@ const ROADMAP: RoadmapItem[] = [
     after: ['marketplace'],
   },
   // Phase 5: Intelligence
-  { id: 'llm-unit', name: 'LLM as unit', tags: ['build', 'intelligence', 'P0'], done: false, after: ['a2a-payments'] },
+  {
+    id: 'llm-actor',
+    name: 'LLM as actor',
+    tags: ['build', 'intelligence', 'P0'],
+    done: false,
+    after: ['a2a-payments'],
+  },
   {
     id: 'hypothesis',
     name: 'Hypothesis engine',
@@ -122,7 +128,7 @@ const ROADMAP: RoadmapItem[] = [
     name: 'Deploy to production',
     tags: ['build', 'scale', 'P0', 'infra'],
     done: false,
-    after: ['llm-unit'],
+    after: ['llm-actor'],
   },
   { id: 'sui', name: 'Sui integration', tags: ['build', 'scale', 'P0', 'payments'], done: false, after: ['deploy'] },
   {
@@ -137,9 +143,9 @@ const ROADMAP: RoadmapItem[] = [
 export const POST: APIRoute = async () => {
   let created = 0
 
-  // 1. Create builder unit
+  // 1. Create builder actor
   await write(`
-    insert $u isa unit, has uid "builder", has name "Builder", has unit-kind "system",
+    insert $u isa actor, has aid "builder", has name "Builder", has actor-type "system",
       has tag "system", has status "active", has success-rate 0.5, has activity-score 0.0,
       has sample-count 0, has reputation 0.0, has balance 0.0, has generation 0;
   `).catch(() => {})
@@ -152,7 +158,7 @@ export const POST: APIRoute = async () => {
         ${tagInserts}, has price 0.0, has currency "SUI";
     `)
     await writeSilent(`
-      match $u isa unit, has uid "builder"; $s isa skill, has skill-id "${item.id}";
+      match $u isa actor, has aid "builder"; $s isa skill, has skill-id "${item.id}";
       insert (provider: $u, offered: $s) isa capability, has price 0.0;
     `)
     created++
@@ -164,7 +170,7 @@ export const POST: APIRoute = async () => {
       const source = ROADMAP.find((r) => r.id === dep)
       const strength = source?.done ? 50.0 : 0.0
       await writeSilent(`
-        match $from isa unit, has uid "builder"; $to isa unit, has uid "builder";
+        match $from isa actor, has aid "builder"; $to isa actor, has aid "builder";
         insert (source: $from, target: $to) isa path,
           has strength ${strength}, has resistance 0.0, has traversals ${source?.done ? 1 : 0},
           has revenue 0.0, has fade-rate 0.05, has peak-strength ${strength};

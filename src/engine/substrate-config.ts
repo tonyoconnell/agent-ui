@@ -57,8 +57,8 @@ const parseInterval = (s: string): number => {
   const match = s.match(/^(\d+)(ms|s|m|h|d)?$/)
   if (!match) return 60000 // default 1 minute
   const n = parseInt(match[1], 10)
-  const unit = match[2] || 'ms'
-  switch (unit) {
+  const actor = match[2] || 'ms'
+  switch (actor) {
     case 'ms':
       return n
     case 's':

@@ -26,16 +26,16 @@ export const POST: APIRoute = async ({ request }) => {
   const et = escapeTqlString(to)
   await write(`
     match
-      $from isa unit, has uid "${ef}";
-      $to isa unit, has uid "${et}";
+      $from isa actor, has aid "${ef}";
+      $to isa actor, has aid "${et}";
       $e (source: $from, target: $to) isa path, has resistance $r;
     delete $r of $e;
     insert $e has resistance ($r + ${strength});
   `).catch(() =>
     write(`
       match
-        $from isa unit, has uid "${ef}";
-        $to isa unit, has uid "${et}";
+        $from isa actor, has aid "${ef}";
+        $to isa actor, has aid "${et}";
       insert
         (source: $from, target: $to) isa path,
           has strength 0.0, has resistance ${strength}, has traversals 0, has revenue 0.0;

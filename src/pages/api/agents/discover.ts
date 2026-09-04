@@ -1,8 +1,8 @@
 /**
- * GET /api/agents/discover — Discover units capable of a skill
+ * GET /api/agents/discover — Discover actors capable of a skill
  *
  * Query: ?skill=X&limit=N
- * Returns: ranked units with capability, reputation, and pheromone strength.
+ * Returns: ranked actors with capability, reputation, and pheromone strength.
  * Uses suggest_route pattern from TypeDB.
  */
 import type { APIRoute } from 'astro'
@@ -27,7 +27,7 @@ export const GET: APIRoute = async ({ url }) => {
     // in one match times out at 30s regardless of bindings. Single-role
     // capability queries that only read key attrs return in 500ms. So we
     // split the work: find matching skills first, fetch ALL cap pairs
-    // unfiltered, intersect in JS (~1500 rows), then bulk-fetch unit attrs.
+    // unfiltered, intersect in JS (~1500 rows), then bulk-fetch actor attrs.
     const needle = skillParam.toLowerCase()
     // Stage 0: find matching skills by name. Read price from the skill
     // entity directly — we skip reading price off the capability relation
@@ -61,7 +61,7 @@ export const GET: APIRoute = async ({ url }) => {
     const pairRows = await readParsed(`
       match
         (provider: $u, offered: $s) isa capability;
-        $u has uid $uid;
+        $u has aid $uid;
         $s has skill-id $sid;
       select $uid, $sid;
     `).catch(() => [])
@@ -74,14 +74,14 @@ export const GET: APIRoute = async ({ url }) => {
       })
     }
 
-    // Stage 2: bulk-fetch unit attrs bounded by the uids we need.
+    // Stage 2: bulk-fetch actor attrs bounded by the uids we need.
     const uidsForFetch = [...new Set(pairs.map((r) => r.uid as string).filter(Boolean))]
     const uidListLiteral = uidsForFetch.map((u) => `"${u}"`).join(', ')
     const unitRows = await readParsed(`
       match
-        $u isa unit, has uid $uid;
+        $u isa actor, has aid $uid;
         $uid in [${uidListLiteral}];
-        $u has name $n, has unit-kind $k, has reputation $rep,
+        $u has name $n, has actor-type $k, has reputation $rep,
            has success-rate $sr, has activity-score $activity;
       select $uid, $n, $k, $rep, $sr, $activity;
     `).catch(() => [])
@@ -93,17 +93,17 @@ export const GET: APIRoute = async ({ url }) => {
     }
 
     const rows = pairs.map((p) => {
-      const unit = unitByUid[p.uid as string] || {}
+      const actor = unitByUid[p.uid as string] || {}
       return {
         uid: p.uid as string,
         sid: p.sid as string,
         sn: skillNameById[p.sid as string] || (p.sid as string),
         p: skillPriceById[p.sid as string] ?? 0,
-        n: (unit.n as string) ?? (p.uid as string),
-        k: (unit.k as string) ?? 'agent',
-        rep: (unit.rep as number) ?? 0,
-        sr: (unit.sr as number) ?? 0.5,
-        activity: (unit.activity as number) ?? 0,
+        n: (actor.n as string) ?? (p.uid as string),
+        k: (actor.k as string) ?? 'agent',
+        rep: (actor.rep as number) ?? 0,
+        sr: (actor.sr as number) ?? 0.5,
+        activity: (actor.activity as number) ?? 0,
       }
     })
 
@@ -121,17 +121,17 @@ export const GET: APIRoute = async ({ url }) => {
     }
 
     // Fetch pheromone strength only for the discovered uids.
-    // A global `match $u isa unit; ... isa path` times out at scale —
+    // A global `match $u isa actor; ... isa path` times out at scale —
     // bound the query to the uids we already have.
     const uids = [...new Set(rows.map((r) => r.uid as string).filter(Boolean))]
     const strengthMap: Record<string, number> = {}
     if (uids.length > 0) {
       // Bound by uid — prevents a Cartesian scan over all paths when
-      // many units exist. TypeDB 3.x `in` takes a list literal.
+      // many actors exist. TypeDB 3.x `in` takes a list literal.
       const uidList = uids.map((u) => `"${u}"`).join(', ')
       const strengthRows = await readParsed(`
         match
-          $u isa unit, has uid $uid;
+          $u isa actor, has aid $uid;
           $uid in [${uidList}];
           (source: $src, target: $u) isa path, has strength $s;
         select $uid, $s;
@@ -147,7 +147,7 @@ export const GET: APIRoute = async ({ url }) => {
 
     // GATE: Only return agents with at least one capability (CAPABLE → DISCOVER)
     // This is enforced by the query: (provider: $u, offered: $s) isa capability
-    // ensures only units with capabilities are returned
+    // ensures only actors with capabilities are returned
     const agents = rows.map((row) => ({
       uid: row.uid as string,
       name: row.n as string,

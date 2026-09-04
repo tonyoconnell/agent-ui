@@ -85,14 +85,14 @@ export const ant: MetaphorSkin = {
   atRisk: 'lost',
 
   colors: {
-    primary: '#84cc16',
-    secondary: '#65a30d',
-    success: '#22c55e',
-    warning: '#eab308',
-    danger: '#ef4444',
-    muted: '#4b5563',
-    background: '#0a0f0a',
-    surface: '#141f14',
+    primary: 'hsl(var(--color-tertiary-bright))',
+    secondary: 'hsl(var(--color-tertiary-bright) / 0.8)',
+    success: 'hsl(var(--color-tertiary-bright))',
+    warning: 'hsl(var(--color-gold))',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {
@@ -132,14 +132,14 @@ export const brain: MetaphorSkin = {
   atRisk: 'damaged',
 
   colors: {
-    primary: '#a855f7',
-    secondary: '#9333ea',
-    success: '#c084fc',
-    warning: '#f59e0b',
-    danger: '#f87171',
-    muted: '#6b7280',
-    background: '#0f0a1a',
-    surface: '#1a1425',
+    primary: 'hsl(var(--color-secondary-bright))',
+    secondary: 'hsl(var(--color-secondary-bright) / 0.8)',
+    success: 'hsl(var(--color-secondary-bright) / 0.7)',
+    warning: 'hsl(var(--color-gold))',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {
@@ -179,14 +179,14 @@ export const team: MetaphorSkin = {
   atRisk: 'struggling',
 
   colors: {
-    primary: '#3b82f6',
-    secondary: '#2563eb',
-    success: '#60a5fa',
-    warning: '#f59e0b',
-    danger: '#f87171',
-    muted: '#64748b',
-    background: '#0a0a14',
-    surface: '#161622',
+    primary: 'hsl(var(--color-primary-bright))',
+    secondary: 'hsl(var(--color-primary-bright) / 0.8)',
+    success: 'hsl(var(--color-primary-bright) / 0.7)',
+    warning: 'hsl(var(--color-gold))',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {
@@ -226,14 +226,14 @@ export const mail: MetaphorSkin = {
   atRisk: 'delayed',
 
   colors: {
-    primary: '#f59e0b',
-    secondary: '#d97706',
-    success: '#fbbf24',
-    warning: '#fb923c',
-    danger: '#dc2626',
-    muted: '#78716c',
-    background: '#14100a',
-    surface: '#1f1a14',
+    primary: 'hsl(var(--color-gold))',
+    secondary: 'hsl(var(--color-gold) / 0.8)',
+    success: 'hsl(var(--color-gold) / 0.9)',
+    warning: 'hsl(var(--color-gold) / 0.7)',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {
@@ -273,14 +273,14 @@ export const water: MetaphorSkin = {
   atRisk: 'stagnant',
 
   colors: {
-    primary: '#06b6d4',
-    secondary: '#0891b2',
-    success: '#22d3ee',
-    warning: '#facc15',
-    danger: '#f87171',
-    muted: '#71717a',
-    background: '#0a1014',
-    surface: '#14202a',
+    primary: 'hsl(var(--color-primary-bright))',
+    secondary: 'hsl(var(--color-primary-bright) / 0.8)',
+    success: 'hsl(var(--color-primary-bright) / 0.7)',
+    warning: 'hsl(var(--color-gold))',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {
@@ -320,14 +320,14 @@ export const signal: MetaphorSkin = {
   atRisk: 'noisy',
 
   colors: {
-    primary: '#10b981',
-    secondary: '#059669',
-    success: '#34d399',
-    warning: '#fbbf24',
-    danger: '#f87171',
-    muted: '#6b7280',
-    background: '#0a140f',
-    surface: '#142520',
+    primary: 'hsl(var(--color-tertiary-bright))',
+    secondary: 'hsl(var(--color-tertiary-bright) / 0.8)',
+    success: 'hsl(var(--color-tertiary-bright) / 0.7)',
+    warning: 'hsl(var(--color-gold))',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {
@@ -374,14 +374,14 @@ export const ceo: MetaphorSkin = {
   atRisk: 'struggling',
 
   colors: {
-    primary: '#3b82f6',
-    secondary: '#2563eb',
-    success: '#60a5fa',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-    muted: '#64748b',
-    background: '#0a0a14',
-    surface: '#0f1623',
+    primary: 'hsl(var(--color-primary-bright))',
+    secondary: 'hsl(var(--color-primary-bright) / 0.8)',
+    success: 'hsl(var(--color-primary-bright) / 0.7)',
+    warning: 'hsl(var(--color-gold))',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {
@@ -418,14 +418,14 @@ export const dev: MetaphorSkin = {
   atRisk: 'warned',
 
   colors: {
-    primary: '#22d3ee',
-    secondary: '#0891b2',
-    success: '#34d399',
-    warning: '#fbbf24',
-    danger: '#f87171',
-    muted: '#4b5563',
-    background: '#050d10',
-    surface: '#0d1f24',
+    primary: 'hsl(var(--color-primary-bright))',
+    secondary: 'hsl(var(--color-primary-bright) / 0.8)',
+    success: 'hsl(var(--color-tertiary-bright))',
+    warning: 'hsl(var(--color-gold))',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {
@@ -462,14 +462,14 @@ export const investor: MetaphorSkin = {
   atRisk: 'at-risk',
 
   colors: {
-    primary: '#f59e0b',
-    secondary: '#d97706',
-    success: '#fbbf24',
-    warning: '#fb923c',
-    danger: '#dc2626',
-    muted: '#78716c',
-    background: '#14100a',
-    surface: '#1f180a',
+    primary: 'hsl(var(--color-gold))',
+    secondary: 'hsl(var(--color-gold) / 0.8)',
+    success: 'hsl(var(--color-gold) / 0.9)',
+    warning: 'hsl(var(--color-gold) / 0.7)',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {
@@ -506,14 +506,14 @@ export const gamer: MetaphorSkin = {
   atRisk: 'alarmed',
 
   colors: {
-    primary: '#84cc16',
-    secondary: '#65a30d',
-    success: '#a3e635',
-    warning: '#eab308',
-    danger: '#ef4444',
-    muted: '#4b5563',
-    background: '#080f05',
-    surface: '#10180a',
+    primary: 'hsl(var(--color-tertiary-bright))',
+    secondary: 'hsl(var(--color-tertiary-bright) / 0.8)',
+    success: 'hsl(var(--color-tertiary-bright) / 0.7)',
+    warning: 'hsl(var(--color-gold))',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {
@@ -550,14 +550,14 @@ export const kid: MetaphorSkin = {
   atRisk: 'struggling',
 
   colors: {
-    primary: '#facc15',
-    secondary: '#eab308',
-    success: '#4ade80',
-    warning: '#fb923c',
-    danger: '#f87171',
-    muted: '#9ca3af',
-    background: '#0a0a08',
-    surface: '#1a1a14',
+    primary: 'hsl(var(--color-gold))',
+    secondary: 'hsl(var(--color-gold) / 0.8)',
+    success: 'hsl(var(--color-tertiary-bright))',
+    warning: 'hsl(var(--color-gold) / 0.7)',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {
@@ -594,14 +594,14 @@ export const freelancer: MetaphorSkin = {
   atRisk: 'at-risk',
 
   colors: {
-    primary: '#a855f7',
-    secondary: '#9333ea',
-    success: '#c084fc',
-    warning: '#f59e0b',
-    danger: '#f87171',
-    muted: '#6b7280',
-    background: '#0a0814',
-    surface: '#130f1f',
+    primary: 'hsl(var(--color-secondary-bright))',
+    secondary: 'hsl(var(--color-secondary-bright) / 0.8)',
+    success: 'hsl(var(--color-secondary-bright) / 0.7)',
+    warning: 'hsl(var(--color-gold))',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {
@@ -638,14 +638,14 @@ export const agent: MetaphorSkin = {
   atRisk: 'warned',
 
   colors: {
-    primary: '#f97316',
-    secondary: '#ea580c',
-    success: '#fb923c',
-    warning: '#fbbf24',
-    danger: '#ef4444',
-    muted: '#6b7280',
-    background: '#100805',
-    surface: '#1f110a',
+    primary: 'hsl(var(--color-gold))',
+    secondary: 'hsl(var(--color-gold) / 0.8)',
+    success: 'hsl(var(--color-gold) / 0.7)',
+    warning: 'hsl(var(--color-gold) / 0.9)',
+    danger: 'hsl(var(--color-destructive))',
+    muted: 'hsl(var(--color-muted-foreground))',
+    background: 'hsl(var(--color-background))',
+    surface: 'hsl(var(--color-card))',
   },
 
   icons: {

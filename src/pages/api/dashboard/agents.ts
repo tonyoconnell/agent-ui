@@ -20,7 +20,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       match
         $g isa group, has gid "${gid}";
         (group: $g, member: $a) isa membership;
-        $a has uid $uid, has name $name;
+        $a has aid $uid, has name $name;
       select $uid, $name;
     `)
     agents = rows.map((r) => ({ uid: r.uid as string, name: r.name as string }))

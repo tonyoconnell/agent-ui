@@ -137,15 +137,15 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: UnlockDial
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg bg-[#0a0a0f] border-[#252538] text-slate-200">
+      <DialogContent className="sm:max-w-lg bg-background border-border text-font">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-slate-100">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center">
-              <Lock className="w-5 h-5 text-white" />
+          <DialogTitle className="flex items-center gap-3 text-font">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[hsl(var(--color-primary-bright))] to-[hsl(var(--color-secondary-bright))] flex items-center justify-center">
+              <Lock className="w-5 h-5 text-background" />
             </div>
             Unlock vault
           </DialogTitle>
-          <DialogDescription className="text-slate-400">Choose how you want to unlock.</DialogDescription>
+          <DialogDescription className="text-muted-foreground">Choose how you want to unlock.</DialogDescription>
         </DialogHeader>
 
         <Tabs
@@ -157,23 +157,27 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: UnlockDial
           }}
           className="w-full"
         >
-          <TabsList className="bg-[#161622] border border-[#252538]">
+          <TabsList className="bg-card border border-border">
             {hasPasskey && <TabsTrigger value="passkey">Passkey</TabsTrigger>}
             <TabsTrigger value="recovery">Recovery phrase</TabsTrigger>
           </TabsList>
 
           {hasPasskey && (
             <TabsContent value="passkey" className="pt-4 space-y-3">
-              <Card className="bg-[#161622] border-[#252538]">
+              <Card className="bg-card border-border">
                 <CardContent className="pt-4 pb-4 flex items-start gap-3">
-                  <Fingerprint className="w-5 h-5 text-emerald-400 mt-0.5" />
-                  <div className="text-sm text-slate-300">
+                  <Fingerprint className="w-5 h-5 text-tertiary-bright mt-0.5" />
+                  <div className="text-sm text-foreground">
                     Your device will ask for Touch ID, Face ID, or Windows Hello.
                   </div>
                 </CardContent>
               </Card>
-              {error && <p className="text-sm text-red-400">{error}</p>}
-              <Button onClick={handlePasskey} disabled={pending} className="w-full bg-emerald-600 hover:bg-emerald-500">
+              {error && <p className="text-sm text-[hsl(var(--color-destructive))]">{error}</p>}
+              <Button
+                onClick={handlePasskey}
+                disabled={pending}
+                className="w-full bg-[hsl(var(--color-tertiary-bright))] text-background hover:opacity-90"
+              >
                 {pending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -190,14 +194,18 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: UnlockDial
           )}
 
           <TabsContent value="recovery" className="pt-4 space-y-3">
-            <p className="text-xs text-slate-400">Enter your 24-word recovery phrase.</p>
+            <p className="text-xs text-muted-foreground">Enter your 24-word recovery phrase.</p>
             <div className="grid grid-cols-4 gap-2">
               {words.map((w, i) => (
                 <RecoveryWordInput key={i} index={i} value={w} onChange={(v) => updateWord(i, v)} />
               ))}
             </div>
-            {error && <p className="text-sm text-red-400">{error}</p>}
-            <Button onClick={handleRecovery} disabled={pending} className="w-full bg-emerald-600 hover:bg-emerald-500">
+            {error && <p className="text-sm text-[hsl(var(--color-destructive))]">{error}</p>}
+            <Button
+              onClick={handleRecovery}
+              disabled={pending}
+              className="w-full bg-[hsl(var(--color-tertiary-bright))] text-background hover:opacity-90"
+            >
               {pending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -211,7 +219,7 @@ export function VaultUnlockDialog({ open, onOpenChange, onUnlocked }: UnlockDial
         </Tabs>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={close} className="text-slate-400 hover:text-slate-200">
+          <Button variant="ghost" onClick={close} className="text-muted-foreground hover:text-foreground">
             Cancel
           </Button>
         </DialogFooter>
@@ -231,7 +239,7 @@ function RecoveryWordInput({ index, value, onChange }: WordInputProps) {
   const suggestions = useMemo(() => (value.length >= 2 ? suggestWords(value, 6) : []), [value])
   return (
     <div className="relative">
-      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 pointer-events-none">
+      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">
         {index + 1}
       </span>
       <input
@@ -241,7 +249,7 @@ function RecoveryWordInput({ index, value, onChange }: WordInputProps) {
         list={listId}
         autoComplete="off"
         spellCheck={false}
-        className="w-full h-9 pl-6 pr-2 rounded-md bg-[#161622] border border-[#252538] text-slate-100 text-sm font-mono focus:outline-none focus:border-emerald-500/60"
+        className="w-full h-9 pl-6 pr-2 rounded-md bg-card border border-border text-font text-sm font-mono focus:outline-none focus:border-tertiary-bright"
       />
       <datalist id={listId}>
         {suggestions.map((s) => (
@@ -270,22 +278,22 @@ export function VaultRecoveryRevealDialog({ open, onOpenChange }: DialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg bg-[#0a0a0f] border-[#252538] text-slate-200">
+      <DialogContent className="sm:max-w-lg bg-background border-border text-font">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-slate-100">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-              <KeyRound className="w-5 h-5 text-white" />
+          <DialogTitle className="flex items-center gap-3 text-font">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[hsl(var(--color-gold))] to-[hsl(var(--color-gold)/0.8)] flex items-center justify-center">
+              <KeyRound className="w-5 h-5 text-background" />
             </div>
             Recovery phrase
           </DialogTitle>
-          <DialogDescription className="text-slate-400">Destructive action — read carefully.</DialogDescription>
+          <DialogDescription className="text-muted-foreground">Destructive action — read carefully.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <Card className="bg-red-500/10 border-red-500/30">
+          <Card className="bg-[hsl(var(--color-destructive)/0.1)] border-[hsl(var(--color-destructive)/0.3)]">
             <CardContent className="pt-4 pb-4 flex items-start gap-3">
-              <ShieldAlert className="w-5 h-5 text-red-400 mt-0.5" />
-              <div className="text-sm text-red-200">
+              <ShieldAlert className="w-5 h-5 text-[hsl(var(--color-destructive))] mt-0.5" />
+              <div className="text-sm text-[hsl(var(--color-destructive)/0.9)]">
                 <strong>Your recovery phrase is not stored on this device.</strong>
                 <br />
                 To view it you must restore from a backup (which contains it), or you already wrote it down during
@@ -295,20 +303,20 @@ export function VaultRecoveryRevealDialog({ open, onOpenChange }: DialogProps) {
           </Card>
 
           <div className="space-y-2">
-            <Label className="text-slate-300">
-              Type <span className="font-mono text-red-300">REVEAL</span> to acknowledge
+            <Label className="text-foreground">
+              Type <span className="font-mono text-[hsl(var(--color-destructive)/0.9)]">REVEAL</span> to acknowledge
             </Label>
             <Input
               value={confirmWord}
               onChange={(e) => setConfirmWord(e.target.value)}
               placeholder="REVEAL"
-              className="bg-[#161622] border-[#252538] text-slate-100 font-mono"
+              className="bg-card border-border text-font font-mono"
             />
           </div>
 
           {confirmWord === 'REVEAL' && (
-            <Card className="bg-[#161622] border-[#252538]">
-              <CardContent className="pt-4 pb-4 text-sm text-slate-300">
+            <Card className="bg-card border-border">
+              <CardContent className="pt-4 pb-4 text-sm text-foreground">
                 You acknowledged the warning. The phrase is not retrievable from this device — please import a backup or
                 reset the vault.
               </CardContent>
@@ -317,7 +325,7 @@ export function VaultRecoveryRevealDialog({ open, onOpenChange }: DialogProps) {
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={close} className="text-slate-400 hover:text-slate-200">
+          <Button variant="ghost" onClick={close} className="text-muted-foreground hover:text-font">
             Close
           </Button>
         </DialogFooter>
@@ -404,15 +412,15 @@ export function VaultBackupDialog({ open, onOpenChange }: DialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg bg-[#0a0a0f] border-[#252538] text-slate-200">
+      <DialogContent className="sm:max-w-lg bg-background border-border text-font">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-slate-100">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-              <Download className="w-5 h-5 text-white" />
+          <DialogTitle className="flex items-center gap-3 text-font">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[hsl(var(--color-secondary-bright))] to-[hsl(var(--color-secondary-mid))] flex items-center justify-center">
+              <Download className="w-5 h-5 text-background" />
             </div>
             Backup vault
           </DialogTitle>
-          <DialogDescription className="text-slate-400">Encrypted export and restore.</DialogDescription>
+          <DialogDescription className="text-muted-foreground">Encrypted export and restore.</DialogDescription>
         </DialogHeader>
 
         <Tabs
@@ -422,27 +430,27 @@ export function VaultBackupDialog({ open, onOpenChange }: DialogProps) {
             setTab(v)
           }}
         >
-          <TabsList className="bg-[#161622] border border-[#252538]">
+          <TabsList className="bg-card border border-border">
             <TabsTrigger value="export">Export</TabsTrigger>
             <TabsTrigger value="import">Import</TabsTrigger>
           </TabsList>
 
           <TabsContent value="export" className="pt-4 space-y-3">
             <div className="space-y-2">
-              <Label className="text-slate-300">Export password</Label>
+              <Label className="text-foreground">Export password</Label>
               <Input
                 type="password"
                 value={exportPassword}
                 onChange={(e) => setExportPassword(e.target.value)}
                 placeholder="Encrypts the backup file"
-                className="bg-[#161622] border-[#252538] text-slate-100"
+                className="bg-card border-border text-font"
               />
-              <p className="text-xs text-slate-400">Can be different from your vault password.</p>
+              <p className="text-xs text-muted-foreground">Can be different from your vault password.</p>
             </div>
-            {exportError && <p className="text-sm text-red-400">{exportError}</p>}
+            {exportError && <p className="text-sm text-[hsl(var(--color-destructive))]">{exportError}</p>}
             {exportDone && (
-              <Card className="bg-emerald-500/10 border-emerald-500/30">
-                <CardContent className="pt-3 pb-3 flex items-center gap-2 text-sm text-emerald-300">
+              <Card className="bg-[hsl(var(--color-tertiary-bright)/0.1)] border-[hsl(var(--color-tertiary-bright)/0.3)]">
+                <CardContent className="pt-3 pb-3 flex items-center gap-2 text-sm text-[hsl(var(--color-tertiary-bright))]">
                   <Check className="w-4 h-4" />
                   Backup downloaded.
                 </CardContent>
@@ -451,7 +459,7 @@ export function VaultBackupDialog({ open, onOpenChange }: DialogProps) {
             <Button
               onClick={handleExport}
               disabled={pending || !exportPassword}
-              className="w-full bg-emerald-600 hover:bg-emerald-500"
+              className="w-full bg-[hsl(var(--color-tertiary-bright))] text-background hover:opacity-90"
             >
               {pending ? (
                 <>
@@ -469,28 +477,28 @@ export function VaultBackupDialog({ open, onOpenChange }: DialogProps) {
 
           <TabsContent value="import" className="pt-4 space-y-3">
             <div className="space-y-2">
-              <Label className="text-slate-300">Backup file</Label>
+              <Label className="text-foreground">Backup file</Label>
               <Input
                 type="file"
                 accept=".json,application/json"
                 onChange={handleImportFile}
-                className="bg-[#161622] border-[#252538] text-slate-100 cursor-pointer"
+                className="bg-card border-border text-font cursor-pointer"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-300">Backup password</Label>
+              <Label className="text-foreground">Backup password</Label>
               <Input
                 type="password"
                 value={importPassword}
                 onChange={(e) => setImportPassword(e.target.value)}
                 placeholder="Password used at export"
-                className="bg-[#161622] border-[#252538] text-slate-100"
+                className="bg-card border-border text-font"
               />
             </div>
-            {importError && <p className="text-sm text-red-400">{importError}</p>}
+            {importError && <p className="text-sm text-[hsl(var(--color-destructive))]">{importError}</p>}
             {importCount !== null && (
-              <Card className="bg-emerald-500/10 border-emerald-500/30">
-                <CardContent className="pt-3 pb-3 flex items-center gap-2 text-sm text-emerald-300">
+              <Card className="bg-[hsl(var(--color-tertiary-bright)/0.1)] border-[hsl(var(--color-tertiary-bright)/0.3)]">
+                <CardContent className="pt-3 pb-3 flex items-center gap-2 text-sm text-[hsl(var(--color-tertiary-bright))]">
                   <Check className="w-4 h-4" />
                   {importCount} wallets imported.
                 </CardContent>
@@ -499,7 +507,7 @@ export function VaultBackupDialog({ open, onOpenChange }: DialogProps) {
             <Button
               onClick={handleImport}
               disabled={pending || !importFile || !importPassword}
-              className="w-full bg-emerald-600 hover:bg-emerald-500"
+              className="w-full bg-[hsl(var(--color-tertiary-bright))] text-background hover:opacity-90"
             >
               {pending ? (
                 <>
@@ -517,7 +525,7 @@ export function VaultBackupDialog({ open, onOpenChange }: DialogProps) {
         </Tabs>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={close} className="text-slate-400 hover:text-slate-200">
+          <Button variant="ghost" onClick={close} className="text-muted-foreground hover:text-font">
             Close
           </Button>
         </DialogFooter>
@@ -644,20 +652,22 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg bg-[#0a0a0f] border-[#252538] text-slate-200">
+      <DialogContent className="sm:max-w-lg bg-background border-border text-font">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-slate-100">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center">
-              <KeyRound className="w-5 h-5 text-white" />
+          <DialogTitle className="flex items-center gap-3 text-font">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-muted to-muted-foreground flex items-center justify-center">
+              <KeyRound className="w-5 h-5 text-background" />
             </div>
             Vault settings
           </DialogTitle>
-          <DialogDescription className="text-slate-400">Configure auto-lock, auth, and danger zone.</DialogDescription>
+          <DialogDescription className="text-muted-foreground">
+            Configure auto-lock, auth, and danger zone.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 py-2 max-h-[60vh] overflow-y-auto pr-1">
           <div className="space-y-2">
-            <Label className="text-slate-300">Auto-lock idle timeout</Label>
+            <Label className="text-foreground">Auto-lock idle timeout</Label>
             <div className="grid grid-cols-3 gap-2">
               {AUTO_LOCK_OPTIONS.map((opt) => (
                 <button
@@ -666,8 +676,8 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
                   onClick={() => handleAutoLock(opt.ms)}
                   className={`text-xs rounded-md border px-2 py-2 transition-colors ${
                     autoLockMs === opt.ms
-                      ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-300'
-                      : 'border-[#252538] bg-[#161622] text-slate-300 hover:border-[#3a3a52]'
+                      ? 'border-[hsl(var(--color-tertiary-bright)/0.6)] bg-[hsl(var(--color-tertiary-bright)/0.1)] text-[hsl(var(--color-tertiary-bright))]'
+                      : 'border-border bg-card text-foreground hover:border-muted'
                   }`}
                 >
                   {opt.label}
@@ -676,38 +686,38 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
             </div>
           </div>
 
-          <label className="flex items-center justify-between gap-3 rounded-md border border-[#252538] bg-[#161622] px-3 py-3 cursor-pointer">
+          <label className="flex items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-3 cursor-pointer">
             <div>
-              <div className="text-sm text-slate-200">Lock on tab close</div>
-              <div className="text-xs text-slate-400">Re-auth when you return.</div>
+              <div className="text-sm text-font">Lock on tab close</div>
+              <div className="text-xs text-muted-foreground">Re-auth when you return.</div>
             </div>
             <input
               type="checkbox"
               checked={lockOnTabClose}
               onChange={(e) => handleLockOnClose(e.target.checked)}
-              className="accent-emerald-500"
+              className="accent-[hsl(var(--color-tertiary-bright))]"
             />
           </label>
 
           <div className="space-y-2">
-            <Label className="text-slate-300">Authentication</Label>
+            <Label className="text-foreground">Authentication</Label>
             <Button
               variant="outline"
               onClick={handleAddPasskey}
               disabled={pending}
-              className="w-full justify-start border-[#252538] bg-[#161622] text-slate-200 hover:bg-[#1f1f2e]"
+              className="w-full justify-start border-border bg-card text-font hover:bg-muted"
             >
               <Fingerprint className="w-4 h-4 mr-2" />
               Add another passkey
             </Button>
           </div>
 
-          <div className="space-y-2 rounded-md border border-red-500/30 bg-red-500/5 p-3">
-            <div className="flex items-center gap-2 text-red-300">
+          <div className="space-y-2 rounded-md border border-[hsl(var(--color-destructive)/0.3)] bg-[hsl(var(--color-destructive)/0.08)] p-3">
+            <div className="flex items-center gap-2 text-[hsl(var(--color-destructive)/0.8)]">
               <AlertTriangle className="w-4 h-4" />
               <span className="text-sm font-medium">Danger zone</span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               Wipes every wallet, every passkey, and all encrypted data from this device.
             </p>
 
@@ -716,14 +726,14 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
                 value={wipeConfirmText}
                 onChange={(e) => setWipeConfirmText(e.target.value)}
                 placeholder="Type DELETE EVERYTHING"
-                className="bg-[#161622] border-[#252538] text-slate-100 font-mono"
+                className="bg-card border-border text-font font-mono"
               />
             )}
 
             <Button
               onClick={handleWipe}
               disabled={pending || (wipeStage === 1 && wipeConfirmText !== 'DELETE EVERYTHING')}
-              className="w-full bg-red-600 hover:bg-red-500 text-white"
+              className="w-full bg-[hsl(var(--color-destructive))] hover:opacity-90 text-background"
             >
               {pending ? (
                 <>
@@ -742,16 +752,16 @@ export function VaultSettingsDialog({ open, onOpenChange }: DialogProps) {
           </div>
 
           {message && (
-            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300 flex items-center gap-2">
+            <div className="rounded-md border border-[hsl(var(--color-tertiary-bright)/0.3)] bg-[hsl(var(--color-tertiary-bright)/0.1)] px-3 py-2 text-sm text-[hsl(var(--color-tertiary-bright))] flex items-center gap-2">
               <Check className="w-4 h-4" />
               {message}
             </div>
           )}
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-[hsl(var(--color-destructive))]">{error}</p>}
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={close} className="text-slate-400 hover:text-slate-200">
+          <Button variant="ghost" onClick={close} className="text-muted-foreground hover:text-font">
             Close
           </Button>
         </DialogFooter>

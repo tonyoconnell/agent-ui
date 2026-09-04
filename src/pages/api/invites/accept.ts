@@ -62,15 +62,27 @@ export const POST: APIRoute = async ({ request }) => {
   const uid = session.user.id.replace(/"/g, '')
   const gid = payload.gid.replace(/"/g, '')
 
+  const memberRole = (payload as { role?: string }).role || 'member'
   try {
     await write(`
-      match $u isa unit, has uid "${uid}"; $g isa group, has gid "${gid}";
-      insert (member: $u, group: $g) isa membership;
+      match $u isa actor, has aid "${uid}"; $g isa group, has gid "${gid}";
+      not { (member: $u, group: $g) isa membership; };
+      insert (member: $u, group: $g) isa membership, has member-role "${memberRole}";
     `)
   } catch (err) {
     console.error('[invites/accept] TypeDB write failed:', err)
     return new Response('Internal Server Error', { status: 500 })
   }
 
-  return Response.json({ ok: true, gid: payload.gid })
+  // Auto-downgrade any agent-type actors holding chairman in this group now
+  // that a human has claimed it. Agents are trustees until a human arrives.
+  write(`
+    match $ag isa actor, has actor-type "agent";
+          $g isa group, has gid "${gid}";
+          $m (member: $ag, group: $g) isa membership, has member-role "chairman";
+    delete $m has member-role "chairman";
+    insert $m has member-role "operator";
+  `).catch(() => { /* best-effort */ })
+
+  return Response.json({ ok: true, gid: payload.gid, role: memberRole })
 }

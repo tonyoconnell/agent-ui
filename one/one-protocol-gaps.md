@@ -701,5 +701,5 @@ Now: wire them together.
 - [one-protocol.md](one-protocol.md) — Protocol the gaps apply to
 - [gaps.md](gaps.md) — Production readiness phases
 - [README.md](README.md) — Substrate primitives that close the gaps
-- [Plan.md](Plan.md) — Implementation roadmap
+- [Plan.md](one-ie/dev.one.ie/one/plan.md) — Implementation roadmap
 - [code.md](code.md) — The 70-line substrate implementation

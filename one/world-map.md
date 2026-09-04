@@ -1049,7 +1049,7 @@ makes.
     cursor + zoom                 query parameters
     Inspector card                /api/export/units?id=creative
     war room pin                  signal { receiver:'pin', data:{...} }
-    "show me at-risk units"       at_risk_units() function
+    "show me at-risk units"       at_risk_actors() function
 ```
 
 Three things follow from this:

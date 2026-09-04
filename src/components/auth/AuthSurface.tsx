@@ -46,7 +46,7 @@ export function AuthSurface({ mode, redirect }: Props) {
           aria-live="polite"
           tabIndex={-1}
           className={cn(
-            'rounded-lg border border-rose-500/20 bg-rose-500/[0.06] px-3 py-2 text-xs text-rose-400',
+            'rounded-lg border border-[hsl(var(--color-destructive)_/_0.2)] bg-[hsl(var(--color-destructive)_/_0.06)] px-3 py-2 text-xs text-[hsl(var(--color-destructive))]',
             motionClass('animate-in fade-in'),
           )}
         >
@@ -58,7 +58,7 @@ export function AuthSurface({ mode, redirect }: Props) {
       {passkeyAvailable && (
         <div>
           <PasskeyButton mode={mode} redirect={redirect} onError={handleError} />
-          <p className="mt-2 text-center text-xs text-zinc-500">
+          <p className="mt-2 text-center text-xs text-muted-foreground">
             No password. Your biometric never leaves this device.
           </p>
         </div>
@@ -72,9 +72,9 @@ export function AuthSurface({ mode, redirect }: Props) {
 
       {/* Divider */}
       <div className="flex items-center gap-3" aria-hidden="true">
-        <div className="h-px flex-1 bg-white/5" />
-        <span className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">or use email</span>
-        <div className="h-px flex-1 bg-white/5" />
+        <div className="h-px flex-1 bg-border/30" />
+        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">or use email</span>
+        <div className="h-px flex-1 bg-foreground/5" />
       </div>
 
       {/* Door 4: Email */}
@@ -84,7 +84,7 @@ export function AuthSurface({ mode, redirect }: Props) {
       <details className="group">
         <summary
           onClick={() => emitClick('ui:auth:more-ways:open')}
-          className="flex cursor-pointer list-none items-center gap-1 text-xs text-zinc-400 hover:text-white"
+          className="flex cursor-pointer list-none items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
           <svg
             className="h-3 w-3 transition-transform group-open:rotate-90"
@@ -101,14 +101,14 @@ export function AuthSurface({ mode, redirect }: Props) {
           <a
             href="/api/auth/zklogin/start"
             onClick={() => emitClick('ui:auth:zklogin:start')}
-            className="block text-xs text-zinc-400 hover:text-white"
+            className="block text-xs text-muted-foreground hover:text-foreground"
           >
             Continue with zkLogin (Sui address from Google)
           </a>
           <a
             href="/u/restore"
             onClick={() => emitClick('ui:auth:restore:start')}
-            className="block text-xs text-zinc-400 hover:text-white"
+            className="block text-xs text-muted-foreground hover:text-foreground"
           >
             Lost your device? — Restore wallet
           </a>

@@ -223,6 +223,91 @@ export const POST: APIRoute = async ({ request, locals }) => {
     void recordCall(db, auth.keyId)
   }
 
+  // ── GROUP ADMIN SIGNALS ──────────────────────────────────────────────────
+  // Intercept signals sent to group receivers (gid: "group:*") with known
+  // admin actions. These are substrate-level operations, not LLM-routed.
+  // Sender must hold chairman/ceo/owner role in the group.
+  if (receiver.startsWith('group:') && dataRaw && typeof dataRaw === 'object' && !Array.isArray(dataRaw)) {
+    const adminData = dataRaw as Record<string, unknown>
+    const action = adminData.action as string | undefined
+
+    if (action === 'grant-capability' || action === 'change-role') {
+      // Permission check: sender must be chairman, ceo, or substrate owner
+      const senderIsOwner = auth?.role === 'owner'
+      let senderRole: string | undefined
+
+      if (!senderIsOwner) {
+        const senderRows = await readParsed(`
+          match $u isa actor, has aid "${escapeTqlString(sender)}";
+                $g isa group, has gid "${escapeTqlString(receiver)}";
+                $m (member: $u, group: $g) isa membership, has member-role $r;
+          select $r;
+        `).catch(() => []) as Array<Record<string, unknown>>
+        senderRole = senderRows[0]?.r as string | undefined
+      }
+
+      const canAdmin = senderIsOwner || senderRole === 'chairman' || senderRole === 'ceo'
+      if (!canAdmin) {
+        return new Response(
+          JSON.stringify({ error: 'Insufficient permissions for group admin action', action }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+
+      if (action === 'grant-capability') {
+        // Grant operator role to an agent in this group so it gains invite_member
+        const grantee = adminData.grantee as string | undefined
+        const newRole = (adminData.role as string | undefined) || 'operator'
+        if (!grantee) {
+          return Response.json({ error: 'grantee required for grant-capability' }, { status: 400 })
+        }
+        // Upsert membership: delete existing member-role then insert new one
+        await write(`
+          match $u isa actor, has aid "${escapeTqlString(grantee)}";
+                $g isa group, has gid "${escapeTqlString(receiver)}";
+                $m (member: $u, group: $g) isa membership;
+          delete $m has member-role $r;
+        `).catch(() => { /* member may not have a role yet */ })
+        await write(`
+          match $u isa actor, has aid "${escapeTqlString(grantee)}";
+                $g isa group, has gid "${escapeTqlString(receiver)}";
+                $m (member: $u, group: $g) isa membership;
+          insert $m has member-role "${escapeTqlString(newRole)}";
+        `).catch(async () => {
+          // Membership may not exist yet — create it
+          await write(`
+            match $u isa actor, has aid "${escapeTqlString(grantee)}";
+                  $g isa group, has gid "${escapeTqlString(receiver)}";
+            insert (member: $u, group: $g) isa membership, has member-role "${escapeTqlString(newRole)}";
+          `).catch(() => {})
+        })
+        return Response.json({ ok: true, action, grantee, role: newRole, group: receiver })
+      }
+
+      if (action === 'change-role') {
+        const target = adminData.target as string | undefined
+        const newRole = adminData.role as string | undefined
+        if (!target || !newRole) {
+          return Response.json({ error: 'target and role required for change-role' }, { status: 400 })
+        }
+        await write(`
+          match $u isa actor, has aid "${escapeTqlString(target)}";
+                $g isa group, has gid "${escapeTqlString(receiver)}";
+                $m (member: $u, group: $g) isa membership;
+          delete $m has member-role $r;
+        `).catch(() => {})
+        await write(`
+          match $u isa actor, has aid "${escapeTqlString(target)}";
+                $g isa group, has gid "${escapeTqlString(receiver)}";
+                $m (member: $u, group: $g) isa membership;
+          insert $m has member-role "${escapeTqlString(newRole)}";
+        `).catch(() => {})
+        return Response.json({ ok: true, action, target, role: newRole, group: receiver })
+      }
+    }
+  }
+  // ── END GROUP ADMIN SIGNALS ───────────────────────────────────────────────
+
   // ═══════════════════════════════════════════════════════════════════════════
   // ADL PERMISSION CHECKS (Deterministic Sandwich: PRE-checks)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -236,7 +321,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     adlStatus = cachedStatusEntry.adlStatus
   } else if (!isWarm(receiver)) {
     const receiverStatusRows = await readParsed(`
-      match $u isa unit, has uid "${receiver}", has adl-status $st;
+      match $u isa actor, has aid "${receiver}", has adl-status $st;
       select $st;
     `).catch(() => [])
 
@@ -258,7 +343,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     })
     if (mode === 'enforce') {
       return new Response(
-        JSON.stringify({ error: 'Unit is retired or deprecated', code: 'UNIT_INACTIVE', adlStatus }),
+        JSON.stringify({ error: 'Actor is retired or deprecated', code: 'UNIT_INACTIVE', adlStatus }),
         { status: 410 },
       )
     }
@@ -274,7 +359,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     allowedHosts = cachedNetworkEntry.permNetwork.allowedHosts
   } else if (!cachedNetworkEntry && !isWarm(receiver)) {
     const permNetworkRows = await readParsed(`
-      match $u isa unit, has uid "${receiver}", has perm-network $pn;
+      match $u isa actor, has aid "${receiver}", has perm-network $pn;
       select $pn;
     `).catch(() => [])
 
@@ -341,7 +426,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     senderSensitivity = cachedSenderSens.senderSensitivity
   } else {
     const senderSensitivityRows = await readParsed(`
-      match $u isa unit, has uid "${sender}", has data-sensitivity $ds;
+      match $u isa actor, has aid "${sender}", has data-sensitivity $ds;
       select $ds;
     `).catch(() => [])
 
@@ -355,7 +440,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     receiverSensitivity = cachedReceiverSens.receiverSensitivity
   } else {
     const receiverSensitivityRows = await readParsed(`
-      match $u isa unit, has uid "${receiver}", has data-sensitivity $ds;
+      match $u isa actor, has aid "${receiver}", has data-sensitivity $ds;
       select $ds;
     `).catch(() => [])
 
@@ -435,8 +520,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
             const safeReceiver = receiver.replace(/[^a-zA-Z0-9_:.-]/g, '')
             const rows = await readParsed(
               `match
-                $a isa unit, has uid "${safeSender}";
-                $b isa unit, has uid "${safeReceiver}";
+                $a isa actor, has aid "${safeSender}";
+                $b isa actor, has aid "${safeReceiver}";
                 (member: $a, group: $g) isa membership;
                 (member: $b, group: $g) isa membership;
                 select $g; limit 1;`,
@@ -455,8 +540,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
               const safeSender = sender.replace(/[^a-zA-Z0-9_:.-]/g, '')
               const safeReceiver = receiver.replace(/[^a-zA-Z0-9_:.-]/g, '')
               const hierRows = await readParsed(`
-                match $a isa unit, has uid "${safeSender}";
-                      $b isa unit, has uid "${safeReceiver}";
+                match $a isa actor, has aid "${safeSender}";
+                      $b isa actor, has aid "${safeReceiver}";
                       (member: $a, group: $ga) isa membership;
                       (member: $b, group: $gb) isa membership;
                       (parent: $root, child: $ga) isa hierarchy;
@@ -501,8 +586,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 1. Record the inbound signal
     await write(`
       match
-        $from isa unit, has uid "${sender}";
-        $to isa unit, has uid "${receiver}";
+        $from isa actor, has aid "${sender}";
+        $to isa actor, has aid "${receiver}";
       insert
         (sender: $from, receiver: $to) isa signal,
           has data "${dataStr}",
@@ -519,11 +604,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const escapedTask = escapeTqlString(task)
       const routes = await readParsed(`
         match
-          $from isa unit, has uid "${receiver}";
+          $from isa actor, has aid "${receiver}";
           $sk isa skill, has name $sn; $sn contains "${escapedTask}";
           (source: $from, target: $to) isa path, has strength $s;
           (provider: $to, offered: $sk) isa capability;
-          $to has uid $id; $s >= 5.0;
+          $to has aid $id; $s >= 5.0;
         sort $s desc; limit 1;
         select $id, $s;
       `).catch(() => [])
@@ -536,7 +621,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     // 3. Execute agent if it has model + system-prompt
     const target = routed || receiver
     const agentInfo = await readParsed(`
-      match $u isa unit, has uid "${target}", has model $m, has system-prompt $sp;
+      match $u isa actor, has aid "${target}", has model $m, has system-prompt $sp;
       select $m, $sp;
     `).catch(() => [])
 
@@ -617,8 +702,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const resultStr = escapeTqlString(result.slice(0, 10000))
       writeSilent(`
         match
-          $from isa unit, has uid "${routed}";
-          $to isa unit, has uid "${sender}";
+          $from isa actor, has aid "${routed}";
+          $to isa actor, has aid "${sender}";
         insert
           (sender: $from, receiver: $to) isa signal,
             has data "${resultStr}",
@@ -634,8 +719,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       // mark() — strengthen path
       await write(`
         match
-          $from isa unit, has uid "${sender}";
-          $to isa unit, has uid "${receiver}";
+          $from isa actor, has aid "${sender}";
+          $to isa actor, has aid "${receiver}";
           $e (source: $from, target: $to) isa path,
             has strength $s, has traversals $t, has revenue $r;
         delete $s of $e; delete $t of $e; delete $r of $e;
@@ -646,8 +731,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       `).catch(() => {
         return write(`
           match
-            $from isa unit, has uid "${sender}";
-            $to isa unit, has uid "${receiver}";
+            $from isa actor, has aid "${sender}";
+            $to isa actor, has aid "${receiver}";
           insert
             (source: $from, target: $to) isa path,
               has strength 1.0, has resistance 0.0,
@@ -658,8 +743,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       // warn() — add resistance
       writeSilent(`
         match
-          $from isa unit, has uid "${sender}";
-          $to isa unit, has uid "${receiver}";
+          $from isa actor, has aid "${sender}";
+          $to isa actor, has aid "${receiver}";
           $e (source: $from, target: $to) isa path, has resistance $r;
         delete $r of $e;
         insert $e has resistance ($r + 1.0);

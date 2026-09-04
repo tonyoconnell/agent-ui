@@ -37,11 +37,11 @@ export function MarketplaceHighways() {
     emitClick('ui:marketplace:highway-select', { from: h.from, to: h.to })
   }
 
-  if (loading) return <div className="text-slate-500 text-sm py-4">Loading highways…</div>
-  if (error) return <div className="text-slate-500 text-sm py-4">Highways unavailable — {error}</div>
+  if (loading) return <div className="text-muted-foreground text-sm py-4">Loading highways…</div>
+  if (error) return <div className="text-muted-foreground text-sm py-4">Highways unavailable — {error}</div>
   if (highways.length < 3) {
     return (
-      <div className="text-slate-500 text-sm py-6 border border-[#252538] rounded-xl bg-[#161622]/40 text-center">
+      <div className="text-muted-foreground text-sm py-6 border border-border rounded-xl bg-card/20 text-center">
         Not enough proven paths yet. Trade volume will reveal highways.
       </div>
     )
@@ -50,7 +50,7 @@ export function MarketplaceHighways() {
   return (
     <div className="mt-10">
       <h2 className="text-xl font-semibold mb-4">Highways</h2>
-      <div className="bg-[#161622] rounded-xl border border-[#252538] overflow-hidden">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
         {highways.map((h, i) => {
           const strengthPct = Math.min(100, (h.strength / 100) * 100)
           return (
@@ -59,19 +59,21 @@ export function MarketplaceHighways() {
               type="button"
               onClick={() => handleRowClick(h)}
               aria-label={`Highway from ${h.from} to ${h.to}, strength ${h.strength.toFixed(1)}`}
-              className="w-full flex items-center gap-3 px-5 py-3 border-b border-[#252538] last:border-b-0 hover:bg-[#1a1a28] text-left transition-colors"
+              className="w-full flex items-center gap-3 px-5 py-3 border-b border-border last:border-b-0 hover:bg-muted/30 text-left transition-colors"
             >
-              <span className="text-slate-500 text-xs font-mono w-6">#{i + 1}</span>
-              <span className="font-mono text-sm text-white truncate flex-1">
-                {h.from} <span className="text-slate-600">→</span> {h.to}
+              <span className="text-muted-foreground text-xs font-mono w-6">#{i + 1}</span>
+              <span className="font-mono text-sm text-font truncate flex-1">
+                {h.from} <span className="text-muted-foreground/50">→</span> {h.to}
               </span>
-              <div aria-hidden="true" className="w-24 h-1.5 bg-[#0a0a0f] rounded-full overflow-hidden">
+              <div aria-hidden="true" className="w-24 h-1.5 bg-background rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-indigo-600 to-violet-500 rounded-full"
+                  className="h-full bg-gradient-to-r from-[hsl(var(--color-primary-bright))] to-[hsl(var(--color-secondary-bright))] rounded-full"
                   style={{ width: `${strengthPct}%` }}
                 />
               </div>
-              <span className="font-mono text-xs text-emerald-400/70 w-20 text-right">{h.strength.toFixed(1)}</span>
+              <span className="font-mono text-xs text-[hsl(var(--color-tertiary-bright)/0.7)] w-20 text-right">
+                {h.strength.toFixed(1)}
+              </span>
             </button>
           )
         })}

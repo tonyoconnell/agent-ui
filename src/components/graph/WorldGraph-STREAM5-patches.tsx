@@ -390,7 +390,7 @@ function ActorNode({ data, selected, isConnecting }: NodeProps) {
               )}
             </div>
             {/* Name or inline edit (GESTURE 2) */}
-            {gestures.rename.isEditing && gestures.rename.unitId === d.id ? (
+            {gestures.rename.isEditing && gestures.rename.actorId === d.id ? (
               <RenameInput
                 initialValue={d.name}
                 onSubmit={handleRenameSubmit}
@@ -452,7 +452,7 @@ export function WorldGraph({ world, agents, highways, onSelectAgent, paths, grou
     []
   )
 
-  // GESTURE 6: Delete unit on key press
+  // GESTURE 6: Delete actor on key press
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.key === "Delete" && gestures.selectedNodeId && gestures.selectedNodeId !== "entry") {

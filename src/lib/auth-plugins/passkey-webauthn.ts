@@ -38,7 +38,7 @@ import { APIError, createAuthEndpoint } from 'better-auth/api'
 import { setSessionCookie } from 'better-auth/cookies'
 import { z } from 'zod'
 import { getD1 } from '../cf-env'
-import { ensureHumanUnit } from '../human-unit'
+import { ensureHumanUnit } from '../human-actor'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -694,7 +694,7 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
           await setSessionCookie(ctx, { session, user })
 
           // Governance integration (lifecycle.md § 2): every new human gets a
-          // TypeDB `unit(unit-kind="human")` + personal group + chairman
+          // TypeDB `actor(actor-type="human")` + personal group + chairman
           // membership so they can own agents. Fire-and-forget — a TypeDB
           // blip shouldn't block sign-in.
           ensureHumanUnit(user.id, {
@@ -895,7 +895,7 @@ export const passkeyWebauthn = (opts: PasskeyWebauthnOptions): BetterAuthPlugin 
           await setSessionCookie(ctx, { session, user })
 
           // Same governance integration as register-anonymous: ensure a TypeDB
-          // human unit + personal group + chairman membership exist.
+          // human actor + personal group + chairman membership exist.
           // Fire-and-forget so a TypeDB blip can't block heal.
           ensureHumanUnit(user.id, {
             id: user.id,

@@ -66,7 +66,7 @@ const SEED_WORDS = [
   'event',
   'learning',
   'skill',
-  'unit',
+  'actor',
   'colony',
   'trail',
   'highway',
@@ -691,10 +691,10 @@ export function ChatAuth() {
         </div>
         <div className="flex justify-center gap-3 pb-6 text-sm uppercase tracking-[0.12em] text-muted-foreground">
           <span className="inline-flex items-center gap-2 px-4 py-2 font-mono">
-            446ms <span className="text-2xl leading-none text-yellow-400">⚡</span> Chat
+            446ms <span className="text-2xl leading-none text-gold">⚡</span> Chat
           </span>
           <span className="inline-flex items-center gap-2 px-4 py-2 font-mono">
-            186ms <span className="text-2xl leading-none text-yellow-400">⚡</span> API
+            186ms <span className="text-2xl leading-none text-gold">⚡</span> API
           </span>
         </div>
       </div>
@@ -763,9 +763,9 @@ export function ChatAuth() {
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
               {/* Ready badge */}
               <div className="flex items-center justify-center gap-3 py-4">
-                <span className="text-3xl text-yellow-400">⚡</span>
+                <span className="text-3xl text-gold">⚡</span>
                 <span className="text-2xl font-light tracking-tight">ready to sell in {identity.readyMs}ms</span>
-                <span className="text-3xl text-yellow-400">⚡</span>
+                <span className="text-3xl text-gold">⚡</span>
               </div>
 
               {/* Address card (full) */}
@@ -962,10 +962,10 @@ function LogLine({ entry }: { entry: LogEntry }) {
       <span
         className={cn(
           'text-base shrink-0 transition-all',
-          entry.status === 'done' && !isReady && 'text-green-500',
-          entry.status === 'done' && isReady && 'text-yellow-400 text-lg',
+          entry.status === 'done' && !isReady && 'text-tertiary-bright',
+          entry.status === 'done' && isReady && 'text-gold text-lg',
           entry.status === 'pending' && 'text-muted-foreground animate-pulse',
-          entry.status === 'error' && 'text-red-500',
+          entry.status === 'error' && 'text-destructive',
         )}
       >
         {entry.status === 'done' ? (isReady ? '⚡' : '✓') : entry.status === 'error' ? '✗' : '○'}
@@ -1000,7 +1000,7 @@ function AddressReveal({ address }: { address: string }) {
   if (!address) return null
   return (
     <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10 text-sm">
-      <span className="text-yellow-400">⚡</span>
+      <span className="text-gold">⚡</span>
       <span className="text-muted-foreground">now accepting SUI + USDC at</span>
       <span className="font-mono text-primary">{address}</span>
     </div>

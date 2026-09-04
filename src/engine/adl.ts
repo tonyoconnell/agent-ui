@@ -7,7 +7,7 @@
  * capabilities (tools with JSON schemas), permissions (deny-by-default network/fs/env),
  * data classification (public/internal/confidential/restricted), and lifecycle (status, sunset).
  *
- * ADL documents sync to TypeDB as units with structured security attributes.
+ * ADL documents sync to TypeDB as actors with structured security attributes.
  * ADL is a trust/security layer on top of the substrate—signals, pheromone, and
  * closed loops are untouched.
  *
@@ -163,7 +163,7 @@ export const toTypeDB = (doc: AdlDoc): string[] => {
   const queries: string[] = []
   const uid = doc.id // ADL uid is the canonical identifier
 
-  // --- Unit insert (one main query) ---
+  // --- Actor insert (one main query) ---
 
   const now = new Date().toISOString().replace('Z', '')
   const status = doc.status || 'active'
@@ -171,12 +171,12 @@ export const toTypeDB = (doc: AdlDoc): string[] => {
 
   // Build conditional clauses
   const clauses: string[] = [
-    `has uid "${uid}"`,
+    `has aid "${uid}"`,
     `has name "${escapeString(doc.name)}"`,
     `has adl-version "${adlVersion}"`,
     `has adl-uid "${uid}"`,
     `has adl-status "${status}"`,
-    `has unit-kind "agent"`,
+    `has actor-type "agent"`,
     `has status "active"`,
     `has model "meta-llama/llama-4-maverick"`,
     `has system-prompt "Agent: ${escapeString(doc.name)}"`,
@@ -249,7 +249,7 @@ export const toTypeDB = (doc: AdlDoc): string[] => {
     clauses.push(`has perm-duration-s ${doc.permissions.limits.durationS}`)
   }
 
-  queries.push(`insert $u isa unit,\n      ${clauses.join(',\n      ')};`)
+  queries.push(`insert $u isa actor,\n      ${clauses.join(',\n      ')};`)
 
   // --- Skills and capabilities ---
   if (doc.capabilities?.tools?.length) {
@@ -275,7 +275,7 @@ export const toTypeDB = (doc: AdlDoc): string[] => {
 
       // Capability relation
       queries.push(`
-        match $u isa unit, has uid "${uid}";
+        match $u isa actor, has aid "${uid}";
               $s isa skill, has skill-id "${skillId}";
         insert (provider: $u, offered: $s) isa capability, has price 0.0;
       `)
@@ -301,7 +301,7 @@ export const syncAdl = async (doc: AdlDoc): Promise<void> => {
 
 export const adlFromUnit = async (uid: string): Promise<AdlDoc | null> => {
   const rows = await readParsed(`
-    match $u isa unit, has uid "${uid}",
+    match $u isa actor, has aid "${uid}",
           has name $name,
           has adl-version $av,
           has adl-status $status;
@@ -317,7 +317,7 @@ export const adlFromUnit = async (uid: string): Promise<AdlDoc | null> => {
 
   // Read optional ADL attributes
   const optRows = await readParsed(`
-    match $u isa unit, has uid "${uid}";
+    match $u isa actor, has aid "${uid}";
     select
       $u has adl-uid $au,
       $u has data-sensitivity $ds,
@@ -337,7 +337,7 @@ export const adlFromUnit = async (uid: string): Promise<AdlDoc | null> => {
 
   // Read skills as tools
   const skillRows = await readParsed(`
-    match $u isa unit, has uid "${uid}";
+    match $u isa actor, has aid "${uid}";
           (provider: $u, offered: $s) isa capability;
           $s has skill-id $sid, has name $sn;
     select $sn, $s has input-schema $is, $s has output-schema $os;
@@ -439,7 +439,7 @@ export async function augmentPromptWithADL(uid: string, basePrompt: string): Pro
 const PAY_ACCEPT_INPUT_SCHEMA = JSON.stringify({
   type: 'object',
   properties: {
-    to: { type: 'string', description: 'Recipient unit uid' },
+    to: { type: 'string', description: 'Recipient actor uid' },
     rail: { type: 'string', enum: ['card', 'crypto', 'weight'] },
     amount: { type: 'number', minimum: 0 },
     sku: { type: 'string' },
@@ -463,7 +463,7 @@ const PAY_ACCEPT_OUTPUT_SCHEMA = JSON.stringify({
 const PAY_REQUEST_INPUT_SCHEMA = JSON.stringify({
   type: 'object',
   properties: {
-    from: { type: 'string', description: 'Requesting unit uid' },
+    from: { type: 'string', description: 'Requesting actor uid' },
     rail: { type: 'string', enum: ['card', 'crypto', 'weight'] },
     amount: { type: 'number', minimum: 0 },
     sku: { type: 'string' },

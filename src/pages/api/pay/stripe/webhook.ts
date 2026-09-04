@@ -91,7 +91,7 @@ export const POST: APIRoute = async ({ request }) => {
       case 'payment_intent.succeeded': {
         const pi = event.data.object as Stripe.PaymentIntent
 
-        // Bind Stripe customer → unit on first success (idempotent)
+        // Bind Stripe customer → actor on first success (idempotent)
         const uid = pi.metadata?.uid as string | undefined
         const customerId = typeof pi.customer === 'string' ? pi.customer : pi.customer?.id
         if (uid && customerId) bindStripeCustomer(uid, customerId).catch(() => {})

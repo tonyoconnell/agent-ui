@@ -11,19 +11,19 @@ function classify(s: number, r: number): PheromoneStatus {
 }
 
 const STATUS_COLOR: Record<PheromoneStatus, string> = {
-  fresh: '#67e8f9',
-  active: '#6ee7b7',
-  highway: '#c084fc',
-  fading: '#fbbf24',
-  toxic: '#f87171',
+  fresh: 'hsl(var(--color-primary-bright))',
+  active: 'hsl(var(--color-tertiary-bright))',
+  highway: 'hsl(var(--color-secondary-bright))',
+  fading: 'hsl(var(--color-gold))',
+  toxic: 'hsl(var(--color-destructive))',
 }
 
 const STATUS_BG: Record<PheromoneStatus, string> = {
-  fresh: 'bg-[#67e8f9]',
-  active: 'bg-[#6ee7b7]',
-  highway: 'bg-[#c084fc]',
-  fading: 'bg-[#fbbf24]',
-  toxic: 'bg-[#f87171]',
+  fresh: 'bg-[hsl(var(--color-primary-bright))]',
+  active: 'bg-[hsl(var(--color-tertiary-bright))]',
+  highway: 'bg-[hsl(var(--color-secondary-bright))]',
+  fading: 'bg-[hsl(var(--color-gold))]',
+  toxic: 'bg-[hsl(var(--color-destructive))]',
 }
 
 export interface PheromoneBarProps {
@@ -71,7 +71,7 @@ export function PheromoneBar({
         aria-valuemax={100}
         aria-label={`Pheromone: strength ${strength}, resistance ${resistance}, status ${status}`}
         className={cn(
-          'relative rounded-full bg-[#1a1a24] overflow-hidden w-full',
+          'relative rounded-full bg-background overflow-hidden w-full',
           barHeight,
           isToxic && 'animate-pheromone-pulse',
         )}
@@ -79,7 +79,10 @@ export function PheromoneBar({
       >
         {/* Resistance bar — behind (renders first) */}
         {resistance > 0 && (
-          <div className="absolute inset-y-0 right-0 bg-red-500/50" style={{ width: `${resistancePct}%` }} />
+          <div
+            className="absolute inset-y-0 right-0 bg-[hsl(var(--color-destructive)/0.5)]"
+            style={{ width: `${resistancePct}%` }}
+          />
         )}
         {/* Strength bar — in front */}
         {strength > 0 && (
@@ -89,7 +92,7 @@ export function PheromoneBar({
 
       {/* Label row — hidden in compact mode */}
       {!compact && (
-        <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
+        <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
           {/* Left: strength */}
           <span>
             {noActivity || resistance === 0 || strength > 0
@@ -111,9 +114,9 @@ export function PheromoneBar({
       {showValues && !compact && (
         <div className="text-xs font-mono text-center">
           {noActivity ? (
-            <span className="text-slate-600">no activity</span>
+            <span className="text-muted-foreground">no activity</span>
           ) : (
-            <span className="text-slate-400">{valueLabel}</span>
+            <span className="text-muted-foreground">{valueLabel}</span>
           )}
         </div>
       )}

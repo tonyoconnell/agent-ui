@@ -8,14 +8,14 @@ import type { Task } from './types'
 import { WAVES } from './types'
 
 function waveColorFor(w: string) {
-  return WAVES.find((x) => x.key === w)?.color ?? '#64748b'
+  return WAVES.find((x) => x.key === w)?.color ?? 'hsl(var(--color-foreground) / 0.4)'
 }
 
 const PRIORITY_COLOR: Record<'P0' | 'P1' | 'P2' | 'P3', string> = {
-  P0: 'bg-red-400',
-  P1: 'bg-amber-400',
-  P2: 'bg-sky-400',
-  P3: 'bg-white/40',
+  P0: 'bg-destructive',
+  P1: 'bg-gold',
+  P2: 'bg-primary-bright',
+  P3: 'bg-foreground/40',
 }
 
 export function TaskCard({
@@ -50,9 +50,9 @@ export function TaskCard({
       {...sortable.listeners}
       onClick={() => onClick?.(task.tid)}
       className={cn(
-        'group relative rounded-lg border bg-[#0f0f1a] border-white/[0.08] p-3 cursor-grab active:cursor-grabbing select-none',
-        'hover:border-white/15 hover:bg-[#141422] transition-colors',
-        dragging && 'ring-1 ring-amber-400/40 shadow-xl shadow-amber-400/10',
+        'group relative rounded-lg border bg-muted/10 border-foreground/[0.08] p-3 cursor-grab active:cursor-grabbing select-none',
+        'hover:border-foreground/15 hover:bg-muted/[0.15] transition-colors',
+        dragging && 'ring-1 ring-[hsl(var(--color-gold))]/40 shadow-xl shadow-[hsl(var(--color-gold))]/10',
       )}
     >
       {/* priority stripe */}
@@ -74,27 +74,29 @@ export function TaskCard({
               {task.task_wave}
             </span>
           )}
-          <span className="text-[10px] font-mono text-white/35 truncate">{task.tid}</span>
-          {task.blocked_by.length > 0 && <span className="text-[9px] text-red-400/70">⚠ {task.blocked_by.length}</span>}
+          <span className="text-[10px] font-mono text-foreground/35 truncate">{task.tid}</span>
+          {task.blocked_by.length > 0 && (
+            <span className="text-[9px] text-[hsl(var(--color-destructive))]/70">⚠ {task.blocked_by.length}</span>
+          )}
         </div>
 
-        <p className="text-[13px] leading-snug text-white/85 font-medium line-clamp-2">{task.name}</p>
+        <p className="text-[13px] leading-snug text-foreground/85 font-medium line-clamp-2">{task.name}</p>
 
         {/* Metadata row */}
         <div className="flex items-center gap-2 mt-2.5 text-[10px]">
           {task.assignee && (
-            <span className="inline-flex items-center gap-1 text-white/45">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400/70" />
+            <span className="inline-flex items-center gap-1 text-foreground/45">
+              <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--color-primary-bright))]/70" />
               {task.assignee}
             </span>
           )}
           {task.price && task.price > 0 && (
-            <span className="inline-flex items-center gap-0.5 text-emerald-400/70 font-mono">
+            <span className="inline-flex items-center gap-0.5 text-[hsl(var(--color-tertiary-bright))]/70 font-mono">
               ${task.price.toFixed(4)}
             </span>
           )}
           {task.strength > 0 && (
-            <span className="inline-flex items-center gap-1 text-purple-400/50">
+            <span className="inline-flex items-center gap-1 text-[hsl(var(--color-secondary-bright))]/50">
               <span>↗</span>
               {task.strength.toFixed(0)}
             </span>

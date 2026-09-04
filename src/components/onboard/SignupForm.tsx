@@ -101,7 +101,7 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
       <div
         role="tablist"
         aria-label="Sign-up intent"
-        className="mb-8 flex gap-1 rounded-full border border-zinc-800 bg-zinc-900/60 p-1 text-xs font-medium"
+        className="mb-8 flex gap-1 rounded-full border border-border bg-muted p-1 text-xs font-medium"
       >
         {(['human', 'agent-owner'] as const).map((value) => {
           const active = intent === value
@@ -115,7 +115,7 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
               onClick={() => switchIntent(value)}
               className={cn(
                 'flex-1 rounded-full px-3 py-1.5 transition-colors',
-                active ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white',
+                active ? 'bg-white text-black shadow-sm' : 'text-muted-foreground hover:text-white',
               )}
             >
               {label}
@@ -126,12 +126,12 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
 
       {/* Heading */}
       <div className="mb-8">
-        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-violet-300">
-          <span className="size-1.5 rounded-full bg-violet-400 animate-pulse" />
+        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-secondary-bright/30 bg-secondary-bright/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-secondary-bright">
+          <span className="size-1.5 rounded-full bg-secondary-bright animate-pulse" />
           {copy.badge}
         </div>
         <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">{copy.heading}</h1>
-        <p className="mt-2 text-sm leading-relaxed text-zinc-400">{copy.sub}</p>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{copy.sub}</p>
       </div>
 
       {/* Form */}
@@ -139,7 +139,7 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
         <input type="hidden" name="callbackURL" value={redirect} />
 
         <div className="space-y-1.5">
-          <Label htmlFor="name" className="text-zinc-300">
+          <Label htmlFor="name" className="text-foreground">
             Name
           </Label>
           <Input
@@ -152,12 +152,12 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
             required
             autoComplete="name"
             autoFocus
-            className="h-11 border-zinc-800 bg-zinc-950/60 text-white placeholder:text-zinc-600 focus-visible:border-violet-500/60 focus-visible:ring-violet-500/20"
+            className="h-11 border-border bg-card text-white placeholder:text-muted-foreground focus-visible:border-secondary-bright focus-visible:ring-secondary/20"
           />
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="email" className="text-zinc-300">
+          <Label htmlFor="email" className="text-foreground">
             Email
           </Label>
           <Input
@@ -169,12 +169,12 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
             placeholder="you@domain.com"
             required
             autoComplete="email"
-            className="h-11 border-zinc-800 bg-zinc-950/60 text-white placeholder:text-zinc-600 focus-visible:border-violet-500/60 focus-visible:ring-violet-500/20"
+            className="h-11 border-border bg-card text-white placeholder:text-muted-foreground focus-visible:border-secondary-bright focus-visible:ring-secondary/20"
           />
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="password" className="text-zinc-300">
+          <Label htmlFor="password" className="text-foreground">
             Password
           </Label>
           <Input
@@ -188,7 +188,7 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
             minLength={8}
             autoComplete="new-password"
             aria-describedby="password-hint"
-            className="h-11 border-zinc-800 bg-zinc-950/60 text-white placeholder:text-zinc-600 focus-visible:border-violet-500/60 focus-visible:ring-violet-500/20"
+            className="h-11 border-border bg-card text-white placeholder:text-muted-foreground focus-visible:border-secondary-bright focus-visible:ring-secondary/20"
           />
           {/* Strength meter */}
           <div id="password-hint" className="flex items-center gap-2 pt-0.5">
@@ -200,18 +200,18 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
                     'h-1 flex-1 rounded-full transition-colors',
                     strength.score >= tier
                       ? tier === 1
-                        ? 'bg-red-500/70'
+                        ? 'bg-destructive'
                         : tier === 2
-                          ? 'bg-amber-500/70'
+                          ? 'bg-gold'
                           : tier === 3
-                            ? 'bg-emerald-500/70'
-                            : 'bg-violet-400'
-                      : 'bg-zinc-800',
+                            ? 'bg-tertiary-bright'
+                            : 'bg-secondary-bright'
+                      : 'bg-muted',
                   )}
                 />
               ))}
             </div>
-            <span className="w-16 text-right text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+            <span className="w-16 text-right text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               {strength.label || '—'}
             </span>
           </div>
@@ -221,7 +221,7 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
         {error && (
           <div
             role="alert"
-            className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-300"
+            className="rounded-lg border border-destructive/30 bg-destructive/20 px-3 py-2.5 text-sm text-destructive"
           >
             {error}
           </div>
@@ -231,7 +231,7 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
         <Button
           type="submit"
           disabled={isPending || !name || !email || password.length < 8}
-          className="h-11 w-full bg-white text-sm font-semibold text-black hover:bg-zinc-200 disabled:opacity-60"
+          className="h-11 w-full bg-white text-sm font-semibold text-black hover:bg-white/90 disabled:opacity-60"
         >
           {isPending ? (
             <span className="inline-flex items-center gap-2">
@@ -248,9 +248,9 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
 
         {/* Divider */}
         <div className="flex items-center gap-3 py-1">
-          <div className="h-px flex-1 bg-zinc-800" />
-          <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">or</span>
-          <div className="h-px flex-1 bg-zinc-800" />
+          <div className="h-px flex-1 bg-muted" />
+          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">or</span>
+          <div className="h-px flex-1 bg-muted" />
         </div>
 
         {/* Sui wallet — visual placeholder until walletconnect is wired */}
@@ -259,14 +259,14 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
           variant="outline"
           disabled
           title="Coming soon — sign in with your Sui wallet"
-          className="h-11 w-full justify-center border-zinc-800 bg-zinc-950/60 text-sm font-medium text-zinc-400 hover:bg-zinc-900 disabled:opacity-70"
+          className="h-11 w-full justify-center border-border bg-card text-sm font-medium text-muted-foreground hover:bg-card disabled:opacity-70"
         >
           <span className="inline-flex items-center gap-2">
             <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
               <path fill="currentColor" d="M12 2 4 12l8 10 8-10L12 2zm0 3.4L17.6 12 12 18.6 6.4 12 12 5.4z" />
             </svg>
             Continue with Sui wallet
-            <span className="rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-violet-300">
+            <span className="rounded-full bg-secondary/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-secondary-bright">
               Soon
             </span>
           </span>
@@ -274,24 +274,24 @@ export function SignupForm({ intent: initialIntent, redirect: initialRedirect }:
       </form>
 
       {/* Footnote */}
-      <p className="mt-6 text-center text-xs text-zinc-500">
+      <p className="mt-6 text-center text-xs text-muted-foreground">
         Already have an account?{' '}
         <a
           href="/login"
           onClick={() => emitClick('ui:signup:goto-login')}
-          className="font-medium text-zinc-300 underline-offset-4 transition-colors hover:text-white hover:underline"
+          className="font-medium text-foreground underline-offset-4 transition-colors hover:text-white hover:underline"
         >
           Sign in
         </a>
       </p>
 
-      <p className="mt-4 text-center text-[11px] leading-relaxed text-zinc-600">
+      <p className="mt-4 text-center text-[11px] leading-relaxed text-muted-foreground">
         By continuing you agree to our{' '}
-        <a href="/terms" className="underline-offset-4 hover:text-zinc-400 hover:underline">
+        <a href="/terms" className="underline-offset-4 hover:text-muted-foreground hover:underline">
           terms
         </a>{' '}
         and{' '}
-        <a href="/privacy" className="underline-offset-4 hover:text-zinc-400 hover:underline">
+        <a href="/privacy" className="underline-offset-4 hover:text-muted-foreground hover:underline">
           privacy policy
         </a>
         .

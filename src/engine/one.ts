@@ -240,7 +240,7 @@ one.on('agent:chat', (d, e) => {
 
 one.on('world:fade', () => { one.fade(); return true })
 one.on('world:evolve', (d, e) => {
-  // find struggling, emit evolve-unit for each
+  // find struggling, emit evolve-actor for each
 })
 
 // Define chains

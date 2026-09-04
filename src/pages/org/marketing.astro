@@ -1,0 +1,36 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import { OrgChartView } from '@/components/org/OrgChartView'
+
+export const prerender = false
+---
+
+<Layout
+  title="Marketing · Org · ONE"
+  description="The CMO and the marketing team — creative, content, SEO, social, ads, media buying and analytics."
+>
+  <main class="mx-auto w-full max-w-7xl px-4 py-10 sm:py-14">
+    <header class="mb-8">
+      <p class="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground mb-2">
+        Org · Marketing
+      </p>
+      <h1 class="text-4xl sm:text-5xl font-semibold tracking-tight">
+        Brand. Demand. Attribution.
+      </h1>
+      <p class="text-muted-foreground mt-3 max-w-2xl">
+        The CMO orchestrates seven specialists. Strategy and brief flow down; performance
+        and insight flow back up. Every campaign closes a loop.
+      </p>
+      <nav class="mt-5 flex flex-wrap gap-2 text-xs">
+        <a href="/org" class="px-3 py-1.5 rounded-full border border-foreground/15 hover:border-foreground/40 transition-colors">Complete</a>
+        <a href="/org/marketing" class="px-3 py-1.5 rounded-full border border-foreground/30 bg-foreground/5">Marketing</a>
+        <a href="/org/sales" class="px-3 py-1.5 rounded-full border border-foreground/15 hover:border-foreground/40 transition-colors">Sales</a>
+        <a href="/org/service" class="px-3 py-1.5 rounded-full border border-foreground/15 hover:border-foreground/40 transition-colors">Service</a>
+      </nav>
+    </header>
+
+    <div style="height: min(78vh, 820px);">
+      <OrgChartView chart="marketing" client:only="react" />
+    </div>
+  </main>
+</Layout>

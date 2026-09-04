@@ -69,7 +69,7 @@ export async function auditSkills(
       $s isa skill, has skill-id $sid, has tag $stag;
       $stag in [${tagList}];
       $cap (provider: $u, offered: $s) isa capability;
-      $u has uid $uid;
+      $u has aid $uid;
       $s has price $price;
       $s has name $sname;
     select $uid, $sid, $sname, $price, $stag;
@@ -105,8 +105,8 @@ export async function auditSkills(
     const uidList = [...new Set([...byKey.values()].map((c) => `"${c.providerUid}"`))].join(', ')
     const pathRows = await readParsed(`
       match
-        $req isa unit, has uid "${opts.requesterUid}";
-        $to isa unit, has uid $tuid;
+        $req isa actor, has aid "${opts.requesterUid}";
+        $to isa actor, has aid $tuid;
         $tuid in [${uidList}];
         $p (source: $req, target: $to) isa path, has strength $s;
       select $tuid, $s;
@@ -133,7 +133,7 @@ export async function auditSkills(
       acquisition: {
         kind: acquisitionKind(safeTags),
         suggestedTaskId: `acquire-${safeTags[0]}-skill`,
-        rationale: `No capable units found for tags [${safeTags.join(', ')}].`,
+        rationale: `No capable actors found for tags [${safeTags.join(', ')}].`,
       },
     }
   }

@@ -1,0 +1,8 @@
+{
+  "ts": "2026-05-13T00:00:00Z",
+  "loc": 10000,
+  "tests_pass": 100,
+  "build_ms": 20000,
+  "bundle_bytes": 9000000,
+  "tsc_errors": 0
+}

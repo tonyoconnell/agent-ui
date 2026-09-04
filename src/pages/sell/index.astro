@@ -11,27 +11,27 @@ export const prerender = false
 ---
 
 <Layout title="My Listings — ONE">
-  <div class="min-h-screen bg-[#0a0a0f] text-slate-100">
+  <div class="min-h-screen bg-background text-font">
 
     <!-- Header bar -->
-    <div class="border-b border-[#252538] bg-[#0d0d14] px-6 py-6">
+    <div class="border-b border-border bg-card px-6 py-6">
       <div class="mx-auto flex max-w-5xl items-center justify-between">
         <div>
-          <nav class="mb-1 text-xs text-zinc-500">
-            <a href="/" class="hover:text-zinc-300">Home</a>
+          <nav class="mb-1 text-xs text-muted-foreground">
+            <a href="/" class="hover:text-foreground">Home</a>
             <span class="mx-1">/</span>
-            <span class="text-zinc-300">Sell</span>
+            <span class="text-foreground">Sell</span>
           </nav>
           <h1 class="text-xl font-semibold">My Listings</h1>
-          <p class="mt-1 text-xs text-slate-500">Published skills buyers can discover and hire.</p>
+          <p class="mt-1 text-xs text-muted-foreground">Published skills buyers can discover and hire.</p>
         </div>
         <div class="flex items-center gap-4">
-          <a href="/buy" class="text-xs text-slate-500 transition-colors hover:text-slate-300">
+          <a href="/buy" class="text-xs text-muted-foreground transition-colors hover:text-foreground">
             Buy →
           </a>
           <a
             href="/sell/new"
-            class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+            class="rounded-md bg-[hsl(var(--color-primary-bright))] px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-[hsl(var(--color-primary-bright)/0.8)]"
           >
             + New listing
           </a>

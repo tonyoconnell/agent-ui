@@ -319,7 +319,7 @@ describe('retrofit: enforcementMode wired into llm.ts perm-env gate', () => {
     const { setAuditPheromone, pheromoneWeight } = await import('@/engine/adl-cache')
     const complete = vi.fn().mockResolvedValue('ok')
     const w = createWorld()
-    w.units['llm-1'] = llm('llm-1', complete)
+    w.actors['llm-1'] = llm('llm-1', complete)
     setAuditPheromone((rec) => {
       const weight = pheromoneWeight(rec.decision)
       if (weight > 0) w.warn(`${rec.sender}→${rec.receiver}`, weight)
@@ -349,7 +349,7 @@ describe('retrofit: enforcementMode wired into llm.ts perm-env gate', () => {
     const { setAuditPheromone, pheromoneWeight } = await import('@/engine/adl-cache')
     const complete = vi.fn().mockResolvedValue('ok')
     const w = createWorld()
-    w.units['llm-2'] = llm('llm-2', complete)
+    w.actors['llm-2'] = llm('llm-2', complete)
     setAuditPheromone((rec) => {
       const weight = pheromoneWeight(rec.decision)
       if (weight > 0) w.warn(`${rec.sender}→${rec.receiver}`, weight)
@@ -380,7 +380,7 @@ describe('retrofit: enforcementMode wired into api.ts perm-network gate', () => 
     const { world: createWorld } = await import('@/engine/world')
     const { setAuditPheromone, pheromoneWeight } = await import('@/engine/adl-cache')
     const w = createWorld()
-    w.units['api-1'] = apiUnit('api-1', { base: 'https://blocked.com' })
+    w.actors['api-1'] = apiUnit('api-1', { base: 'https://blocked.com' })
     setAuditPheromone((rec) => {
       const weight = pheromoneWeight(rec.decision)
       if (weight > 0) w.warn(`${rec.sender}→${rec.receiver}`, weight)
@@ -411,7 +411,7 @@ describe('retrofit: enforcementMode wired into api.ts perm-network gate', () => 
     const { world: createWorld } = await import('@/engine/world')
     const { setAuditPheromone, pheromoneWeight } = await import('@/engine/adl-cache')
     const w = createWorld()
-    w.units['api-2'] = apiUnit('api-2', { base: 'https://blocked.com' })
+    w.actors['api-2'] = apiUnit('api-2', { base: 'https://blocked.com' })
     setAuditPheromone((rec) => {
       const weight = pheromoneWeight(rec.decision)
       if (weight > 0) w.warn(`${rec.sender}→${rec.receiver}`, weight)

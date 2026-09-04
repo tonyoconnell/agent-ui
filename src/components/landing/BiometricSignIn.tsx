@@ -68,12 +68,11 @@ export function BiometricSignIn({ redirectTo = '/u' }: Props) {
         onClick={handleClick}
         disabled={disabled}
         aria-label="Sign in with your fingerprint"
-        className="group inline-flex items-center gap-3 px-10 py-5 text-xl font-bold rounded-2xl shadow-lg hover:shadow-xl hover:brightness-110 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-        style={{ backgroundColor: 'hsl(216 55% 25%)', color: 'hsl(36 8% 96%)' }}
+        className="group inline-flex items-center gap-3 px-10 py-5 text-xl font-bold rounded-2xl shadow-lg hover:shadow-xl hover:brightness-110 transition-all disabled:opacity-60 disabled:cursor-not-allowed bg-primary text-font"
       >
         {status === 'authenticating' ? (
           <span
-            className="inline-block w-6 h-6 rounded-full border-2 border-black/30 border-t-black animate-spin"
+            className="inline-block w-6 h-6 rounded-full border-2 border-foreground/30 border-t-foreground animate-spin"
             aria-hidden="true"
           />
         ) : (
@@ -104,21 +103,27 @@ export function BiometricSignIn({ redirectTo = '/u' }: Props) {
       </button>
 
       {status === 'unsupported' ? (
-        <p className="text-sm text-gray-500 text-center max-w-sm">
+        <p className="text-sm text-muted-foreground text-center max-w-sm">
           Your browser doesn't support platform biometrics here.{' '}
           <a href={redirectTo} className="text-primary hover:opacity-80 underline">
             Enter without signing in →
           </a>
         </p>
       ) : status === 'error' ? (
-        <p className="text-sm text-rose-400 text-center max-w-sm" role="alert">
+        <p className="text-sm text-[hsl(var(--color-destructive))] text-center max-w-sm" role="alert">
           {error}{' '}
-          <button type="button" onClick={handleClick} className="underline hover:text-rose-300">
+          <button
+            type="button"
+            onClick={handleClick}
+            className="underline hover:text-[hsl(var(--color-destructive)_/_0.7)]"
+          >
             Try again
           </button>
         </p>
       ) : (
-        <p className="text-sm text-gray-500">Wallet appears in &lt; 1 second · Touch ID, Face ID, Windows Hello</p>
+        <p className="text-sm text-muted-foreground">
+          Wallet appears in &lt; 1 second · Touch ID, Face ID, Windows Hello
+        </p>
       )}
     </div>
   )

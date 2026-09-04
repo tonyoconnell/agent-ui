@@ -82,13 +82,13 @@ async function markComplete(student: string, phase: number) {
 
   // Mark learning path
   writeSilent(`
-    match $s isa unit, has uid "${student}"; $t isa unit, has uid "teacher";
+    match $s isa actor, has aid "${student}"; $t isa actor, has aid "teacher";
     $e (source: $s, target: $t) isa path, has strength $str, has traversals $tr;
     delete $str of $e; delete $tr of $e;
     insert $e has strength ($str + 1.0), has traversals ($tr + 1);
   `).catch(() => {
     writeSilent(`
-      match $s isa unit, has uid "${student}"; $t isa unit, has uid "teacher";
+      match $s isa actor, has aid "${student}"; $t isa actor, has aid "teacher";
       insert (source: $s, target: $t) isa path,
         has strength 1.0, has resistance 0.0, has traversals 1, has revenue 0.0;
     `).catch(() => {})
@@ -127,21 +127,21 @@ async function phase1(): Promise<{ actions: string[]; state: Record<string, unkn
   const spec = parse(ECHO_MARKDOWN)
   try {
     await syncAgent(spec)
-    actions.push('Created unit "echo" in TypeDB')
+    actions.push('Created actor "echo" in TypeDB')
     actions.push('Created skills: repeat, transform')
     actions.push('Created capability relations')
   } catch {
-    actions.push('Unit "echo" already exists (idempotent)')
+    actions.push('Actor "echo" already exists (idempotent)')
   }
 
   // Query what was created
-  const units = await readParsed(`
-    match $u isa unit, has uid "echo", has model $m;
+  const actors = await readParsed(`
+    match $u isa actor, has aid "echo", has model $m;
     select $m;
   `).catch(() => [])
 
   const skills = await readParsed(`
-    match $u isa unit, has uid "echo";
+    match $u isa actor, has aid "echo";
     (provider: $u, offered: $sk) isa capability;
     $sk has skill-id $sid, has tag $tag;
     select $sid, $tag;
@@ -150,7 +150,7 @@ async function phase1(): Promise<{ actions: string[]; state: Record<string, unkn
   return {
     actions,
     state: {
-      unit: units[0] || { model: 'echo exists' },
+      actor: actors[0] || { model: 'echo exists' },
       skills: skills.map((s) => ({ id: s.sid, tag: s.tag })),
     },
   }
@@ -162,30 +162,30 @@ async function phase2(): Promise<{ actions: string[]; state: Record<string, unkn
   // Send a signal from entry to echo
   const now = new Date().toISOString().replace('Z', '')
   await write(`
-    match $from isa unit, has uid "entry"; $to isa unit, has uid "echo";
+    match $from isa actor, has aid "entry"; $to isa actor, has aid "echo";
     insert (sender: $from, receiver: $to) isa signal,
       has data "Hello from the tutorial!", has amount 0.0,
       has success true, has ts ${now};
   `).catch(async () => {
-    // entry unit might not exist, create it
+    // entry actor might not exist, create it
     await write(`
-      insert $u isa unit, has uid "entry", has name "entry", has unit-kind "system",
+      insert $u isa actor, has aid "entry", has name "entry", has actor-type "system",
         has status "active", has success-rate 1.0, has activity-score 0.0,
         has sample-count 0, has reputation 0.0, has balance 0.0, has generation 0;
     `).catch(() => {})
-    actions.push('Created "entry" unit (system)')
+    actions.push('Created "entry" actor (system)')
   })
   actions.push('Sent signal: entry → echo (data: "Hello from the tutorial!")')
 
   // Mark the path
   await write(`
-    match $from isa unit, has uid "entry"; $to isa unit, has uid "echo";
+    match $from isa actor, has aid "entry"; $to isa actor, has aid "echo";
     $e (source: $from, target: $to) isa path, has strength $s, has traversals $t;
     delete $s of $e; delete $t of $e;
     insert $e has strength ($s + 1.0), has traversals ($t + 1);
   `).catch(async () => {
     await write(`
-      match $from isa unit, has uid "entry"; $to isa unit, has uid "echo";
+      match $from isa actor, has aid "entry"; $to isa actor, has aid "echo";
       insert (source: $from, target: $to) isa path,
         has strength 1.0, has resistance 0.0, has traversals 1, has revenue 0.0;
     `).catch(() => {})
@@ -194,7 +194,7 @@ async function phase2(): Promise<{ actions: string[]; state: Record<string, unkn
 
   const paths = await readParsed(`
     match (source: $f, target: $t) isa path, has strength $s, has resistance $r;
-    $f has uid "entry"; $t has uid "echo";
+    $f has aid "entry"; $t has aid "echo";
     select $s, $r;
   `).catch(() => [])
 
@@ -210,7 +210,7 @@ async function phase3(): Promise<{ actions: string[]; state: Record<string, unkn
   // Mark 5 times (simulate 5 successful signals)
   for (let i = 0; i < 5; i++) {
     await write(`
-      match $from isa unit, has uid "entry"; $to isa unit, has uid "echo";
+      match $from isa actor, has aid "entry"; $to isa actor, has aid "echo";
       $e (source: $from, target: $to) isa path, has strength $s, has traversals $t;
       delete $s of $e; delete $t of $e;
       insert $e has strength ($s + 1.0), has traversals ($t + 1);
@@ -220,7 +220,7 @@ async function phase3(): Promise<{ actions: string[]; state: Record<string, unkn
 
   // Warn once (simulate a failure)
   await write(`
-    match $from isa unit, has uid "entry"; $to isa unit, has uid "echo";
+    match $from isa actor, has aid "entry"; $to isa actor, has aid "echo";
     $e (source: $from, target: $to) isa path, has resistance $r;
     delete $r of $e;
     insert $e has resistance ($r + 1.0);
@@ -229,7 +229,7 @@ async function phase3(): Promise<{ actions: string[]; state: Record<string, unkn
 
   const paths = await readParsed(`
     match (source: $f, target: $t) isa path, has strength $s, has resistance $r, has traversals $t2;
-    $f has uid "entry"; $t has uid "echo";
+    $f has aid "entry"; $t has aid "echo";
     select $s, $r, $t2;
   `).catch(() => [])
 
@@ -254,7 +254,7 @@ async function phase4(): Promise<{ actions: string[]; state: Record<string, unkn
   // Snapshot before
   const before = await readParsed(`
     match (source: $f, target: $t) isa path, has strength $s, has resistance $r;
-    $f has uid "entry"; $t has uid "echo";
+    $f has aid "entry"; $t has aid "echo";
     select $s, $r;
   `).catch(() => [])
 
@@ -269,7 +269,7 @@ async function phase4(): Promise<{ actions: string[]; state: Record<string, unkn
   // Snapshot after
   const after = await readParsed(`
     match (source: $f, target: $t) isa path, has strength $s, has resistance $r;
-    $f has uid "entry"; $t has uid "echo";
+    $f has aid "entry"; $t has aid "echo";
     select $s, $r;
   `).catch(() => [])
 
@@ -293,7 +293,7 @@ async function phase5(): Promise<{ actions: string[]; state: Record<string, unkn
   // Build highway: mark heavily
   for (let i = 0; i < 20; i++) {
     await write(`
-      match $from isa unit, has uid "entry"; $to isa unit, has uid "echo";
+      match $from isa actor, has aid "entry"; $to isa actor, has aid "echo";
       $e (source: $from, target: $to) isa path, has strength $s, has traversals $t;
       delete $s of $e; delete $t of $e;
       insert $e has strength ($s + 2.0), has traversals ($t + 1);
@@ -304,7 +304,7 @@ async function phase5(): Promise<{ actions: string[]; state: Record<string, unkn
   // Check highway status
   const paths = await readParsed(`
     match (source: $f, target: $t) isa path, has strength $s, has resistance $r;
-    $f has uid "entry"; $t has uid "echo";
+    $f has aid "entry"; $t has aid "echo";
     select $s, $r;
   `).catch(() => [])
 
@@ -315,7 +315,7 @@ async function phase5(): Promise<{ actions: string[]; state: Record<string, unkn
   // Get all highways
   const highways = await readParsed(`
     match (source: $f, target: $t) isa path, has strength $s, has resistance $r;
-    $f has uid $fid; $t has uid $tid; $s > 20.0;
+    $f has aid $fid; $t has aid $tid; $s > 20.0;
     select $fid, $tid, $s, $r;
   `).catch(() => [])
 
@@ -337,18 +337,18 @@ async function phase5(): Promise<{ actions: string[]; state: Record<string, unkn
 async function phase6(): Promise<{ actions: string[]; state: Record<string, unknown> }> {
   const actions: string[] = []
 
-  // Query units that need evolution
+  // Query actors that need evolution
   const struggling = await readParsed(`
-    match $u isa unit, has uid $id, has success-rate $sr, has sample-count $sc, has generation $g;
+    match $u isa actor, has aid $id, has success-rate $sr, has sample-count $sc, has generation $g;
     $sr < 0.50; $sc >= 20;
     select $id, $sr, $sc, $g;
   `).catch(() => [])
 
-  actions.push(`Found ${struggling.length} unit(s) eligible for evolution`)
+  actions.push(`Found ${struggling.length} actor(s) eligible for evolution`)
 
   // Show evolution criteria
   const allUnits = await readParsed(`
-    match $u isa unit, has uid $id, has success-rate $sr, has sample-count $sc, has generation $g;
+    match $u isa actor, has aid $id, has success-rate $sr, has sample-count $sc, has generation $g;
     select $id, $sr, $sc, $g;
   `).catch(() => [])
 
@@ -399,7 +399,7 @@ async function phase7(): Promise<{ actions: string[]; state: Record<string, unkn
   // Query highways
   const highways = await readParsed(`
     match (source: $f, target: $t) isa path, has strength $s;
-    $f has uid $fid; $t has uid $tid; $s > 10.0;
+    $f has aid $fid; $t has aid $tid; $s > 10.0;
     sort $s desc; limit 10;
     select $fid, $tid, $s;
   `).catch(() => [])
@@ -412,7 +412,7 @@ async function phase7(): Promise<{ actions: string[]; state: Record<string, unkn
       frontiers: frontiers.map((f) => ({ id: f.fid, type: f.ft, description: f.fd, status: f.fs })),
       highways: highways.map((h) => ({ from: h.fid, to: h.tid, strength: h.s })),
       explanation:
-        'L6 Harden: highways → confirmed hypotheses (permanent hypotheses). Fading paths → testing hypotheses (watch these). L7 Frontier: tag gaps + unit gaps → unexplored territory. Hypotheses couple back to evolution: strong patterns trigger priority evolution.',
+        'L6 Harden: highways → confirmed hypotheses (permanent hypotheses). Fading paths → testing hypotheses (watch these). L7 Frontier: tag gaps + actor gaps → unexplored territory. Hypotheses couple back to evolution: strong patterns trigger priority evolution.',
     },
   }
 }
@@ -454,9 +454,9 @@ export const POST: APIRoute = async ({ request }) => {
   if (!student) return Response.json({ error: 'Missing student' }, { status: 400 })
   if (!phase || phase < 1 || phase > 7) return Response.json({ error: 'Phase must be 1-7' }, { status: 400 })
 
-  // Ensure student unit exists
+  // Ensure student actor exists
   await write(`
-    insert $u isa unit, has uid "${student}", has name "${student}", has unit-kind "human",
+    insert $u isa actor, has aid "${student}", has name "${student}", has actor-type "human",
       has status "active", has success-rate 0.5, has activity-score 0.0,
       has sample-count 0, has reputation 0.0, has balance 0.0, has generation 0;
   `).catch(() => {}) // already exists = fine

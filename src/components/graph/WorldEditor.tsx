@@ -124,7 +124,7 @@ function CelebrationParticles({ x, y, onComplete }: { x: number; y: number; onCo
   return (
     <div className="absolute pointer-events-none" style={{ left: x, top: y, transform: 'translate(-50%, -50%)' }}>
       {/* Central burst */}
-      <div className="absolute w-4 h-4 bg-blue-500 rounded-full animate-ping" />
+      <div className="absolute w-4 h-4 bg-[hsl(var(--color-primary-bright))] rounded-full animate-ping" />
 
       {/* Radiating particles */}
       {Array.from({ length: 12 }).map((_, i) => {
@@ -133,7 +133,7 @@ function CelebrationParticles({ x, y, onComplete }: { x: number; y: number; onCo
         return (
           <div
             key={i}
-            className="absolute w-2 h-2 bg-blue-400 rounded-full"
+            className="absolute w-2 h-2 bg-[hsl(var(--color-primary-bright))] rounded-full"
             style={{
               animation: `particle-burst 1s ease-out forwards`,
               animationDelay: `${i * 0.05}s`,
@@ -148,7 +148,7 @@ function CelebrationParticles({ x, y, onComplete }: { x: number; y: number; onCo
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={`sparkle-${i}`}
-          className="absolute text-yellow-400 text-lg"
+          className="absolute text-[hsl(var(--color-gold))] text-lg"
           style={{
             animation: `sparkle 0.8s ease-out forwards`,
             animationDelay: `${i * 0.1}s`,
@@ -161,7 +161,10 @@ function CelebrationParticles({ x, y, onComplete }: { x: number; y: number; onCo
       ))}
 
       {/* SUPERHIGHWAY text */}
-      <div className="absolute whitespace-nowrap text-blue-300 font-bold text-sm animate-bounce" style={{ top: -30 }}>
+      <div
+        className="absolute whitespace-nowrap text-[hsl(var(--color-primary-bright))] font-bold text-sm animate-bounce"
+        style={{ top: -30 }}
+      >
         SUPERHIGHWAY!
       </div>
     </div>
@@ -206,15 +209,15 @@ function SignalTracer({
 
   return (
     <div
-      className="absolute w-6 h-6 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/50 z-50 pointer-events-none transition-all duration-300"
+      className="absolute w-6 h-6 bg-[hsl(var(--color-tertiary-bright))] rounded-full shadow-lg shadow-[hsl(var(--color-tertiary-bright)/0.5)] z-50 pointer-events-none transition-all duration-300"
       style={{
         left: position.x,
         top: position.y,
         transform: 'translate(-50%, -50%)',
-        boxShadow: '0 0 20px rgba(16, 185, 129, 0.8), 0 0 40px rgba(16, 185, 129, 0.4)',
+        boxShadow: '0 0 20px hsl(var(--color-tertiary-bright) / 0.8), 0 0 40px hsl(var(--color-tertiary-bright) / 0.4)',
       }}
     >
-      <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping" />
+      <div className="absolute inset-0 bg-[hsl(var(--color-tertiary-bright))] rounded-full animate-ping" />
       <div className="absolute inset-1 bg-white rounded-full" />
     </div>
   )
@@ -243,12 +246,12 @@ function PheromoneEditor({
 
   return (
     <div
-      className="absolute z-50 bg-[#0f0f14] border border-[#252538] rounded-lg p-3 shadow-xl min-w-[200px]"
+      className="absolute z-50 bg-card border border-border rounded-lg p-3 shadow-xl min-w-[200px]"
       style={{ left: position.x, top: position.y, transform: 'translate(-50%, -100%) translateY(-10px)' }}
     >
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-slate-400 font-mono">Pheromone Level</span>
-        <button onClick={onClose} className="text-slate-500 hover:text-white">
+        <span className="text-xs text-muted-foreground font-mono">Pheromone Level</span>
+        <button onClick={onClose} className="text-muted-foreground hover:text-font">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -260,7 +263,11 @@ function PheromoneEditor({
           <span
             className={cn(
               'text-2xl font-bold font-mono',
-              value > 50 ? 'text-blue-400' : value > 20 ? 'text-indigo-400' : 'text-slate-400',
+              value > 50
+                ? 'text-[hsl(var(--color-primary-bright))]'
+                : value > 20
+                  ? 'text-[hsl(var(--color-primary-bright))]'
+                  : 'text-muted-foreground',
             )}
           >
             {value.toFixed(0)}
@@ -268,7 +275,9 @@ function PheromoneEditor({
           <span
             className={cn(
               'text-xs px-2 py-1 rounded',
-              value > 50 ? 'bg-blue-500/20 text-blue-300' : 'bg-slate-800 text-slate-400',
+              value > 50
+                ? 'bg-[hsl(var(--color-primary-bright)/0.2)] text-[hsl(var(--color-primary-bright))]'
+                : 'bg-muted text-muted-foreground',
             )}
           >
             {value > 50 ? 'SUPERHIGHWAY' : value > 20 ? 'Active' : 'Weak'}
@@ -282,7 +291,8 @@ function PheromoneEditor({
           value={value}
           onChange={(e) => setValue(Number(e.target.value))}
           onMouseUp={() => onChange(value)}
-          className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+          className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
+          style={{ accentColor: 'hsl(var(--color-primary-bright))' }}
         />
 
         <div className="flex gap-2">
@@ -291,7 +301,7 @@ function PheromoneEditor({
               setValue(0)
               onChange(0)
             }}
-            className="flex-1 px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded transition-colors"
+            className="flex-1 px-2 py-1 text-xs bg-muted hover:bg-muted/80 text-muted-foreground rounded transition-colors"
           >
             Reset
           </button>
@@ -300,13 +310,13 @@ function PheromoneEditor({
               setValue(100)
               onChange(100)
             }}
-            className="flex-1 px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors"
+            className="flex-1 px-2 py-1 text-xs bg-[hsl(var(--color-primary-bright))] hover:bg-[hsl(var(--color-primary-bright)/0.8)] text-font rounded transition-colors"
           >
             Max
           </button>
           <button
             onClick={onDelete}
-            className="px-2 py-1 text-xs bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded transition-colors"
+            className="px-2 py-1 text-xs bg-[hsl(var(--color-destructive)/0.2)] hover:bg-[hsl(var(--color-destructive)/0.4)] text-destructive rounded transition-colors"
           >
             Delete
           </button>
@@ -335,12 +345,12 @@ function SignalInjector({
 }) {
   return (
     <div
-      className="absolute z-50 bg-[#0f0f14] border border-emerald-500/30 rounded-lg p-3 shadow-xl min-w-[180px]"
+      className="absolute z-50 bg-card border border-[hsl(var(--color-tertiary-bright)/0.3)] rounded-lg p-3 shadow-xl min-w-[180px]"
       style={{ left: position.x, top: position.y, transform: 'translate(-50%, 10px)' }}
     >
       <div className="flex items-center gap-2 mb-3">
-        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-        <span className="text-xs text-emerald-400 font-semibold">Inject Signal</span>
+        <div className="w-2 h-2 rounded-full bg-[hsl(var(--color-tertiary-bright))] animate-pulse" />
+        <span className="text-xs text-[hsl(var(--color-tertiary-bright))] font-semibold">Inject Signal</span>
       </div>
 
       <div className="space-y-1">
@@ -351,7 +361,7 @@ function SignalInjector({
               onInject(task)
               onClose()
             }}
-            className="w-full px-3 py-2 text-left text-sm bg-slate-800/50 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-300 rounded transition-colors font-mono"
+            className="w-full px-3 py-2 text-left text-sm bg-muted/50 hover:bg-[hsl(var(--color-tertiary-bright)/0.2)] text-muted-foreground hover:text-[hsl(var(--color-tertiary-bright))] rounded transition-colors font-mono"
           >
             {task}
           </button>
@@ -367,17 +377,41 @@ function SignalInjector({
 
 function NodePalette({ onDragStart }: { onDragStart: (type: string, name: string) => void }) {
   const nodeTypes = [
-    { type: 'worker', name: 'Worker', icon: 'W', color: 'bg-blue-500' },
-    { type: 'scout', name: 'Scout', icon: 'S', color: 'bg-emerald-500' },
-    { type: 'analyst', name: 'Analyst', icon: 'A', color: 'bg-purple-500' },
-    { type: 'trader', name: 'Trader', icon: 'T', color: 'bg-amber-500' },
+    {
+      type: 'worker',
+      name: 'Worker',
+      icon: 'W',
+      colorVar: '--color-primary-bright',
+      colorClass: 'text-[hsl(var(--color-primary-bright))]',
+    },
+    {
+      type: 'scout',
+      name: 'Scout',
+      icon: 'S',
+      colorVar: '--color-tertiary-bright',
+      colorClass: 'text-[hsl(var(--color-tertiary-bright))]',
+    },
+    {
+      type: 'analyst',
+      name: 'Analyst',
+      icon: 'A',
+      colorVar: '--color-secondary-bright',
+      colorClass: 'text-[hsl(var(--color-secondary-bright))]',
+    },
+    {
+      type: 'trader',
+      name: 'Trader',
+      icon: 'T',
+      colorVar: '--color-gold',
+      colorClass: 'text-[hsl(var(--color-gold))]',
+    },
   ]
 
   return (
-    <div className="bg-[#0a0a0f]/90 border border-[#252538] rounded-lg p-3">
-      <div className="text-xs text-slate-500 mb-2 font-semibold">Spawn Node</div>
+    <div className="bg-background/90 border border-border rounded-lg p-3">
+      <div className="text-xs text-muted-foreground mb-2 font-semibold">Spawn Node</div>
       <div className="flex gap-2">
-        {nodeTypes.map(({ type, name, icon, color }) => (
+        {nodeTypes.map(({ type, name, icon, colorVar, colorClass }) => (
           <div
             key={type}
             draggable
@@ -388,13 +422,15 @@ function NodePalette({ onDragStart }: { onDragStart: (type: string, name: string
             }}
             className={cn(
               'w-10 h-10 rounded-lg flex items-center justify-center cursor-grab',
-              'border border-slate-700 hover:border-slate-500 transition-all',
+              'border border-border hover:border-border/80 transition-all',
               'hover:scale-110 active:cursor-grabbing',
-              `${color}/20`,
             )}
             title={`Drag to spawn ${name}`}
+            style={{
+              backgroundColor: `hsl(var(${colorVar}) / 0.2)` /* theme-ok: dynamic CSS var ref */,
+            }}
           >
-            <span className={cn('text-sm font-bold', color.replace('bg-', 'text-'))}>{icon}</span>
+            <span className={cn('text-sm font-bold', colorClass)}>{icon}</span>
           </div>
         ))}
       </div>
@@ -442,23 +478,30 @@ function ControlPanel({
   onSpeedChange: (speed: number) => void
 }) {
   return (
-    <div className="bg-[#0a0a0f]/95 border border-[#252538] rounded-lg p-4 space-y-4 min-w-[220px]">
-      <div className="text-xs text-slate-400 font-semibold uppercase tracking-wide">World Controls</div>
+    <div className="bg-background/95 border border-border rounded-lg p-4 space-y-4 min-w-[220px]">
+      <div className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">World Controls</div>
 
       {/* Record & Playback */}
       <div className="space-y-2">
-        <div className="text-[10px] text-slate-500 uppercase">Signal Recording</div>
+        <div className="text-[10px] text-muted-foreground uppercase">Signal Recording</div>
         <div className="flex gap-2">
           <button
             onClick={onToggleRecord}
             className={cn(
               'flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2',
               isRecording
-                ? 'bg-red-500/20 text-red-400 border border-red-500/50'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
+                ? 'bg-[hsl(var(--color-destructive)/0.2)] text-destructive border border-[hsl(var(--color-destructive)/0.5)]'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80',
             )}
           >
-            <div className={cn('w-2 h-2 rounded-full', isRecording ? 'bg-red-500 animate-pulse' : 'bg-slate-500')} />
+            <div
+              className={cn('w-2 h-2 rounded-full', isRecording ? 'animate-pulse' : '')}
+              style={
+                isRecording
+                  ? { backgroundColor: 'hsl(var(--color-destructive))' }
+                  : { backgroundColor: 'hsl(var(--color-muted-foreground))' }
+              }
+            />
             {isRecording ? 'Stop' : 'Record'}
           </button>
           <button
@@ -467,10 +510,10 @@ function ControlPanel({
             className={cn(
               'flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2',
               isPlaying
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
+                ? 'bg-[hsl(var(--color-tertiary-bright)/0.2)] text-[hsl(var(--color-tertiary-bright))] border border-[hsl(var(--color-tertiary-bright)/0.5)]'
                 : signalHistory.length > 0
-                  ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  : 'bg-slate-900 text-slate-600 cursor-not-allowed',
+                  ? 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  : 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed',
             )}
           >
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
@@ -482,7 +525,7 @@ function ControlPanel({
         {signalHistory.length > 0 && (
           <button
             onClick={onClearHistory}
-            className="w-full px-2 py-1 text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
+            className="w-full px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
           >
             Clear History
           </button>
@@ -491,14 +534,14 @@ function ControlPanel({
 
       {/* AI Mode */}
       <div className="space-y-2">
-        <div className="text-[10px] text-slate-500 uppercase">AI Self-Organization</div>
+        <div className="text-[10px] text-muted-foreground uppercase">AI Self-Organization</div>
         <button
           onClick={onToggleAI}
           className={cn(
             'w-full px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2',
             isAIMode
-              ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
-              : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
+              ? 'bg-[hsl(var(--color-secondary-bright)/0.2)] text-[hsl(var(--color-secondary-bright))] border border-[hsl(var(--color-secondary-bright)/0.5)]'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80',
           )}
         >
           <svg
@@ -520,15 +563,15 @@ function ControlPanel({
 
       {/* Time-lapse */}
       <div className="space-y-2">
-        <div className="text-[10px] text-slate-500 uppercase">Time-lapse Evolution</div>
+        <div className="text-[10px] text-muted-foreground uppercase">Time-lapse Evolution</div>
         <div className="flex gap-2 items-center">
           <button
             onClick={onToggleTimeLapse}
             className={cn(
               'flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all',
               isTimeLapse
-                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
+                ? 'bg-[hsl(var(--color-gold)/0.2)] text-[hsl(var(--color-gold))] border border-[hsl(var(--color-gold)/0.5)]'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80',
             )}
           >
             {isTimeLapse ? '⏸ Pause' : '▶ Start'}
@@ -536,7 +579,7 @@ function ControlPanel({
           <select
             value={speed}
             onChange={(e) => onSpeedChange(Number(e.target.value))}
-            className="bg-slate-800 text-slate-300 text-xs rounded-lg px-2 py-2 border-none"
+            className="bg-muted text-muted-foreground text-xs rounded-lg px-2 py-2 border-none"
           >
             <option value={1}>1x</option>
             <option value={2}>2x</option>
@@ -548,14 +591,14 @@ function ControlPanel({
 
       {/* Heat Map */}
       <div className="space-y-2">
-        <div className="text-[10px] text-slate-500 uppercase">Visualization</div>
+        <div className="text-[10px] text-muted-foreground uppercase">Visualization</div>
         <button
           onClick={onToggleHeatMap}
           className={cn(
             'w-full px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2',
             heatMapEnabled
-              ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50'
-              : 'bg-slate-800 text-slate-300 hover:bg-slate-700',
+              ? 'bg-[hsl(var(--color-gold)/0.2)] text-[hsl(var(--color-gold))] border border-[hsl(var(--color-gold)/0.5)]'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80',
           )}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -572,11 +615,11 @@ function ControlPanel({
 
       {/* Save/Load */}
       <div className="space-y-2">
-        <div className="text-[10px] text-slate-500 uppercase">World State</div>
+        <div className="text-[10px] text-muted-foreground uppercase">World State</div>
         <div className="flex gap-2">
           <button
             onClick={onSave}
-            className="flex-1 px-3 py-2 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
+            className="flex-1 px-3 py-2 rounded-lg text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-all flex items-center justify-center gap-2"
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -590,7 +633,7 @@ function ControlPanel({
           </button>
           <button
             onClick={onLoad}
-            className="flex-1 px-3 py-2 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
+            className="flex-1 px-3 py-2 rounded-lg text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-all flex items-center justify-center gap-2"
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
@@ -632,7 +675,11 @@ function TrailEdge(props: EdgeProps) {
   })
 
   const strokeWidth = Math.max(1, Math.min(strength / 10, 8))
-  const color = isSuperhighway ? '#3b82f6' : strength > 20 ? '#6366f1' : '#334155'
+  const color = isSuperhighway
+    ? 'hsl(var(--color-primary-bright))'
+    : strength > 20
+      ? 'hsl(var(--color-primary-bright) / 0.6)'
+      : 'hsl(var(--color-muted-foreground))'
   const glowOpacity = isSuperhighway ? 0.4 : celebrating ? 0.6 : 0.1
 
   return (
@@ -641,7 +688,7 @@ function TrailEdge(props: EdgeProps) {
       <path
         d={path}
         fill="none"
-        stroke={celebrating ? '#fbbf24' : color}
+        stroke={celebrating ? 'hsl(var(--color-gold))' : color}
         strokeWidth={strokeWidth + (celebrating ? 20 : 12)}
         strokeOpacity={glowOpacity}
         className={cn(isSuperhighway && 'animate-pulse', celebrating && 'animate-ping')}
@@ -652,10 +699,10 @@ function TrailEdge(props: EdgeProps) {
         id={id}
         path={path}
         style={{
-          stroke: celebrating ? '#fbbf24' : color,
+          stroke: celebrating ? 'hsl(var(--color-gold))' : color,
           strokeWidth: celebrating ? strokeWidth + 2 : strokeWidth,
           cursor: 'pointer',
-          filter: isSuperhighway ? 'drop-shadow(0 0 6px rgba(59, 130, 246, 0.5))' : undefined,
+          filter: isSuperhighway ? 'drop-shadow(0 0 6px hsl(var(--color-primary-bright) / 0.5))' : undefined,
         }}
       />
 
@@ -666,7 +713,11 @@ function TrailEdge(props: EdgeProps) {
             <circle
               key={i}
               r={celebrating ? 5 - i : 3 - i * 0.5}
-              fill={celebrating ? `rgba(251, 191, 36, ${1 - i * 0.2})` : `rgba(147, 197, 253, ${1 - i * 0.2})`}
+              fill={
+                celebrating
+                  ? `hsl(var(--color-gold) / ${1 - i * 0.2})`
+                  : `hsl(var(--color-primary-bright) / ${1 - i * 0.2})`
+              }
             >
               <animateMotion dur={celebrating ? '1s' : '2s'} repeatCount="indefinite" path={path} begin={`${delay}s`} />
             </circle>
@@ -681,27 +732,35 @@ function TrailEdge(props: EdgeProps) {
             'absolute pointer-events-auto px-2 py-1 rounded-md text-[10px] font-mono cursor-pointer',
             'transform -translate-x-1/2 -translate-y-1/2 transition-all',
             celebrating
-              ? 'bg-yellow-500/30 text-yellow-300 border border-yellow-500/50 shadow-lg shadow-yellow-500/30 scale-110'
+              ? 'bg-[hsl(var(--color-gold)/0.3)] text-[hsl(var(--color-gold))] border border-[hsl(var(--color-gold)/0.5)] shadow-lg scale-110'
               : isSuperhighway
-                ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-lg shadow-blue-500/20'
-                : 'bg-[#0c0c10]/90 text-slate-400 border border-slate-700/50',
-            selected && 'ring-2 ring-blue-500',
+                ? 'bg-[hsl(var(--color-primary-bright)/0.2)] text-[hsl(var(--color-primary-bright))] border border-[hsl(var(--color-primary-bright)/0.3)] shadow-lg'
+                : 'bg-background/90 text-muted-foreground border border-border/50',
+            selected && 'ring-2 ring-[hsl(var(--color-primary-bright))]',
           )}
           style={{ left: labelX, top: labelY }}
         >
-          <span className="text-slate-500">{fromTask}</span>
-          <span className="mx-1 text-slate-600">→</span>
-          <span className={celebrating ? 'text-yellow-300' : isSuperhighway ? 'text-blue-300' : 'text-slate-400'}>
+          <span className="text-muted-foreground">{fromTask}</span>
+          <span className="mx-1 text-muted-foreground/60">→</span>
+          <span
+            className={
+              celebrating
+                ? 'text-[hsl(var(--color-gold))]'
+                : isSuperhighway
+                  ? 'text-[hsl(var(--color-primary-bright))]'
+                  : 'text-muted-foreground'
+            }
+          >
             {toTask}
           </span>
           <span
             className={cn(
               'ml-2 px-1.5 py-0.5 rounded text-[9px]',
               celebrating
-                ? 'bg-yellow-500/40 text-yellow-200'
+                ? 'bg-[hsl(var(--color-gold)/0.4)] text-[hsl(var(--color-gold))]'
                 : isSuperhighway
-                  ? 'bg-blue-500/30 text-blue-200'
-                  : 'bg-slate-800 text-slate-500',
+                  ? 'bg-[hsl(var(--color-primary-bright)/0.3)] text-[hsl(var(--color-primary-bright))]'
+                  : 'bg-muted text-muted-foreground',
             )}
           >
             {strength.toFixed(0)}
@@ -724,30 +783,40 @@ function ChamberNode({ data, selected }: NodeProps) {
 
   // Heat map colors
   const getHeatColor = (level: number) => {
-    if (level > 80) return 'from-red-900/50 to-red-950/80 border-red-500/60'
-    if (level > 60) return 'from-orange-900/50 to-orange-950/80 border-orange-500/60'
-    if (level > 40) return 'from-yellow-900/50 to-yellow-950/80 border-yellow-500/60'
-    if (level > 20) return 'from-green-900/50 to-green-950/80 border-green-500/60'
-    return 'from-[#16161f] to-[#0e0e14] border-slate-700/40'
+    if (level > 80) return 'border-[hsl(var(--color-destructive)/0.6)]'
+    if (level > 60) return 'border-[hsl(var(--color-gold)/0.6)]'
+    if (level > 40) return 'border-[hsl(var(--color-gold)/0.5)]'
+    if (level > 20) return 'border-[hsl(var(--color-tertiary-bright)/0.6)]'
+    return 'border-border/40'
   }
 
-  const heatGradient = heatLevel > 0 ? getHeatColor(heatLevel) : 'from-[#16161f] to-[#0e0e14]'
+  const getHeatGradient = (level: number) => {
+    if (level > 80) return 'from-[hsl(var(--color-destructive)/0.5)] to-[hsl(var(--color-destructive)/0.8)]'
+    if (level > 60) return 'from-[hsl(var(--color-gold)/0.5)] to-[hsl(var(--color-gold)/0.8)]'
+    if (level > 40) return 'from-[hsl(var(--color-gold)/0.4)] to-[hsl(var(--color-gold)/0.6)]'
+    if (level > 20) return 'from-[hsl(var(--color-tertiary-bright)/0.5)] to-[hsl(var(--color-tertiary-bright)/0.8)]'
+    return 'from-card to-card'
+  }
+
+  const heatGradient = heatLevel > 0 ? getHeatGradient(heatLevel) : 'from-card to-card'
+  const heatBorder = heatLevel > 0 ? getHeatColor(heatLevel) : 'border-border/40 hover:border-border/60'
 
   return (
     <div
       className={cn(
         'bg-gradient-to-b rounded-xl border transition-all duration-200',
         'w-[180px] cursor-pointer select-none',
-        heatLevel > 0 ? heatGradient : 'from-[#16161f] to-[#0e0e14]',
-        isActive && 'shadow-lg shadow-blue-500/30',
+        heatLevel > 0 ? heatGradient : 'from-card to-card',
+        isActive && 'shadow-lg',
         selected
-          ? 'border-blue-500 ring-2 ring-blue-500/20'
+          ? 'border-[hsl(var(--color-primary-bright))] ring-2 ring-[hsl(var(--color-primary-bright)/0.2)]'
           : isActive
-            ? 'border-blue-500/40'
-            : heatLevel > 0
-              ? ''
-              : 'border-slate-700/40 hover:border-slate-500/60',
+            ? 'border-[hsl(var(--color-primary-bright)/0.4)]'
+            : heatBorder,
       )}
+      style={
+        isActive && heatLevel > 0 ? { boxShadow: `0 10px 15px -3px hsl(var(--color-primary-bright) / 0.3)` } : undefined
+      }
     >
       {/* Handles */}
       <Handle
@@ -755,7 +824,7 @@ function ChamberNode({ data, selected }: NodeProps) {
         position={Position.Left}
         className={cn(
           '!w-3 !h-3 !border-2 !-left-1.5 transition-all',
-          d.incoming > 0 ? '!bg-blue-400 !border-[#16161f]' : '!bg-slate-600 !border-[#16161f]',
+          d.incoming > 0 ? '!bg-[hsl(var(--color-primary-bright))] !border-card' : '!bg-muted-foreground !border-card',
         )}
       />
       <Handle
@@ -763,7 +832,7 @@ function ChamberNode({ data, selected }: NodeProps) {
         position={Position.Right}
         className={cn(
           '!w-3 !h-3 !border-2 !-right-1.5 transition-all',
-          d.outgoing > 0 ? '!bg-emerald-400 !border-[#16161f]' : '!bg-slate-600 !border-[#16161f]',
+          d.outgoing > 0 ? '!bg-[hsl(var(--color-tertiary-bright))] !border-card' : '!bg-muted-foreground !border-card',
         )}
       />
 
@@ -774,12 +843,12 @@ function ChamberNode({ data, selected }: NodeProps) {
           style={{
             backgroundColor:
               heatLevel > 80
-                ? 'rgba(239, 68, 68, 0.8)'
+                ? 'hsl(var(--color-destructive) / 0.8)'
                 : heatLevel > 60
-                  ? 'rgba(249, 115, 22, 0.8)'
+                  ? 'hsl(var(--color-gold) / 0.8)'
                   : heatLevel > 40
-                    ? 'rgba(234, 179, 8, 0.8)'
-                    : 'rgba(34, 197, 94, 0.8)',
+                    ? 'hsl(var(--color-gold) / 0.8)'
+                    : 'hsl(var(--color-tertiary-bright) / 0.8)',
             color: 'white',
           }}
         >
@@ -788,32 +857,44 @@ function ChamberNode({ data, selected }: NodeProps) {
       )}
 
       {/* Header */}
-      <div className="px-3 py-2.5 border-b border-slate-700/30">
+      <div className="px-3 py-2.5 border-b border-border/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div
               className={cn(
                 'w-2 h-2 rounded-full transition-all',
                 isActive
-                  ? 'bg-blue-500 shadow-md shadow-blue-500/50'
+                  ? 'bg-[hsl(var(--color-primary-bright))] shadow-md'
                   : heatLevel > 60
-                    ? 'bg-orange-500 shadow-md shadow-orange-500/50'
-                    : 'bg-slate-600',
+                    ? 'bg-[hsl(var(--color-gold))] shadow-md'
+                    : 'bg-muted-foreground',
               )}
+              style={
+                isActive
+                  ? { boxShadow: '0 4px 6px -1px hsl(var(--color-primary-bright) / 0.5)' }
+                  : heatLevel > 60
+                    ? { boxShadow: '0 4px 6px -1px hsl(var(--color-gold) / 0.5)' }
+                    : undefined
+              }
             >
               {(isActive || heatLevel > 60) && (
                 <div
-                  className={cn('w-full h-full rounded-full animate-ping', isActive ? 'bg-blue-400' : 'bg-orange-400')}
+                  className={cn(
+                    'w-full h-full rounded-full animate-ping',
+                    isActive ? 'bg-[hsl(var(--color-primary-bright))]' : 'bg-[hsl(var(--color-gold))]',
+                  )}
                 />
               )}
             </div>
-            <span className="text-white font-medium text-sm">{d.name}</span>
+            <span className="text-font font-medium text-sm">{d.name}</span>
           </div>
           {totalStrength > 0 && (
             <span
               className={cn(
                 'text-[10px] font-mono px-1.5 py-0.5 rounded',
-                isActive ? 'bg-blue-500/20 text-blue-300' : 'bg-slate-800 text-slate-400',
+                isActive
+                  ? 'bg-[hsl(var(--color-primary-bright)/0.2)] text-[hsl(var(--color-primary-bright))]'
+                  : 'bg-muted text-muted-foreground',
               )}
             >
               {totalStrength.toFixed(0)}
@@ -823,14 +904,16 @@ function ChamberNode({ data, selected }: NodeProps) {
       </div>
 
       {/* Actions */}
-      <div className="px-3 py-2 border-b border-slate-700/30">
+      <div className="px-3 py-2 border-b border-border/30">
         <div className="flex flex-wrap gap-1">
           {d.actions.map((name) => (
             <span
               key={name}
               className={cn(
                 'text-[9px] px-1.5 py-0.5 rounded font-mono',
-                isActive ? 'bg-blue-500/15 text-blue-300' : 'bg-slate-800/60 text-slate-400',
+                isActive
+                  ? 'bg-[hsl(var(--color-primary-bright)/0.15)] text-[hsl(var(--color-primary-bright))]'
+                  : 'bg-muted/60 text-muted-foreground',
               )}
             >
               {name}
@@ -842,31 +925,40 @@ function ChamberNode({ data, selected }: NodeProps) {
       {/* Traffic bars */}
       <div className="px-3 py-2 space-y-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[8px] text-slate-500 w-5">IN</span>
-          <div className="flex-1 h-1 bg-slate-800/60 rounded-full overflow-hidden">
+          <span className="text-[8px] text-muted-foreground w-5">IN</span>
+          <div className="flex-1 h-1 bg-muted/60 rounded-full overflow-hidden">
             <div
-              className={cn('h-full rounded-full transition-all', d.incoming > 50 ? 'bg-blue-500' : 'bg-slate-600')}
+              className={cn(
+                'h-full rounded-full transition-all',
+                d.incoming > 50 ? 'bg-[hsl(var(--color-primary-bright))]' : 'bg-muted-foreground',
+              )}
               style={{ width: `${Math.min(d.incoming, 100)}%` }}
             />
           </div>
           <span
-            className={cn('text-[8px] font-mono w-5 text-right', d.incoming > 50 ? 'text-blue-400' : 'text-slate-500')}
+            className={cn(
+              'text-[8px] font-mono w-5 text-right',
+              d.incoming > 50 ? 'text-[hsl(var(--color-primary-bright))]' : 'text-muted-foreground',
+            )}
           >
             {d.incoming.toFixed(0)}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[8px] text-slate-500 w-5">OUT</span>
-          <div className="flex-1 h-1 bg-slate-800/60 rounded-full overflow-hidden">
+          <span className="text-[8px] text-muted-foreground w-5">OUT</span>
+          <div className="flex-1 h-1 bg-muted/60 rounded-full overflow-hidden">
             <div
-              className={cn('h-full rounded-full transition-all', d.outgoing > 50 ? 'bg-emerald-500' : 'bg-slate-600')}
+              className={cn(
+                'h-full rounded-full transition-all',
+                d.outgoing > 50 ? 'bg-[hsl(var(--color-tertiary-bright))]' : 'bg-muted-foreground',
+              )}
               style={{ width: `${Math.min(d.outgoing, 100)}%` }}
             />
           </div>
           <span
             className={cn(
               'text-[8px] font-mono w-5 text-right',
-              d.outgoing > 50 ? 'text-emerald-400' : 'text-slate-500',
+              d.outgoing > 50 ? 'text-[hsl(var(--color-tertiary-bright))]' : 'text-muted-foreground',
             )}
           >
             {d.outgoing.toFixed(0)}
@@ -876,7 +968,10 @@ function ChamberNode({ data, selected }: NodeProps) {
 
       {/* Superhighway badge */}
       {d.isSuperhighway && (
-        <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-blue-500 rounded-full shadow-lg shadow-blue-500/50" />
+        <div
+          className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-[hsl(var(--color-primary-bright))] rounded-full shadow-lg"
+          style={{ boxShadow: '0 10px 15px -3px hsl(var(--color-primary-bright) / 0.5)' }}
+        />
       )}
     </div>
   )
@@ -890,31 +985,48 @@ function EntryNode({ data }: NodeProps) {
   const d = data as { signals: number }
   return (
     <div
-      className={cn(
-        'bg-gradient-to-br from-emerald-900/30 to-emerald-950/50 rounded-xl border border-emerald-500/30',
-        'px-4 py-3 shadow-lg shadow-emerald-500/10 select-none',
-      )}
+      className={cn('bg-gradient-to-br rounded-xl border px-4 py-3 select-none', 'shadow-lg')}
+      style={{
+        backgroundImage: `linear-gradient(to bottom right, hsl(var(--color-tertiary-bright) / 0.3), hsl(var(--color-tertiary-bright) / 0.5))`,
+        borderColor: 'hsl(var(--color-tertiary-bright) / 0.3)',
+        boxShadow: '0 10px 15px -3px hsl(var(--color-tertiary-bright) / 0.1)',
+      }}
     >
       <Handle
         type="source"
         position={Position.Right}
-        className="!bg-emerald-400 !w-3 !h-3 !border-2 !border-emerald-900 !-right-1.5"
+        className="!w-3 !h-3 !border-2 !-right-1.5"
+        style={{
+          backgroundColor: 'hsl(var(--color-tertiary-bright))',
+          borderColor: 'hsl(var(--color-tertiary-bright) / 0.5)',
+        }}
       />
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ backgroundColor: 'hsl(var(--color-tertiary-bright) / 0.2)' }}
+        >
           <svg
-            className="w-4 h-4 text-emerald-400"
+            className="w-4 h-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={2.5}
+            style={{ color: 'hsl(var(--color-tertiary-bright))' }}
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>
         </div>
         <div>
-          <div className="text-emerald-300 font-semibold text-sm uppercase tracking-wide">Entry</div>
-          <div className="text-emerald-500/70 text-[10px] font-mono">{d.signals} signals</div>
+          <div
+            className="font-semibold text-sm uppercase tracking-wide"
+            style={{ color: 'hsl(var(--color-tertiary-bright))' }}
+          >
+            Entry
+          </div>
+          <div className="text-[10px] font-mono" style={{ color: 'hsl(var(--color-tertiary-bright) / 0.7)' }}>
+            {d.signals} signals
+          </div>
         </div>
       </div>
     </div>
@@ -1123,7 +1235,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
           data: { strength, fromTask, toTask, isSuperhighway, celebrating: false } as TrailEdgeData,
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            color: isSuperhighway ? '#3b82f6' : '#334155',
+            color: isSuperhighway ? 'hsl(var(--color-primary-bright))' : 'hsl(var(--color-muted-foreground))',
             width: 20,
             height: 20,
           },
@@ -1213,7 +1325,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
           data: { ...edge.data, strength: highway.strength, isSuperhighway },
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            color: isSuperhighway ? '#3b82f6' : '#334155',
+            color: isSuperhighway ? 'hsl(var(--color-primary-bright))' : 'hsl(var(--color-muted-foreground))',
             width: 20,
             height: 20,
           },
@@ -1317,7 +1429,12 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
             ...connection,
             type: 'trail',
             data: { strength: 1, fromTask: 'signal', toTask: 'receive', isSuperhighway: false, celebrating: false },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#334155', width: 20, height: 20 },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: 'hsl(var(--color-muted-foreground))',
+              width: 20,
+              height: 20,
+            },
           },
           eds,
         ),
@@ -1389,7 +1506,7 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
             data: { ...e.data, strength, isSuperhighway },
             markerEnd: {
               type: MarkerType.ArrowClosed,
-              color: isSuperhighway ? '#3b82f6' : '#334155',
+              color: isSuperhighway ? 'hsl(var(--color-primary-bright))' : 'hsl(var(--color-muted-foreground))',
               width: 20,
               height: 20,
             },
@@ -1532,8 +1649,8 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
 
       const newId = `${type}-${Date.now()}`
 
-      const unit = world.add(newId)
-      unit.on('process', (p: unknown) => ({ processed: true, ...(p as object) }))
+      const actor = world.add(newId)
+      actor.on('process', (p: unknown) => ({ processed: true, ...(p as object) }))
 
       const newNode: Node = {
         id: newId,
@@ -1574,43 +1691,76 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
   )
 
   return (
-    <div className="h-full w-full bg-[#060608] relative" ref={reactFlowWrapper}>
+    <div className="h-full w-full bg-background relative" ref={reactFlowWrapper}>
       {/* Hidden file input */}
       <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileLoad} className="hidden" />
 
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-10 px-6 py-4 bg-gradient-to-b from-[#0a0a0f] via-[#0a0a0f]/80 to-transparent">
+      <div className="absolute top-0 left-0 right-0 z-10 px-6 py-4 bg-gradient-to-b from-background via-background/80 to-transparent">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
-              className={cn(
-                'w-3 h-3 rounded-full shadow-lg',
-                isAIMode
-                  ? 'bg-purple-500 shadow-purple-500/50 animate-pulse'
+              className="w-3 h-3 rounded-full shadow-lg animate-pulse"
+              style={{
+                backgroundColor: isAIMode
+                  ? 'hsl(var(--color-secondary-bright))'
                   : isTimeLapse
-                    ? 'bg-amber-500 shadow-amber-500/50 animate-pulse'
-                    : 'bg-emerald-500 shadow-emerald-500/50',
-              )}
+                    ? 'hsl(var(--color-gold))'
+                    : 'hsl(var(--color-tertiary-bright))',
+                boxShadow: isAIMode
+                  ? '0 10px 15px -3px hsl(var(--color-secondary-bright) / 0.5)'
+                  : isTimeLapse
+                    ? '0 10px 15px -3px hsl(var(--color-gold) / 0.5)'
+                    : '0 10px 15px -3px hsl(var(--color-tertiary-bright) / 0.5)',
+              }}
             />
-            <span className="text-lg font-semibold text-white">Colony Editor</span>
+            <span className="text-lg font-semibold text-font">Colony Editor</span>
             <div className="flex gap-1">
               {isRecording && (
-                <span className="text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded border border-red-500/30">
+                <span
+                  className="text-xs px-2 py-1 rounded border"
+                  style={{
+                    backgroundColor: 'hsl(var(--color-destructive) / 0.2)',
+                    color: 'hsl(var(--color-destructive))',
+                    borderColor: 'hsl(var(--color-destructive) / 0.3)',
+                  }}
+                >
                   REC
                 </span>
               )}
               {isAIMode && (
-                <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded border border-purple-500/30">
+                <span
+                  className="text-xs px-2 py-1 rounded border"
+                  style={{
+                    backgroundColor: 'hsl(var(--color-secondary-bright) / 0.2)',
+                    color: 'hsl(var(--color-secondary-bright))',
+                    borderColor: 'hsl(var(--color-secondary-bright) / 0.3)',
+                  }}
+                >
                   AI
                 </span>
               )}
               {isTimeLapse && (
-                <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded border border-amber-500/30">
+                <span
+                  className="text-xs px-2 py-1 rounded border"
+                  style={{
+                    backgroundColor: 'hsl(var(--color-gold) / 0.2)',
+                    color: 'hsl(var(--color-gold))',
+                    borderColor: 'hsl(var(--color-gold) / 0.3)',
+                  }}
+                >
                   {timeLapseSpeed}x
                 </span>
               )}
               {heatMapEnabled && (
-                <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded border border-orange-500/30">
+                <span
+                  className="text-xs px-2 py-1 rounded border"
+                  style={{
+                    backgroundColor: 'hsl(var(--color-gold) / 0.2)',
+                    color: 'hsl(var(--color-gold))',
+                    borderColor: 'hsl(var(--color-gold) / 0.3)',
+                  }}
+                >
                   HEAT
                 </span>
               )}
@@ -1618,20 +1768,24 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
           </div>
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
-              <span className="text-slate-500">Nodes</span>
-              <span className="text-white font-mono font-bold">{stats.nodes}</span>
+              <span className="text-muted-foreground">Nodes</span>
+              <span className="text-font font-mono font-bold">{stats.nodes}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-slate-500">Trails</span>
-              <span className="text-white font-mono font-bold">{stats.edges}</span>
+              <span className="text-muted-foreground">Trails</span>
+              <span className="text-font font-mono font-bold">{stats.edges}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-slate-500">Superhighways</span>
-              <span className="text-blue-400 font-mono font-bold">{stats.superhighways}</span>
+              <span className="text-muted-foreground">Superhighways</span>
+              <span className="font-mono font-bold" style={{ color: 'hsl(var(--color-primary-bright))' }}>
+                {stats.superhighways}
+              </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-slate-500">Total Flow</span>
-              <span className="text-emerald-400 font-mono font-bold text-lg">{stats.totalFlow.toFixed(0)}</span>
+              <span className="text-muted-foreground">Total Flow</span>
+              <span className="font-mono font-bold text-lg" style={{ color: 'hsl(var(--color-tertiary-bright))' }}>
+                {stats.totalFlow.toFixed(0)}
+              </span>
             </div>
           </div>
         </div>
@@ -1659,33 +1813,28 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
         snapGrid={[20, 20]}
         nodeOrigin={[0.5, 0.5]}
         className="world-graph"
-        connectionLineStyle={{ stroke: '#3b82f6', strokeWidth: 2 }}
+        connectionLineStyle={{ stroke: 'hsl(var(--color-primary-bright))', strokeWidth: 2 }}
         connectionLineType={ConnectionLineType.Bezier}
       >
-        <Background color="#12121a" gap={40} size={1} />
-        <Controls
-          showZoom
-          showFitView
-          showInteractive
-          className="!bg-[#0f0f14] !border-[#252538] !shadow-lg !rounded-lg"
-        />
+        <Background color="hsl(var(--color-card))" gap={40} size={1} />
+        <Controls showZoom showFitView showInteractive className="!bg-card !border-border !shadow-lg !rounded-lg" />
         <MiniMap
           nodeColor={(node) => {
-            if (node.id === 'entry') return '#22c55e'
+            if (node.id === 'entry') return 'hsl(var(--color-tertiary-bright))'
             const data = node.data as ChamberNodeData
             if (heatMapEnabled && data?.heatLevel) {
-              if (data.heatLevel > 80) return '#ef4444'
-              if (data.heatLevel > 60) return '#f97316'
-              if (data.heatLevel > 40) return '#eab308'
-              if (data.heatLevel > 20) return '#22c55e'
+              if (data.heatLevel > 80) return 'hsl(var(--color-destructive))'
+              if (data.heatLevel > 60) return 'hsl(var(--color-gold))'
+              if (data.heatLevel > 40) return 'hsl(var(--color-gold))'
+              if (data.heatLevel > 20) return 'hsl(var(--color-tertiary-bright))'
             }
-            if (data?.isSuperhighway) return '#3b82f6'
-            return '#334155'
+            if (data?.isSuperhighway) return 'hsl(var(--color-primary-bright))'
+            return 'hsl(var(--color-muted-foreground))'
           }}
-          nodeStrokeColor="#0f0f14"
+          nodeStrokeColor="hsl(var(--color-card))"
           nodeBorderRadius={8}
-          maskColor="rgba(6, 6, 8, 0.85)"
-          className="!bg-[#0a0a0f] !border-[#252538] !rounded-lg"
+          maskColor="rgba(var(--color-background-rgb), 0.85)"
+          className="!bg-background !border-border !rounded-lg"
           pannable
           zoomable
         />
@@ -1719,18 +1868,18 @@ function WorldEditorInner({ world, agents, highways, onAgentSelect, onWorldChang
 
         {/* Instructions */}
         <Panel position="bottom-left" className="!m-4">
-          <div className="bg-[#0a0a0f]/90 border border-[#252538] rounded-lg px-3 py-2 text-[10px] text-slate-500 space-y-1">
+          <div className="bg-background/90 border border-border rounded-lg px-3 py-2 text-[10px] text-muted-foreground space-y-1">
             <div>
-              <kbd className="px-1 bg-slate-800 rounded">drag handle</kbd> create trail
+              <kbd className="px-1 bg-muted rounded">drag handle</kbd> create trail
             </div>
             <div>
-              <kbd className="px-1 bg-slate-800 rounded">click edge</kbd> edit pheromone
+              <kbd className="px-1 bg-muted rounded">click edge</kbd> edit pheromone
             </div>
             <div>
-              <kbd className="px-1 bg-slate-800 rounded">double-click</kbd> inject signal
+              <kbd className="px-1 bg-muted rounded">double-click</kbd> inject signal
             </div>
             <div>
-              <kbd className="px-1 bg-slate-800 rounded">drag palette</kbd> spawn node
+              <kbd className="px-1 bg-muted rounded">drag palette</kbd> spawn node
             </div>
           </div>
         </Panel>

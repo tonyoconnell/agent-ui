@@ -24,20 +24,21 @@ export function Stop({ step, title, vocab, liveNumber, code, children, id, activ
     <Card
       id={id}
       className={cn(
-        'bg-[#161622] border-[#252538] p-5 space-y-4 scroll-mt-20 transition-all',
-        active && 'ring-1 ring-cyan-500/40 shadow-lg shadow-cyan-500/10',
+        'bg-card border-border p-5 space-y-4 scroll-mt-20 transition-all',
+        active &&
+          'ring-1 ring-[hsl(var(--color-primary-bright))/0.4] shadow-lg shadow-[hsl(var(--color-primary-bright))/0.1]',
       )}
     >
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm font-mono text-slate-400">
+        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-sm font-mono text-muted-foreground">
           {step}
         </div>
-        <h3 className="text-lg font-medium text-slate-100">{title}</h3>
+        <h3 className="text-lg font-medium text-font">{title}</h3>
         {liveNumber && (
           <Badge
             variant="secondary"
-            className="ml-auto font-mono text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+            className="ml-auto font-mono text-xs bg-tertiary-bright/10 text-tertiary-bright border-tertiary-bright/20"
           >
             {liveNumber}
           </Badge>
@@ -48,7 +49,7 @@ export function Stop({ step, title, vocab, liveNumber, code, children, id, activ
       {vocab.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {vocab.map((v) => (
-            <Badge key={v} variant="outline" className="text-xs font-mono text-slate-400 border-slate-700">
+            <Badge key={v} variant="outline" className="text-xs font-mono text-muted-foreground border-border">
               {v}
             </Badge>
           ))}
@@ -56,7 +57,7 @@ export function Stop({ step, title, vocab, liveNumber, code, children, id, activ
       )}
 
       {/* Children (stop-specific content) */}
-      {children && <div className="text-sm text-slate-300">{children}</div>}
+      {children && <div className="text-sm text-font">{children}</div>}
 
       {/* Code block */}
       {code && (
@@ -64,7 +65,7 @@ export function Stop({ step, title, vocab, liveNumber, code, children, id, activ
           <pre
             className={cn(
               'text-xs font-mono p-3 rounded-md overflow-x-auto',
-              'bg-[#0a0a0f] text-slate-400 border border-slate-800',
+              'bg-background text-muted-foreground border border-border',
             )}
           >
             <code>{code}</code>

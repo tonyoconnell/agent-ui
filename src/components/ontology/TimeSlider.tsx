@@ -57,15 +57,15 @@ export function TimeSlider({ value, onChange, rangeDays = 30 }: Props) {
   return (
     <div
       className={cn(
-        'bg-[#0d0d14] border rounded p-3 text-xs text-slate-300 select-none',
-        historical ? 'border-amber-500/40' : 'border-[#252538]',
+        'bg-card border rounded p-3 text-xs text-foreground select-none',
+        historical ? 'border-[hsl(var(--color-gold)/0.4)]' : 'border-border',
       )}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <span className="font-semibold tracking-wide uppercase text-[10px] text-slate-400">Time</span>
+        <span className="font-semibold tracking-wide uppercase text-[10px] text-muted-foreground">Time</span>
         {historical && (
-          <span className="text-[9px] font-mono font-semibold tracking-widest text-amber-500/80 uppercase">
+          <span className="text-[9px] font-mono font-semibold tracking-widest text-[hsl(var(--color-gold)/0.8)] uppercase">
             Time-Rewind
           </span>
         )}
@@ -84,14 +84,14 @@ export function TimeSlider({ value, onChange, rangeDays = 30 }: Props) {
       />
 
       {/* Description */}
-      <p className="mt-1 text-slate-400 font-mono">{describe(value)}</p>
+      <p className="mt-1 text-muted-foreground font-mono">{describe(value)}</p>
 
       {/* Reset button — visible only when not "now" */}
       {historical && (
         <button
           type="button"
           onClick={handleReset}
-          className="mt-2 text-slate-500 hover:text-slate-200 text-[10px] underline underline-offset-2 transition-colors"
+          className="mt-2 text-muted-foreground hover:text-font text-[10px] underline underline-offset-2 transition-colors"
         >
           reset to now
         </button>

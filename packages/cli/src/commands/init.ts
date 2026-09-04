@@ -72,17 +72,10 @@ export async function runInit(options: InitOptions = {}): Promise<void> {
   const spinner = ora("Cloning ONE platform from github.com/one-ie/one...").start();
 
   try {
-    // Check if already cloned
-    if (await fs.pathExists(oneRepoPath)) {
-      spinner.text = "Updating ONE platform...";
-      await execAsync(`cd "${oneRepoPath}" && git pull`);
-      spinner.succeed("ONE platform updated!");
-    } else {
-      await execAsync(
-        `git clone --depth 1 https://github.com/one-ie/one.git "${oneRepoPath}"`
-      );
-      spinner.succeed("ONE platform cloned!");
-    }
+    const { ensureOneRepo } = await import("../setup-web.js");
+    const fresh = !(await fs.pathExists(oneRepoPath));
+    await ensureOneRepo({ cacheDir: oneRepoPath });
+    spinner.succeed(fresh ? "ONE platform cloned!" : "ONE platform updated!");
 
     // Copy platform files from cloned repo
     const copySpinner = ora("Setting up platform files...").start();
@@ -210,23 +203,12 @@ export async function runInit(options: InitOptions = {}): Promise<void> {
     const currentPath = options.basePath || process.cwd();
     const webPath = path.join(currentPath, "web");
 
-    // Check if web directory already exists
     if (await fs.pathExists(webPath)) {
-      console.log(chalk.yellow("\n⚠ Web directory already exists, skipping clone.\n"));
+      console.log(chalk.yellow("\n⚠ Web directory already exists, skipping.\n"));
     } else {
-      const spinner = ora("Cloning web template from github.com/one-ie/web...").start();
+      const spinner = ora("Setting up web template from one-ie/one...").start();
 
-      try {
-        // Clone the web repository
-        await execAsync(
-          `git clone --depth 1 https://github.com/one-ie/web.git "${webPath}"`
-        );
-
-        // Remove .git directory so user can initialize their own repo
-        await fs.remove(path.join(webPath, ".git"));
-
-        // Create .env.local in web/ with organization settings
-        const envContent = `# Organization Configuration
+      const envContent = `# Organization Configuration
 ORG_NAME=${organizationName}
 ORG_WEBSITE=${websiteUrl}
 ORG_FOLDER=${slugify(organizationName!)}
@@ -236,19 +218,19 @@ ONE_BACKEND=off
 PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
 CONVEX_DEPLOYMENT=dev:your-deployment
 `;
-        await fs.writeFile(path.join(webPath, ".env.local"), envContent, "utf-8");
 
-        spinner.succeed("Web template cloned and configured!");
+      try {
+        const { setupWeb } = await import("../setup-web.js");
+        await setupWeb({
+          basePath: currentPath,
+          webPath,
+          envContent,
+        });
+        spinner.succeed("Web template ready (from one-ie/one)");
         websiteCloned = true;
       } catch (error: any) {
-        // Check if web directory was created despite error
-        if (await fs.pathExists(webPath)) {
-          spinner.succeed("Web template cloned successfully!");
-          websiteCloned = true;
-        } else {
-          spinner.fail("Failed to clone web template");
-          console.log(chalk.yellow(`\n⚠ You can clone manually later:\n  git clone https://github.com/one-ie/web.git web\n`));
-        }
+        spinner.fail("Failed to set up web template");
+        console.log(chalk.yellow(`\n⚠ You can clone manually later:\n  git clone https://github.com/one-ie/one.git && cp -r one/web ./web\n`));
       }
     }
   }

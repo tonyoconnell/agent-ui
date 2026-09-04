@@ -47,9 +47,9 @@ export const POST: APIRoute = async ({ request }) => {
       // Fail-open preserved for headerless callers (block above would have returned early).
       const safeUid = auth.user.replace(/[^a-zA-Z0-9_:.-]/g, '')
       const participates = await readParsed(
-        `match $u isa unit, has uid "${safeUid}";
-         $s isa unit, has uid "${safeFrom}";
-         $t isa unit, has uid "${safeTo}";
+        `match $u isa actor, has aid "${safeUid}";
+         $s isa actor, has aid "${safeFrom}";
+         $t isa actor, has aid "${safeTo}";
          { (sender: $u, receiver: $t) isa signal; } or
          { (sender: $s, receiver: $u) isa signal; };
          select $u; limit 1;`,
@@ -70,16 +70,16 @@ export const POST: APIRoute = async ({ request }) => {
 
   await write(`
     match
-      $from isa unit, has uid "${safeFrom}";
-      $to isa unit, has uid "${safeTo}";
+      $from isa actor, has aid "${safeFrom}";
+      $to isa actor, has aid "${safeTo}";
       $e (source: $from, target: $to) isa path, has strength $s;
     delete $s of $e;
     insert $e has strength ($s + ${safeStrength});
   `).catch(() =>
     write(`
       match
-        $from isa unit, has uid "${safeFrom}";
-        $to isa unit, has uid "${safeTo}";
+        $from isa actor, has aid "${safeFrom}";
+        $to isa actor, has aid "${safeTo}";
       insert
         (source: $from, target: $to) isa path,
           has strength ${safeStrength}, has resistance 0.0, has traversals 0, has revenue 0.0;

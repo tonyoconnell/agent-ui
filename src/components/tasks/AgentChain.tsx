@@ -98,10 +98,12 @@ function Pill({
       className={cn(
         'inline-flex items-center gap-1 rounded-full border px-1.5',
         expanded ? 'py-0.5 text-[10px]' : 'py-0 text-[9px]',
-        primary ? 'border-sky-400/30 bg-sky-400/8 text-sky-200' : 'border-white/[0.08] bg-white/[0.02] text-white/55',
+        primary
+          ? 'border-primary-bright/30 bg-primary-bright/8 text-primary-bright'
+          : 'border-white/[0.08] bg-white/[0.02] text-white/55',
       )}
     >
-      <Icon className={cn(expanded ? 'w-3 h-3' : 'w-2.5 h-2.5', primary ? 'text-sky-300' : 'text-white/40')} />
+      <Icon className={cn(expanded ? 'w-3 h-3' : 'w-2.5 h-2.5', primary ? 'text-primary-bright' : 'text-white/40')} />
       <span className="font-mono">{uid}</span>
       {score !== undefined && score > 0 && <span className="text-white/30 tabular-nums">{score.toFixed(2)}</span>}
     </span>

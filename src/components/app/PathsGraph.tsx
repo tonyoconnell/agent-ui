@@ -43,9 +43,9 @@ function buildGraph(highways: Highway[]): { nodes: Node[]; edges: FlowEdge[] } {
     position: { x: (i % cols) * 200, y: Math.floor(i / cols) * 120 },
     data: { label: id },
     style: {
-      background: '#161622',
-      border: '1px solid #252538',
-      color: '#94a3b8',
+      background: 'hsl(var(--background))',
+      border: '1px solid hsl(var(--border))',
+      color: 'hsl(var(--muted-foreground))',
       borderRadius: 8,
       padding: '6px 12px',
       fontSize: 12,
@@ -63,11 +63,11 @@ function buildGraph(highways: Highway[]): { nodes: Node[]; edges: FlowEdge[] } {
       label: h.strength.toFixed(1),
       animated: isHighway,
       style: {
-        stroke: isHighway ? '#eab308' : `rgba(99,102,241,${0.3 + norm * 0.7})`,
+        stroke: isHighway ? 'hsl(var(--color-gold-bright))' : `rgba(99,102,241,${0.3 + norm * 0.7})`,
         strokeWidth: 1 + norm * 3,
       },
-      labelStyle: { fill: '#64748b', fontSize: 10 },
-      labelBgStyle: { fill: '#0a0a0f', fillOpacity: 0.7 },
+      labelStyle: { fill: 'hsl(var(--muted-foreground))', fontSize: 10 },
+      labelBgStyle: { fill: 'hsl(var(--background))', fillOpacity: 0.7 },
     }
   })
 
@@ -110,7 +110,9 @@ export function PathsGraph({ groupId: _groupId }: Props) {
   }, [setNodes, setEdges])
 
   if (empty) {
-    return <div className="h-full w-full flex items-center justify-center text-slate-500 text-sm">No paths yet</div>
+    return (
+      <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm">No paths yet</div>
+    )
   }
 
   return (
@@ -123,7 +125,7 @@ export function PathsGraph({ groupId: _groupId }: Props) {
         fitView
         colorMode="dark"
       >
-        <Background color="#252538" gap={20} />
+        <Background color="hsl(var(--border))" gap={20} />
         <Controls />
       </ReactFlow>
     </div>

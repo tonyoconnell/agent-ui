@@ -99,13 +99,13 @@ export function CryptoAcceptAddress({
   }
 
   return (
-    <div className={cn('rounded-2xl border border-zinc-800 bg-zinc-900/40 overflow-hidden', className)}>
-      <div className="px-5 py-4 border-b border-zinc-800/80 bg-zinc-900/50 flex items-center justify-between">
+    <div className={cn('rounded-2xl border border-border bg-card/60 overflow-hidden', className)}>
+      <div className="px-5 py-4 border-b border-border bg-card/80 flex items-center justify-between">
         <div>
-          <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-400 mb-0.5">Receive</div>
-          <h3 className="text-base font-semibold text-white">QR · address · shareable link</h3>
+          <div className="text-[10px] uppercase tracking-[0.2em] text-tertiary-bright mb-0.5">Receive</div>
+          <h3 className="text-base font-semibold text-font">QR · address · shareable link</h3>
         </div>
-        <span className="text-[10px] font-mono text-zinc-500 px-2 py-1 rounded bg-zinc-900 border border-zinc-800">
+        <span className="text-[10px] font-mono text-muted-foreground px-2 py-1 rounded bg-muted border border-border">
           chain · {chainSlug}
         </span>
       </div>
@@ -114,7 +114,7 @@ export function CryptoAcceptAddress({
         {/* ── QR ───────────────────────────────────────── */}
         {showQR && (
           <div className="flex justify-center">
-            <div className="p-3 bg-white rounded-xl">
+            <div className="p-3 bg-background rounded-xl">
               <img
                 src={qrUrl}
                 alt={`QR code for ${address}`}
@@ -128,19 +128,19 @@ export function CryptoAcceptAddress({
 
         {/* ── Address ─────────────────────────────────── */}
         <div className="space-y-1.5">
-          <Label className="text-xs text-zinc-500">Your address</Label>
+          <Label className="text-xs text-muted-foreground">Your address</Label>
           <div className="flex gap-2">
-            <div className="flex-1 px-3 py-2.5 rounded-lg bg-zinc-950 border border-zinc-800 font-mono text-xs text-zinc-300 break-all">
+            <div className="flex-1 px-3 py-2.5 rounded-lg bg-muted border border-border font-mono text-xs text-foreground break-all">
               {address}
             </div>
             <Button
               variant="outline"
               size="icon"
               onClick={handleCopyAddress}
-              className="shrink-0 border-zinc-800 bg-zinc-950 hover:bg-zinc-900"
+              className="shrink-0 border-border bg-muted hover:bg-muted"
               aria-label="Copy address"
             >
-              {copiedAddress ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              {copiedAddress ? <Check className="w-4 h-4 text-tertiary-bright" /> : <Copy className="w-4 h-4" />}
             </Button>
           </div>
         </div>
@@ -148,11 +148,11 @@ export function CryptoAcceptAddress({
         {/* ── Currency + Amount ───────────────────────── */}
         <div className="grid grid-cols-[1fr_1fr] gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-500" htmlFor="receive-currency">
+            <Label className="text-xs text-muted-foreground" htmlFor="receive-currency">
               Token
             </Label>
             <Select value={String(selectedCurrency)} onValueChange={(v) => setSelectedCurrency(v as Currency)}>
-              <SelectTrigger id="receive-currency" className="bg-zinc-950 border-zinc-800">
+              <SelectTrigger id="receive-currency" className="bg-muted border-border">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -165,7 +165,7 @@ export function CryptoAcceptAddress({
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-500" htmlFor="receive-amount">
+            <Label className="text-xs text-muted-foreground" htmlFor="receive-amount">
               Amount (optional)
             </Label>
             <Input
@@ -177,7 +177,7 @@ export function CryptoAcceptAddress({
               onChange={(e) => setAmount(e.target.value)}
               step="0.000001"
               min="0"
-              className="bg-zinc-950 border-zinc-800"
+              className="bg-muted border-border"
             />
           </div>
         </div>
@@ -188,10 +188,12 @@ export function CryptoAcceptAddress({
           target="_blank"
           rel="noopener noreferrer"
           onClick={handleOpenPay}
-          className="group flex items-center justify-between w-full px-5 py-4 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold transition-all shadow-lg shadow-emerald-900/30"
+          className="group flex items-center justify-between w-full px-5 py-4 rounded-xl bg-gradient-to-br from-[hsl(var(--color-tertiary-bright))] to-[hsl(var(--color-primary-bright))] hover:opacity-80 text-font font-semibold transition-all shadow-lg"
         >
           <div className="flex flex-col items-start">
-            <span className="text-xs font-normal text-emerald-100/80 uppercase tracking-widest">Open checkout</span>
+            <span className="text-xs font-normal text-[hsl(var(--color-tertiary-bright)_/_0.8)] uppercase tracking-widest">
+              Open checkout
+            </span>
             <span className="text-lg">pay.one.ie</span>
           </div>
           <div className="flex items-center gap-2">
@@ -207,11 +209,11 @@ export function CryptoAcceptAddress({
           <Button
             variant="outline"
             onClick={handleCopyLink}
-            className="flex-1 border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-200"
+            className="flex-1 border-border bg-muted hover:bg-muted text-font"
           >
             {copiedLink ? (
               <>
-                <Check className="w-4 h-4 mr-2 text-emerald-400" /> Copied
+                <Check className="w-4 h-4 mr-2 text-tertiary-bright" /> Copied
               </>
             ) : (
               <>
@@ -223,7 +225,7 @@ export function CryptoAcceptAddress({
             <Button
               variant="outline"
               onClick={handleShare}
-              className="flex-1 border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-200"
+              className="flex-1 border-border bg-muted hover:bg-muted text-font"
             >
               <Share2 className="w-4 h-4 mr-2" /> Share
             </Button>
@@ -231,7 +233,7 @@ export function CryptoAcceptAddress({
         </div>
 
         {copiedLink && (
-          <Alert className="border-emerald-900/60 bg-emerald-950/30 text-emerald-300">
+          <Alert className="border-tertiary-bright/40 bg-card/50 text-tertiary-bright">
             <AlertDescription>Link copied. Paste it into any chat.</AlertDescription>
           </Alert>
         )}

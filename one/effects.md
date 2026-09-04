@@ -462,9 +462,9 @@ const readyTasks = (): Effect.Effect<Task[], QueryError> =>
 const frontiers = (): Effect.Effect<Frontier[], QueryError> =>
   tql(`match let $f in promising_frontiers(); fetch $f;`)
 
-// fun proven_units() → { unit } — multi-attribute classification (Lesson 1)
+// fun proven_actors() → { unit } — multi-attribute classification (Lesson 1)
 const provenAgents = (): Effect.Effect<Unit[], QueryError> =>
-  tql(`match let $u in proven_units(); fetch $u;`)
+  tql(`match let $u in proven_actors(); fetch $u;`)
 ```
 
 ### Classifier Functions as Error Guards
@@ -599,7 +599,7 @@ The TypeQL classifier patterns (packages/typedb-inference-patterns/) map to Effe
 
 ```tql
 -- TypeQL: multi-attribute classification
-fun proven_units() -> { unit }:
+fun proven_actors() -> { actor }:
     match $u isa unit, has success-rate $sr >= 0.75,
           has activity-score $as >= 70.0, has sample-count $sc >= 50;
     return { $u };
@@ -746,7 +746,7 @@ Effect.ts and the substrate solve the same problem at different scales:
 | **Composition** | `Effect.gen(function*())` | `.then()` continuations | `continuation` relation |
 | **Multi-backend** | CompositeProvider routes | World routes to units | `membership` + `capability` |
 | **Learning** | — (static routing) | `mark()` / `fade()` / `highways()` | `edge` weight + classifier `fun` |
-| **Classification** | `Data.TaggedError()` | Path status (highway/toxic) | Classifiers: `proven_units()`, `at_risk_units()`, `path_status()` |
+| **Classification** | `Data.TaggedError()` | Path status (highway/toxic) | Classifiers: `proven_actors()`, `at_risk_actors()`, `path_status()` |
 | **Autonomy** | — (human-triggered) | Continuations chain signals | `spawns` frontier → objective |
 
 **Three layers, one flow:**

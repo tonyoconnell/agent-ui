@@ -16,17 +16,17 @@ export function SignInWithAnything({ onSuccess }: Props) {
       {/* Door 1: native Sui wallet (dapp-kit) */}
       <WalletSignIn onSuccess={onSuccess} label="Sign in with Sui wallet" />
 
-      <div className="flex items-center gap-2 w-full text-xs text-slate-600">
-        <div className="flex-1 h-px bg-slate-800" />
+      <div className="flex items-center gap-2 w-full text-xs text-muted-foreground">
+        <div className="flex-1 h-px bg-border" />
         <span>or</span>
-        <div className="flex-1 h-px bg-slate-800" />
+        <div className="flex-1 h-px bg-border" />
       </div>
 
       {/* Door 2: Google zkLogin — one-click, no wallet install */}
       <button
         type="button"
         onClick={zkLogin}
-        className="w-full px-4 py-2.5 bg-slate-100 hover:bg-white text-slate-900 rounded-lg text-sm font-semibold transition-colors"
+        className="w-full px-4 py-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-sm font-semibold transition-colors"
       >
         Continue with Google
       </button>

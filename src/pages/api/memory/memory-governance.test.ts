@@ -236,7 +236,7 @@ describe('Act 5: Authorization + Scope Combined', () => {
     // Even with federation, DELETE /api/memory/forget is gated
   })
 
-  it('federation unit uses federated:true when calling recall', () => {
+  it('federation actor uses federated:true when calling recall', () => {
     // federation.ts should call:
     // net.recall({ subject: 'query', federated: true })
     // This ensures cross-world isolation

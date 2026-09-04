@@ -1,8 +1,8 @@
 /**
- * Human Unit — a human as a substrate receiver.
+ * Human Actor — a human as a substrate receiver.
  *
  * Routes signals to Telegram or Discord and waits for reply via durable ask.
- * Pheromone accumulates on the path identically to any other unit:
+ * Pheromone accumulates on the path identically to any other actor:
  *   - Fast, accurate humans become highways
  *   - Humans who ignore requests accumulate resistance, eventually dissolve
  *
@@ -14,7 +14,7 @@
  *   choose   — pick from numbered options
  *
  * Usage:
- *   net.units['anthony'] = human('anthony', {
+ *   net.actors['anthony'] = human('anthony', {
  *     env, telegram: 123456789, timeout: 3_600_000
  *   })
  *   const { result, timeout } = await net.ask(
@@ -23,7 +23,7 @@
  */
 
 import { type DurableAskEnv, durableAsk } from './durable-ask'
-import { type Signal, type Unit, unit } from './world'
+import { type Actor, actor, type Signal } from './world'
 
 export interface HumanOpts {
   env: DurableAskEnv
@@ -41,7 +41,7 @@ const tg = async (botToken: string, chatId: number, text: string) => {
   }).catch(() => {})
 }
 
-export const human = (id: string, opts: HumanOpts): Unit => {
+export const human = (id: string, opts: HumanOpts): Actor => {
   const timeout = opts.timeout ?? 86_400_000 // 24h
 
   const notify = async (text: string, askId: string) => {
@@ -60,7 +60,7 @@ export const human = (id: string, opts: HumanOpts): Unit => {
       opts.telegram ? { type: 'telegram', id: String(opts.telegram) } : undefined,
     )
 
-  return unit(id)
+  return actor(id)
     .on('approve', async (data) => {
       const { draft, question, replyTo } = data as { draft?: string; question?: string; replyTo?: string }
       const msg = question ?? `Please approve:\n\n${draft ?? '(no content)'}\n\nReply: *yes* / *no* / [feedback]`
@@ -120,10 +120,10 @@ export const human = (id: string, opts: HumanOpts): Unit => {
 }
 
 /**
- * Build a structured bounty claim signal for the given persona unit.
+ * Build a structured bounty claim signal for the given persona actor.
  * Receiver is `<persona>:claim`.
  *
- * @param persona  The human unit id (e.g. "anthony")
+ * @param persona  The human actor id (e.g. "anthony")
  * @param bountyId The bounty being claimed/declined
  * @param accept   true = accept, false = decline
  * @param deliverable  Optional work product — triggers 'delivered' status

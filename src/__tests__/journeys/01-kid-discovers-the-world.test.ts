@@ -58,7 +58,7 @@ describe('🧒  A kid discovers ONE', () => {
     })
 
     it('the kid now exists in the graph as a unit — no email, no name, just an address', () => {
-      // The TypeDB unit row would be: insert $u isa unit, has uid "kid:...", has sui-unit-id "0x...";
+      // The TypeDB unit row would be: insert $u isa actor, has aid "kid:...", has sui-unit-id "0x...";
       // No name, no email — those are *optional* attributes the kid may add later.
       const exists = net.sense(`${KID}→wallet:ephemeral`) > 0
       expect(exists).toBe(true)

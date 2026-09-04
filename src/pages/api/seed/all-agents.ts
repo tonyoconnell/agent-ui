@@ -3,10 +3,10 @@
  *
  * Loads all markdown agent files and syncs to TypeDB:
  * - Creates group (world) if group is specified
- * - Creates unit for each agent with model + system-prompt
+ * - Creates actor for each agent with model + system-prompt
  * - Creates skills and capabilities from agent specs
  * - Creates initial paths (director → all others)
- * - Idempotent: skips existing units
+ * - Idempotent: skips existing actors
  *
  * POST body:
  * { "dryRun": false }  // set true to get queries without executing
@@ -16,7 +16,7 @@
  *   success: true,
  *   created: {
  *     groups: 3,
- *     units: 18+,
+ *     actors: 18+,
  *     skills: 50+,
  *     capabilities: 50+,
  *     paths: 30+
@@ -171,16 +171,16 @@ function agentToQueries(spec: AgentData): string[] {
   const queries: string[] = []
   const uid = spec.group ? `${spec.group}:${spec.name}` : spec.name
 
-  // Unit insert
+  // Actor insert
   const tags = [...(spec.tags || []), ...(spec.group ? [spec.group] : [])]
   const tagStr = tags.map((t) => `has tag "${t}"`).join(', ')
 
   const promptClean = escapeString(spec.prompt.slice(0, 5000))
   queries.push(`
-    insert $u isa unit,
-      has uid "${uid}",
+    insert $u isa actor,
+      has aid "${uid}",
       has name "${spec.name}",
-      has unit-kind "agent",
+      has actor-type "agent",
       has model "${spec.model || 'claude-sonnet-4-20250514'}",
       has system-prompt "${promptClean}",
       has status "active",
@@ -205,7 +205,7 @@ function agentToQueries(spec: AgentData): string[] {
     `)
 
     queries.push(`
-      match $u isa unit, has uid "${uid}";
+      match $u isa actor, has aid "${uid}";
             $s isa skill, has skill-id "${skillId}";
       insert (provider: $u, offered: $s) isa capability, has price ${skill.price || 0};
     `)
@@ -264,11 +264,11 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   // Check existing
-  const existing = await readParsed('match $u isa unit, has uid $uid; select $uid;').catch(() => [])
+  const existing = await readParsed('match $u isa actor, has aid $uid; select $uid;').catch(() => [])
   const existingUids = new Set(existing.map((e) => (e.uid as string) || ''))
 
   if (existingUids.size > 0) {
-    results.push(`Found ${existingUids.size} existing units (skipping)`)
+    results.push(`Found ${existingUids.size} existing actors (skipping)`)
   }
 
   // Generate all queries
@@ -301,7 +301,7 @@ export const POST: APIRoute = async ({ request }) => {
       // Add group membership
       allQueries.push(`
         match $g isa group, has gid "${groupName}";
-              $u isa unit, has uid "${uid}";
+              $u isa actor, has aid "${uid}";
         insert (group: $g, member: $u) isa membership;
       `)
 
@@ -322,8 +322,8 @@ export const POST: APIRoute = async ({ request }) => {
         if (agent.name !== directorAgent.name) {
           const uid = `${groupName}:${agent.name}`
           allQueries.push(`
-            match $from isa unit, has uid "${directorUid}";
-                  $to isa unit, has uid "${uid}";
+            match $from isa actor, has aid "${directorUid}";
+                  $to isa actor, has aid "${uid}";
             insert (source: $from, target: $to) isa path,
               has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
           `)
@@ -352,7 +352,7 @@ export const POST: APIRoute = async ({ request }) => {
     success: true,
     created: {
       groups: groups.size,
-      units: agents.length,
+      actors: agents.length,
       skills: agents.reduce((sum, a) => sum + a.skills, 0),
       capabilities: agents.reduce((sum, a) => sum + a.skills, 0),
       paths: agents.length > 0 ? agents.length * 2 : 0, // director paths + some collab
@@ -372,7 +372,7 @@ export const POST: APIRoute = async ({ request }) => {
 
 export const GET: APIRoute = async () => {
   // Query current state
-  const units = await readParsed(`match $u isa unit, has uid $uid, has name $n; select $uid, $n;`).catch(() => [])
+  const actors = await readParsed(`match $u isa actor, has aid $uid, has name $n; select $uid, $n;`).catch(() => [])
 
   const skills = await readParsed(`match $s isa skill, has skill-id $id, has name $n; select $id, $n;`).catch(() => [])
 
@@ -385,11 +385,11 @@ export const GET: APIRoute = async () => {
   return Response.json({
     ok: true,
     stats: {
-      units: units.length,
+      actors: actors.length,
       skills: skills.length,
       paths: paths.length,
       groups: groups.length,
     },
-    data: { units, skills, paths, groups },
+    data: { actors, skills, paths, groups },
   })
 }

@@ -150,7 +150,7 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
           <Card className="border-border bg-card">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <ShieldAlert className="h-5 w-5 text-amber-400" aria-hidden="true" />
+                <ShieldAlert className="h-5 w-5 text-[hsl(var(--color-gold))]" aria-hidden="true" />
                 <CardTitle className="text-base text-font">Co-sign request</CardTitle>
               </div>
               <CardDescription className="text-muted-foreground">
@@ -162,7 +162,9 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
             <CardContent className="space-y-4">
               {/* Transaction summary */}
               <div className="rounded-md border border-border bg-background p-4">
-                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Transaction summary</p>
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Transaction summary
+                </p>
                 <p className="text-sm text-font leading-relaxed whitespace-pre-wrap">{state.request.summary}</p>
               </div>
 
@@ -172,7 +174,9 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
                 <span>
                   This request expires in{' '}
                   <span
-                    className={state.secondsLeft <= 30 ? 'font-semibold text-destructive' : 'font-semibold text-foreground'}
+                    className={
+                      state.secondsLeft <= 30 ? 'font-semibold text-destructive' : 'font-semibold text-foreground'
+                    }
                     aria-live="polite"
                   >
                     {state.secondsLeft}s
@@ -216,7 +220,7 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
         {state.kind === 'done' && state.action === 'approved' && (
           <Card className="border-border bg-card">
             <CardContent className="flex flex-col items-center gap-4 py-10">
-              <CheckCircle2 className="h-10 w-10 text-green-400" aria-hidden="true" />
+              <CheckCircle2 className="h-10 w-10 text-[hsl(var(--color-tertiary-bright))]" aria-hidden="true" />
               <div className="text-center space-y-1">
                 <p className="font-semibold text-font">Transaction submitted</p>
                 <p className="text-xs text-muted-foreground">
@@ -264,7 +268,7 @@ export function ApproveIsland({ requestId }: ApproveIslandProps) {
         {state.kind === 'expired' && (
           <Card className="border-border bg-card">
             <CardContent className="flex flex-col items-center gap-4 py-10">
-              <Clock className="h-10 w-10 text-amber-400" aria-hidden="true" />
+              <Clock className="h-10 w-10 text-[hsl(var(--color-gold))]" aria-hidden="true" />
               <div className="text-center space-y-1">
                 <p className="font-semibold text-font">Request expired</p>
                 <p className="text-sm text-muted-foreground">

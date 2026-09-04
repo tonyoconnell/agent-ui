@@ -32,8 +32,8 @@ describe('path round-trip', () => {
   afterAll(async () => {
     const safeA = escapeTqlString(uidA)
     const safeB = escapeTqlString(uidB)
-    await writeSilent(`match $u isa unit, has uid "${safeA}"; delete $u isa unit;`)
-    await writeSilent(`match $u isa unit, has uid "${safeB}"; delete $u isa unit;`)
+    await writeSilent(`match $u isa actor, has aid "${safeA}"; delete $u isa actor;`)
+    await writeSilent(`match $u isa actor, has aid "${safeB}"; delete $u isa actor;`)
   })
 
   useCassette('path-roundtrip')
@@ -44,12 +44,12 @@ describe('path round-trip', () => {
 
     // Insert source unit
     await writeSilent(`
-      insert $u isa unit, has uid "${safeA}", has name "VCR Source";
+      insert $u isa actor, has aid "${safeA}", has name "VCR Source";
     `)
 
     // Insert target unit
     await writeSilent(`
-      insert $u isa unit, has uid "${safeB}", has name "VCR Target";
+      insert $u isa actor, has aid "${safeB}", has name "VCR Target";
     `)
 
     // Insert path between them with strength 5.0.
@@ -57,8 +57,8 @@ describe('path round-trip', () => {
     // attribute on path. Test focuses on the strength round-trip, which is
     // the substrate's load-bearing edge property anyway.
     await writeSilent(`
-      match $a isa unit, has uid "${safeA}";
-            $b isa unit, has uid "${safeB}";
+      match $a isa actor, has aid "${safeA}";
+            $b isa actor, has aid "${safeB}";
       insert (source: $a, target: $b) isa path,
         has strength 5.0,
         has resistance 0.0;
@@ -66,8 +66,8 @@ describe('path round-trip', () => {
 
     // Read back path strength
     const rows = await readParsed(`
-      match $a isa unit, has uid "${safeA}";
-            $b isa unit, has uid "${safeB}";
+      match $a isa actor, has aid "${safeA}";
+            $b isa actor, has aid "${safeB}";
             (source: $a, target: $b) isa path, has strength $s;
       select $s;
     `)
@@ -78,8 +78,8 @@ describe('path round-trip', () => {
 
   it('returns empty when querying a non-existent path', async () => {
     const rows = await readParsed(`
-      match $a isa unit, has uid "vcr-nonexistent-a-xyz";
-            $b isa unit, has uid "vcr-nonexistent-b-xyz";
+      match $a isa actor, has aid "vcr-nonexistent-a-xyz";
+            $b isa actor, has aid "vcr-nonexistent-b-xyz";
             (source: $a, target: $b) isa path;
       select $a;
     `)

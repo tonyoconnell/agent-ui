@@ -57,13 +57,13 @@ export const GET: APIRoute = async ({ url }) => {
           match
             (provider: $u, offered: $s) isa capability, has price $p;
             $s isa skill, has skill-id $sid, has name $sname;
-            $u has uid $uid;
+            $u has aid $uid;
           select $sid, $sname, $p, $uid;
         `).catch(() => []),
         readParsed(`
           match
             (source: $from, target: $to) isa path, has strength $s, has resistance $r;
-            $to has uid $uid;
+            $to has aid $uid;
           select $uid, $s, $r;
         `).catch(() => []) as Promise<Array<Record<string, unknown>>>,
         readParsed(`
@@ -100,7 +100,7 @@ export const GET: APIRoute = async ({ url }) => {
       tagMap.get(sid)!.push(r.t as string)
     }
 
-    // Convert price (number, in SUI units) → MIST as bigint string
+    // Convert price (number, in SUI actors) → MIST as bigint string
     let skills: Listing[] = capRows.map((r) => {
       const priceNum = (r.p as number) ?? 0
       // price stored as SUI float (e.g. 0.02) → convert to MIST bigint

@@ -76,12 +76,12 @@ const EVOLUTION_MIN_SAMPLES = 20
 const EVOLUTION_COOLDOWN_MS = 86_400_000 // 24 hours
 
 /**
- * Units that are struggling and need evolution.
+ * Actors that are struggling and need evolution.
  */
 export const struggling = (net: PersistentWorld) => async (): Promise<StrugglingUnit[]> => {
   const now = Date.now()
   const rows = await readParsed(`
-    match $u isa unit, has uid $id, has system-prompt $sp, has success-rate $sr,
+    match $u isa actor, has aid $id, has system-prompt $sp, has success-rate $sr,
           has sample-count $sc, has generation $g;
     $sr < ${EVOLUTION_THRESHOLD}; $sc >= ${EVOLUTION_MIN_SAMPLES};
     not { $u has last-evolved $le; $le > ${new Date(now - EVOLUTION_COOLDOWN_MS).toISOString().replace('Z', '')}; };
@@ -90,7 +90,7 @@ export const struggling = (net: PersistentWorld) => async (): Promise<Struggling
     select $id, $sp, $sr, $sc, $g, $sid, $tag;
   `).catch(() => [])
 
-  // Group by unit ID (query returns multiple rows per skill×tag)
+  // Group by actor ID (query returns multiple rows per skill×tag)
   const byUnit: Record<string, StrugglingUnit> = {}
   for (const r of rows) {
     const id = r.id as string
@@ -105,35 +105,35 @@ export const struggling = (net: PersistentWorld) => async (): Promise<Struggling
         tags: [],
       }
     }
-    const unit = byUnit[id]
+    const actor = byUnit[id]
     const skill = r.sid as string
     const tag = r.tag as string
-    if (!unit.skills.includes(skill)) unit.skills.push(skill)
-    if (!unit.tags.includes(tag)) unit.tags.push(tag)
+    if (!actor.skills.includes(skill)) actor.skills.push(skill)
+    if (!actor.tags.includes(tag)) actor.tags.push(tag)
   }
 
   // Compute weakest rubric dimension from tagged pheromone paths (entry→builder:verify:dim)
   const DIMS = ['fit', 'form', 'truth', 'taste'] as const
-  for (const unit of Object.values(byUnit)) {
+  for (const actor of Object.values(byUnit)) {
     const dimStrengths = DIMS.map((dim) => ({
       dim,
       strength: net.sense(`entry→builder:verify:${dim}`),
     }))
     const weakest = dimStrengths.reduce((a, b) => (a.strength < b.strength ? a : b))
-    if (weakest.strength < 0.5) unit.weakDim = weakest.dim
+    if (weakest.strength < 0.5) actor.weakDim = weakest.dim
   }
   return Object.values(byUnit)
 }
 
 /**
- * High-performing units that can advise on specific skills.
+ * High-performing actors that can advise on specific skills.
  */
 export const advisors = (skillTags: string[]) => async (): Promise<Advisor[]> => {
   if (!skillTags.length) return []
 
   const tagFilter = skillTags.map((t) => `"${t}"`).join(', ')
   const rows = await readParsed(`
-    match $u isa unit, has uid $uid, has success-rate $sr;
+    match $u isa actor, has aid $uid, has success-rate $sr;
     $sr > 0.7;
     (provider: $u, offered: $sk) isa capability;
     $sk has tag $tag; $tag in [${tagFilter}];
@@ -229,7 +229,7 @@ export const unexploredTags =
   }
 
 /**
- * Active units that have never been connected.
+ * Active actors that have never been connected.
  */
 export const unitGaps =
   (net: World, minActivity = 3) =>
@@ -237,14 +237,14 @@ export const unitGaps =
     unitA: string
     unitB: string
   }[] => {
-    const units = net.list()
+    const actors = net.list()
     const explored = new Set(Object.keys(net.strength).flatMap((e) => e.split('→')))
     const result: { unitA: string; unitB: string }[] = []
 
-    for (let i = 0; i < units.length; i++) {
-      for (let j = i + 1; j < units.length; j++) {
-        const a = units[i],
-          b = units[j]
+    for (let i = 0; i < actors.length; i++) {
+      for (let j = i + 1; j < actors.length; j++) {
+        const a = actors[i],
+          b = actors[j]
         // Both must be "explored" (appear in some edge)
         if (!explored.has(a) || !explored.has(b)) continue
 

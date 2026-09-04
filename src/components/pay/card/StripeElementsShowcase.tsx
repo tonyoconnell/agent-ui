@@ -38,26 +38,35 @@ function getStripe(): Promise<Stripe | null> {
 const nightAppearance: Appearance = {
   theme: 'night',
   variables: {
-    colorPrimary: '#a78bfa', // violet-400
-    colorBackground: '#18181b', // zinc-900
-    colorText: '#f4f4f5', // zinc-100
-    colorDanger: '#f87171', // red-400
-    colorTextSecondary: '#a1a1aa', // zinc-400
-    colorTextPlaceholder: '#52525b', // zinc-600
+    colorPrimary: 'hsl(var(--color-secondary-bright))', // secondary-bright token
+    colorBackground: 'hsl(var(--color-background))', // background token
+    colorText: 'hsl(var(--color-foreground))', // foreground token
+    colorDanger: 'hsl(var(--color-destructive))', // destructive token
+    colorTextSecondary: 'hsl(var(--color-muted-foreground))', // muted-foreground token
+    colorTextPlaceholder: 'hsl(var(--color-muted-foreground)/0.5)', // muted-foreground with opacity
     fontFamily: 'ui-sans-serif, system-ui, sans-serif',
     fontSizeBase: '14px',
     spacingUnit: '4px',
     borderRadius: '10px',
   },
   rules: {
-    '.Tab': { border: '1px solid #27272a', backgroundColor: '#09090b' },
-    '.Tab:hover': { backgroundColor: '#18181b', color: '#f4f4f5' },
-    '.Tab--selected': { borderColor: '#a78bfa', backgroundColor: '#1e1b3a' },
-    '.Input': { border: '1px solid #27272a', backgroundColor: '#09090b' },
-    '.Input:focus': { borderColor: '#a78bfa', boxShadow: '0 0 0 1px #a78bfa' },
-    '.Input--invalid': { borderColor: '#f87171' },
-    '.Label': { color: '#a1a1aa', fontSize: '12px', fontWeight: '500' },
-    '.CheckboxInput--checked': { backgroundColor: '#a78bfa', borderColor: '#a78bfa' },
+    '.Tab': { border: '1px solid hsl(var(--color-border))', backgroundColor: 'hsl(var(--color-card))' },
+    '.Tab:hover': { backgroundColor: 'hsl(var(--color-background))', color: 'hsl(var(--color-foreground))' },
+    '.Tab--selected': {
+      borderColor: 'hsl(var(--color-secondary-bright))',
+      backgroundColor: 'hsl(var(--color-secondary-bright)/0.1)',
+    },
+    '.Input': { border: '1px solid hsl(var(--color-border))', backgroundColor: 'hsl(var(--color-card))' },
+    '.Input:focus': {
+      borderColor: 'hsl(var(--color-secondary-bright))',
+      boxShadow: '0 0 0 1px hsl(var(--color-secondary-bright))',
+    },
+    '.Input--invalid': { borderColor: 'hsl(var(--color-destructive))' },
+    '.Label': { color: 'hsl(var(--color-muted-foreground))', fontSize: '12px', fontWeight: '500' },
+    '.CheckboxInput--checked': {
+      backgroundColor: 'hsl(var(--color-secondary-bright))',
+      borderColor: 'hsl(var(--color-secondary-bright))',
+    },
   },
 }
 
@@ -65,12 +74,12 @@ const nightAppearance: Appearance = {
 const classicElementStyle = {
   base: {
     fontSize: '15px',
-    color: '#f4f4f5',
+    color: 'hsl(var(--color-foreground))',
     fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-    iconColor: '#a78bfa',
-    '::placeholder': { color: '#52525b' },
+    iconColor: 'hsl(var(--color-secondary-bright))',
+    '::placeholder': { color: 'hsl(var(--color-muted-foreground))' },
   },
-  invalid: { color: '#f87171', iconColor: '#f87171' },
+  invalid: { color: 'hsl(var(--color-destructive))', iconColor: 'hsl(var(--color-destructive))' },
 }
 
 interface SectionProps {
@@ -83,15 +92,17 @@ interface SectionProps {
 
 function ElementSection({ num, name, what, why, children }: SectionProps) {
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 overflow-hidden">
-      <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-zinc-800/80 bg-zinc-900/60">
+    <div className="rounded-xl border border-border bg-muted/40 overflow-hidden">
+      <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-border bg-muted/60">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-violet-400">{num}</span>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-[hsl(var(--color-secondary-bright))]">
+              {num}
+            </span>
             <code className="text-sm font-semibold text-white">{name}</code>
           </div>
-          <p className="text-sm text-zinc-400">{what}</p>
-          {why && <p className="text-xs text-zinc-500 mt-1 italic">{why}</p>}
+          <p className="text-sm text-muted-foreground">{what}</p>
+          {why && <p className="text-xs text-muted-foreground mt-1 italic">{why}</p>}
         </div>
       </div>
       <div className="p-5">{children}</div>
@@ -199,7 +210,7 @@ export function StripeElementsShowcase() {
           what="BNPL explainer — Afterpay, Klarna, Affirm"
           why="Lift-in-cart banner. Shows '4 payments of $6.25 with Afterpay' below the price."
         >
-          <div className="rounded-lg bg-zinc-950 border border-zinc-800 px-4 py-3">
+          <div className="rounded-lg bg-card border border-border px-4 py-3">
             <PaymentMethodMessagingElement
               options={{
                 amount: 2500,
@@ -220,7 +231,7 @@ export function StripeElementsShowcase() {
           what="Single-line card input for minimal UIs"
           why="Pre-PaymentElement era. Still good for pure-card flows where you don't want tabs."
         >
-          <div className="rounded-lg bg-zinc-950 border border-zinc-800 px-4 py-3.5 focus-within:border-violet-500 transition-colors">
+          <div className="rounded-lg bg-card border border-border px-4 py-3.5 focus-within:border-[hsl(var(--color-secondary-bright))] transition-colors">
             <CardElement options={{ style: classicElementStyle, hidePostalCode: false }} />
           </div>
         </ElementSection>
@@ -236,41 +247,41 @@ export function StripeElementsShowcase() {
         >
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="md:col-span-3">
-              <label className="block text-xs text-zinc-500 mb-1.5 font-medium" htmlFor="card-number-el">
+              <label className="block text-xs text-muted-foreground mb-1.5 font-medium" htmlFor="card-number-el">
                 Card number
               </label>
               <div
                 id="card-number-el"
-                className="rounded-lg bg-zinc-950 border border-zinc-800 px-3.5 py-3 focus-within:border-violet-500 transition-colors"
+                className="rounded-lg bg-card border border-border px-3.5 py-3 focus-within:border-[hsl(var(--color-secondary-bright))] transition-colors"
               >
                 <CardNumberElement options={{ style: classicElementStyle, showIcon: true }} />
               </div>
             </div>
             <div>
-              <label className="block text-xs text-zinc-500 mb-1.5 font-medium" htmlFor="card-expiry-el">
+              <label className="block text-xs text-muted-foreground mb-1.5 font-medium" htmlFor="card-expiry-el">
                 Expiry
               </label>
               <div
                 id="card-expiry-el"
-                className="rounded-lg bg-zinc-950 border border-zinc-800 px-3.5 py-3 focus-within:border-violet-500 transition-colors"
+                className="rounded-lg bg-card border border-border px-3.5 py-3 focus-within:border-[hsl(var(--color-secondary-bright))] transition-colors"
               >
                 <CardExpiryElement options={{ style: classicElementStyle }} />
               </div>
             </div>
             <div>
-              <label className="block text-xs text-zinc-500 mb-1.5 font-medium" htmlFor="card-cvc-el">
+              <label className="block text-xs text-muted-foreground mb-1.5 font-medium" htmlFor="card-cvc-el">
                 CVC
               </label>
               <div
                 id="card-cvc-el"
-                className="rounded-lg bg-zinc-950 border border-zinc-800 px-3.5 py-3 focus-within:border-violet-500 transition-colors"
+                className="rounded-lg bg-card border border-border px-3.5 py-3 focus-within:border-[hsl(var(--color-secondary-bright))] transition-colors"
               >
                 <CardCvcElement options={{ style: classicElementStyle }} />
               </div>
             </div>
           </div>
-          <p className="text-xs text-zinc-600 mt-3">
-            Test: <code className="text-zinc-400">4242 4242 4242 4242</code> · any future date · any 3-digit CVC
+          <p className="text-xs text-muted-foreground mt-3">
+            Test: <code className="text-muted-foreground">4242 4242 4242 4242</code> · any future date · any 3-digit CVC
           </p>
         </ElementSection>
       </Elements>

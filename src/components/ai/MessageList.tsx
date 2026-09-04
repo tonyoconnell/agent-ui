@@ -19,8 +19,8 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
           key={message.id}
           className={`rounded-lg p-4 ${
             message.role === 'user'
-              ? 'bg-blue-50 dark:bg-blue-950 ml-auto max-w-[80%]'
-              : 'bg-gray-50 dark:bg-gray-900 mr-auto max-w-[80%]'
+              ? 'bg-[hsl(var(--color-primary-bright)/0.15)] dark:bg-[hsl(var(--color-primary-bright)/0.15)] ml-auto max-w-[80%]'
+              : 'bg-card dark:bg-card mr-auto max-w-[80%]'
           }`}
         >
           <div className="text-sm font-medium mb-1">{message.role === 'user' ? 'You' : 'Assistant'}</div>
@@ -28,11 +28,20 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
         </div>
       ))}
       {isLoading && (
-        <div className="rounded-lg p-4 bg-gray-50 dark:bg-gray-900 mr-auto max-w-[80%]">
+        <div className="rounded-lg p-4 bg-card dark:bg-card mr-auto max-w-[80%]">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div
+              className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+              style={{ animationDelay: '0ms' }}
+            />
+            <div
+              className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+              style={{ animationDelay: '150ms' }}
+            />
+            <div
+              className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+              style={{ animationDelay: '300ms' }}
+            />
           </div>
         </div>
       )}

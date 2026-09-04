@@ -73,7 +73,7 @@ const SEED_WORDS = [
   'event',
   'learning',
   'skill',
-  'unit',
+  'actor',
   'colony',
   'substrate',
   'signal',
@@ -472,7 +472,7 @@ function CardShell({
         'rounded-2xl border px-4 py-4 text-base leading-7',
         tone === 'default' && 'bg-muted border-transparent',
         tone === 'accent' && 'bg-primary/10 border-primary/30',
-        tone === 'warn' && 'bg-amber-500/10 border-amber-500/30',
+        tone === 'warn' && 'bg-[hsl(var(--color-gold)/0.10)] border-[hsl(var(--color-gold)/0.30)]',
       )}
     >
       {children}

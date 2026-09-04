@@ -24,7 +24,7 @@ export type TaskStatus =
   | 'done' // returned {result}, awaiting W4 verify
   | 'verified' // W4 rubric ≥ 0.65; skill produced if applicable
   | 'failed' // no result after retry
-  | 'dissolved' // missing unit or capability
+  | 'dissolved' // missing actor or capability
 
 /**
  * Legacy status values from the drift era. Mapped by `normalizeStatus()`.
@@ -53,12 +53,21 @@ export const ROLE_TO_WAVE: Record<TaskRole, TaskWave> = {
 // Rubric
 // ============================================================================
 
-/** Rubric scores in [0..1]. Set post-verify by W4. */
+/** Agent rubric scores in [0..1]. Set post-verify in trade lifecycle VERIFY stage. */
 export interface TaskRubric {
   fit: number
   form: number
   truth: number
   taste: number
+}
+
+/** Code rubric scores in [0..1]. Set by W4 in every /do cycle. composite = 0.35·sec + 0.30·sta + 0.25·sim + 0.10·spd */
+export interface CodeRubric {
+  security: number
+  stability: number
+  simplicity: number
+  speed: number
+  composite: number
 }
 
 // ============================================================================
@@ -101,8 +110,11 @@ export interface Task {
   /** Machine-observable acceptance condition. */
   exit_condition?: string
 
-  /** Rubric scores, set at W4 verify. */
+  /** Agent rubric scores, set at trade lifecycle VERIFY stage. */
   rubric?: TaskRubric
+
+  /** Code rubric scores, set by W4 in /do cycles. */
+  code_rubric?: CodeRubric
 
   /** Flat labels for pheromone routing. */
   tags: string[]
@@ -128,7 +140,7 @@ export interface Task {
   /** ISO-8601 timestamp — when task transitioned to 'verified'. */
   verified_at?: string
 
-  /** Owner unit id (agent that picked the task). */
+  /** Owner actor id (agent that picked the task). */
   owner?: string
 }
 
@@ -222,16 +234,28 @@ export function inferWave(tid: string): TaskWave | null {
   return parsed.role ? ROLE_TO_WAVE[parsed.role] : null
 }
 
-/** Average of a rubric's 4 dims. 0 if undefined. */
+/** Average of an agent rubric's 4 dims. 0 if undefined. */
 export function rubricAvg(r: TaskRubric | undefined): number {
   if (!r) return 0
   return (r.fit + r.form + r.truth + r.taste) / 4
 }
 
-/** Cycle gate check — passes if every rubric dim ≥ 0.65. */
+/** Agent rubric gate check — passes if every dim ≥ threshold. */
 export function rubricPasses(r: TaskRubric | undefined, threshold = 0.65): boolean {
   if (!r) return false
   return r.fit >= threshold && r.form >= threshold && r.truth >= threshold && r.taste >= threshold
+}
+
+/** Code rubric composite. 0 if undefined. */
+export function codeRubricComposite(r: CodeRubric | undefined): number {
+  if (!r) return 0
+  return 0.35 * r.security + 0.3 * r.stability + 0.25 * r.simplicity + 0.1 * r.speed
+}
+
+/** /do cycle gate check — composite ≥ threshold (default 0.65). */
+export function codeRubricPasses(r: CodeRubric | undefined, threshold = 0.65): boolean {
+  if (!r) return false
+  return codeRubricComposite(r) >= threshold
 }
 
 // ============================================================================
@@ -260,11 +284,12 @@ export interface WsPick {
   started_at: string
 }
 
-/** Verify — W4 passed with full rubric. Transitions to 'verified'. */
+/** Verify — W4 passed. Transitions to 'verified'. Carries whichever rubric applies. */
 export interface WsVerify {
   type: 'verify'
   tid: string
-  rubric: TaskRubric
+  rubric?: TaskRubric
+  code_rubric?: CodeRubric
   verified_at: string
 }
 
@@ -272,7 +297,8 @@ export interface WsVerify {
 export interface WsRubricUpdate {
   type: 'rubric-update'
   tid: string
-  rubric: Partial<TaskRubric>
+  rubric?: Partial<TaskRubric>
+  code_rubric?: Partial<CodeRubric>
 }
 
 /** Sync — batch pheromone update across many tasks. */
@@ -299,9 +325,9 @@ export interface WsComplete {
   tid: string
 }
 
-/** Unit hired — a new unit joined the org (chairman C1). */
-export interface WsUnitHired {
-  type: 'unit-hired'
+/** Actor hired — a new actor joined the org (chairman C1). */
+export interface WsActorHired {
+  type: 'actor-hired'
   uid: string
   role: string
   wallet: string | null
@@ -328,6 +354,6 @@ export type WsMessage =
   | WsTaskUpdate
   | WsUnblock
   | WsComplete
-  | WsUnitHired
+  | WsActorHired
   | WsPing
   | WsPong

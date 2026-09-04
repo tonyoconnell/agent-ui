@@ -71,10 +71,10 @@ export async function createCapability(args: CreateCapabilityArgs): Promise<Crea
     `),
   )
 
-  // Insert capability relation: provider unit → offered skill
+  // Insert capability relation: provider actor → offered skill
   await writeSilent(`
     match
-      $u isa unit, has uid "${q(uid)}";
+      $u isa actor, has aid "${q(uid)}";
       $s isa skill, has skill-id "${q(capabilityId)}";
     insert (provider: $u, offered: $s) isa capability, has price ${priceSui};
   `)

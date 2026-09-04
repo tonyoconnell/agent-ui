@@ -429,9 +429,9 @@ def generate():
         "highways": query("highways(30.0, 5)"),
         "ready": query("ready_tasks()"),
         "attractive": query("attractive_tasks()"),
-        "proven": query("proven_units()"),
-        "at_risk": query("at_risk_units()"),
-        "species": query("units_by_kind($k)"),  # all kinds
+        "proven": query("proven_actors()"),
+        "at_risk": query("at_risk_actors()"),
+        "species": query("actors_by_kind($k)"),  # all kinds
     }
 
     md = f"""# ONE World State

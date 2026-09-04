@@ -66,10 +66,15 @@ function CopyButton({ value, label }: { value: string; label: string }) {
       type="button"
       onClick={handleCopy}
       aria-label={`Copy ${label}`}
-      className="ml-1.5 text-slate-600 hover:text-slate-300 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 rounded"
+      className="ml-1.5 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded"
     >
       {copied ? (
-        <svg aria-hidden="true" className="w-3 h-3 text-green-400" viewBox="0 0 16 16" fill="currentColor">
+        <svg
+          aria-hidden="true"
+          className="w-3 h-3 text-[hsl(var(--color-tertiary-bright))]"
+          viewBox="0 0 16 16"
+          fill="currentColor"
+        >
           <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z" />
         </svg>
       ) : (
@@ -122,12 +127,12 @@ export function AgentList() {
   }
 
   return (
-    <Card className="bg-[#0f0f14] border-[#1e293b]">
+    <Card className="bg-card border-border">
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <CardTitle className="text-sm font-medium text-slate-300 flex items-center gap-2">
+        <CardTitle className="text-sm font-medium text-foreground flex items-center gap-2">
           Registered Agents
           {!loading && !error && (
-            <Badge variant="outline" className="text-xs border-[#1e293b] text-slate-500">
+            <Badge variant="outline" className="text-xs border-border text-muted-foreground">
               {agents.length}
             </Badge>
           )}
@@ -136,7 +141,7 @@ export function AgentList() {
           ref={refreshButtonRef}
           size="sm"
           variant="ghost"
-          className="h-7 text-xs text-slate-400 hover:text-white"
+          className="h-7 text-xs text-muted-foreground hover:text-white"
           onClick={handleRefresh}
           aria-label="Refresh agent list"
         >
@@ -156,11 +161,11 @@ export function AgentList() {
             <span className="sr-only">Loading agents</span>
             {[0, 1, 2].map((i) => (
               <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-4 w-32 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-24 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-12 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-16 bg-[#1e293b]" />
-                <Skeleton className="h-4 w-16 bg-[#1e293b]" />
+                <Skeleton className="h-4 w-32 bg-muted" />
+                <Skeleton className="h-4 w-24 bg-muted" />
+                <Skeleton className="h-4 w-12 bg-muted" />
+                <Skeleton className="h-4 w-16 bg-muted" />
+                <Skeleton className="h-4 w-16 bg-muted" />
               </div>
             ))}
           </div>
@@ -168,13 +173,13 @@ export function AgentList() {
 
         {/* Error state */}
         {error && !loading && (
-          <div className="bg-red-500/5 border border-red-500/20 rounded-md p-4 space-y-3">
-            <p className="text-sm text-red-400">{error}</p>
+          <div className="bg-[hsl(var(--color-destructive)/0.05)] border border-[hsl(var(--color-destructive)/0.2)] rounded-md p-4 space-y-3">
+            <p className="text-sm text-[hsl(var(--color-destructive))]">{error}</p>
             <Button
               ref={retryButtonRef}
               size="sm"
               variant="outline"
-              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+              className="border-[hsl(var(--color-destructive)/0.3)] text-[hsl(var(--color-destructive))] hover:bg-[hsl(var(--color-destructive)/0.1)]"
               onClick={handleRetry}
               aria-label="Retry loading agents"
             >
@@ -186,10 +191,10 @@ export function AgentList() {
         {/* Empty state */}
         {!loading && !error && agents.length === 0 && (
           <div className="py-6 text-center space-y-3">
-            <p className="text-sm text-slate-500">No agents registered yet.</p>
-            <div className="bg-[#0a0a0f] border border-[#252538] rounded-md p-3 text-left inline-block">
-              <p className="text-xs text-slate-500 mb-1.5 font-mono">Register an agent:</p>
-              <code className="block text-xs font-mono text-green-400 whitespace-pre">
+            <p className="text-sm text-muted-foreground">No agents registered yet.</p>
+            <div className="bg-background border border-border rounded-md p-3 text-left inline-block">
+              <p className="text-xs text-muted-foreground mb-1.5 font-mono">Register an agent:</p>
+              <code className="block text-xs font-mono text-tertiary-bright whitespace-pre">
                 {`curl -X POST /api/auth/agent \\\n  -d '{"uid":"my-agent"}'`}
               </code>
             </div>
@@ -203,7 +208,7 @@ export function AgentList() {
               <table className="w-full text-xs font-mono">
                 <caption className="sr-only">Agent wallets</caption>
                 <thead>
-                  <tr className="text-slate-500 border-b border-[#1e293b]">
+                  <tr className="text-muted-foreground border-b border-border">
                     <th scope="col" className="text-left py-2 px-2 font-medium">
                       UID
                     </th>
@@ -223,8 +228,8 @@ export function AgentList() {
                 </thead>
                 <tbody>
                   {agents.map((a) => (
-                    <tr key={a.uid} className="border-b border-[#1e293b]/50 hover:bg-[#161622] transition-colors">
-                      <td className="py-2.5 px-2 text-blue-400 max-w-[180px] truncate">
+                    <tr key={a.uid} className="border-b border-border/50 hover:bg-muted transition-colors">
+                      <td className="py-2.5 px-2 text-primary-bright max-w-[180px] truncate">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="cursor-default">{a.uid}</span>
@@ -238,7 +243,7 @@ export function AgentList() {
                         <div className="flex items-center">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-slate-300 cursor-default">{truncate(a.address)}</span>
+                              <span className="text-foreground cursor-default">{truncate(a.address)}</span>
                             </TooltipTrigger>
                             <TooltipContent>
                               <span className="font-mono text-xs">{a.address}</span>
@@ -249,17 +254,17 @@ export function AgentList() {
                       </td>
                       <td className="py-2.5 px-2">
                         {a.kdf_version !== null ? (
-                          <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400">
+                          <Badge variant="outline" className="text-xs border-primary/30 text-primary-bright">
                             v{a.kdf_version}
                           </Badge>
                         ) : (
-                          <span className="text-slate-600">—</span>
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </td>
                       <td className="py-2.5 px-2">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-slate-400 cursor-default">{relativeDate(a.created_at)}</span>
+                            <span className="text-muted-foreground cursor-default">{relativeDate(a.created_at)}</span>
                           </TooltipTrigger>
                           {a.created_at && (
                             <TooltipContent>
@@ -272,14 +277,16 @@ export function AgentList() {
                         {a.expires_at ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-slate-400 cursor-default">{relativeExpiry(a.expires_at)}</span>
+                              <span className="text-muted-foreground cursor-default">
+                                {relativeExpiry(a.expires_at)}
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent>
                               <span className="font-mono text-xs">{new Date(a.expires_at).toISOString()}</span>
                             </TooltipContent>
                           </Tooltip>
                         ) : (
-                          <Badge variant="outline" className="text-xs border-green-500/30 text-green-400">
+                          <Badge variant="outline" className="text-xs border-tertiary-bright/30 text-tertiary-bright">
                             no expiry
                           </Badge>
                         )}

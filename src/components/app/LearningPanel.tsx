@@ -26,9 +26,10 @@ function parseRow(item: Record<string, unknown>, index: number): HypothesisRow {
 }
 
 function confidenceClass(confidence: number): string {
-  if (confidence >= 0.7) return 'border-transparent bg-emerald-500/20 text-emerald-400'
-  if (confidence >= 0.5) return 'border-transparent bg-yellow-500/20 text-yellow-400'
-  return 'border-transparent bg-slate-500/20 text-slate-400'
+  if (confidence >= 0.7)
+    return 'border-transparent bg-[hsl(var(--color-tertiary-bright)/0.2)] text-[hsl(var(--color-tertiary-bright))]'
+  if (confidence >= 0.5) return 'border-transparent bg-[hsl(var(--color-gold)/0.2)] text-[hsl(var(--color-gold))]'
+  return 'border-transparent bg-muted/50 text-muted-foreground'
 }
 
 export function LearningPanel({ groupId: _groupId }: Props) {
@@ -68,18 +69,18 @@ export function LearningPanel({ groupId: _groupId }: Props) {
     <div className="flex flex-col gap-3 h-full">
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-foreground">Learned patterns</span>
-        <span className="inline-flex items-center rounded-full bg-slate-500/10 px-2 py-0.5 text-xs font-medium text-slate-400">
+        <span className="inline-flex items-center rounded-full bg-muted/50 px-2 py-0.5 text-xs font-medium text-muted-foreground">
           {hypotheses.length}
         </span>
       </div>
 
       {loading && <p className="text-sm text-muted-foreground py-4">Loading hypotheses…</p>}
 
-      {!loading && error && <p className="text-sm text-red-400 py-4">{error}</p>}
+      {!loading && error && <p className="text-sm text-[hsl(var(--color-destructive))] py-4">{error}</p>}
 
       {!loading && !error && hypotheses.length === 0 && (
         <p className="text-sm text-muted-foreground py-4">
-          No patterns learned yet. Run <code className="text-xs font-mono text-slate-300">/api/tick</code> to start the
+          No patterns learned yet. Run <code className="text-xs font-mono text-font">/api/tick</code> to start the
           learning loop.
         </p>
       )}

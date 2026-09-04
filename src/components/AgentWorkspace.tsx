@@ -41,11 +41,11 @@ const casteIcon: Record<string, string> = {
 
 // Chain colors for parallel flows
 const chainColor: Record<string, string> = {
-  market: 'text-blue-400',
-  intelligence: 'text-purple-400',
-  defense: 'text-red-400',
-  care: 'text-green-400',
-  recon: 'text-amber-400',
+  market: 'text-primary-bright',
+  intelligence: 'text-secondary-bright',
+  defense: 'text-destructive',
+  care: 'text-tertiary-bright',
+  recon: 'text-gold',
 }
 
 // Flatten envelope chain to assign to agents
@@ -100,7 +100,12 @@ async function load() {
 
 // Status dot
 function Dot({ status, pulse }: { status: string; pulse?: boolean }) {
-  const color = { ready: 'bg-green-500', idle: 'bg-slate-500', error: 'bg-red-500' }[status] || 'bg-slate-500'
+  const color =
+    {
+      ready: 'bg-[hsl(var(--color-tertiary-bright))]',
+      idle: 'bg-muted-foreground',
+      error: 'bg-[hsl(var(--color-destructive))]',
+    }[status] || 'bg-muted-foreground'
   return (
     <span className="relative flex h-2 w-2">
       {pulse && <span className={cn('animate-ping absolute inset-0 rounded-full opacity-75', color)} />}
@@ -122,39 +127,39 @@ function Tabs({
   onClose: (id: string) => void
 }) {
   return (
-    <div className="flex items-center bg-[#0a0a0f] border-b border-[#252538] px-4 h-14">
+    <div className="flex items-center bg-background border-b border-border px-4 h-14">
       {/* Navigation */}
-      <a href="/" className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg mr-2">
+      <a href="/" className="px-3 py-1.5 bg-primary-bright text-white text-sm font-medium rounded-lg mr-2">
         Agents
       </a>
       <a
         href="/world"
-        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg mr-2 transition-colors"
+        className="px-3 py-1.5 bg-muted hover:bg-card text-font text-sm font-medium rounded-lg mr-2 transition-colors"
       >
         Graph
       </a>
       <a
         href="/chat"
-        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg mr-2 transition-colors"
+        className="px-3 py-1.5 bg-muted hover:bg-card text-font text-sm font-medium rounded-lg mr-2 transition-colors"
       >
         Chat
       </a>
       <a
         href="/ceo"
-        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded-lg mr-4 transition-colors"
+        className="px-3 py-1.5 bg-muted hover:bg-card text-font text-sm font-medium rounded-lg mr-4 transition-colors"
       >
         CEO
       </a>
 
-      <div className="w-px h-6 bg-slate-700 mr-4" />
+      <div className="w-px h-6 bg-border mr-4" />
 
       <button
         onClick={() => onSelect('group')}
         className={cn(
           'px-5 py-2 text-base font-semibold rounded-lg mr-2 transition-all',
           active === 'group'
-            ? 'text-white bg-blue-500/20 border border-blue-500/50'
-            : 'text-slate-400 hover:text-white hover:bg-slate-800',
+            ? 'text-white bg-primary-bright/20 border border-primary-bright/50'
+            : 'text-muted-foreground hover:text-font hover:bg-muted',
         )}
       >
         Colony
@@ -164,13 +169,13 @@ function Tabs({
         className={cn(
           'px-5 py-2 text-base font-semibold rounded-lg mr-2 transition-all',
           active === null
-            ? 'text-white bg-slate-700/50 border border-slate-600'
-            : 'text-slate-400 hover:text-white hover:bg-slate-800',
+            ? 'text-font bg-card/50 border border-card'
+            : 'text-muted-foreground hover:text-font hover:bg-muted',
         )}
       >
         Agents
       </button>
-      {tabs.length > 0 && <div className="w-px h-6 bg-slate-700 mx-2" />}
+      {tabs.length > 0 && <div className="w-px h-6 bg-border mx-2" />}
       {tabs.map((t) => (
         <div
           key={t.id}
@@ -178,8 +183,8 @@ function Tabs({
           className={cn(
             'group flex items-center gap-2 px-4 py-2 text-base font-medium rounded-lg mx-1 cursor-pointer transition-all',
             active === t.id
-              ? 'text-white bg-emerald-500/20 border border-emerald-500/50'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800',
+              ? 'text-font bg-tertiary-bright/20 border border-tertiary-bright/50'
+              : 'text-muted-foreground hover:text-font hover:bg-muted',
           )}
         >
           <Dot status={t.status} />
@@ -189,7 +194,7 @@ function Tabs({
               e.stopPropagation()
               onClose(t.id)
             }}
-            className="ml-2 w-5 h-5 flex items-center justify-center rounded text-slate-500 hover:text-white hover:bg-slate-700 opacity-0 group-hover:opacity-100 transition-all"
+            className="ml-2 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-font hover:bg-card opacity-0 group-hover:opacity-100 transition-all"
           >
             ×
           </button>
@@ -204,8 +209,8 @@ function Grid({ agents, open, onSelect }: { agents: AgentData[]; open: string[];
   return (
     <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
       <div className="w-full max-w-5xl">
-        <h1 className="text-3xl font-light text-white mb-2 text-center">Colony</h1>
-        <p className="text-slate-500 text-sm mb-8 text-center">
+        <h1 className="text-3xl font-light text-font mb-2 text-center">Colony</h1>
+        <p className="text-muted-foreground text-sm mb-8 text-center">
           {agents.length} agents • {new Set(agents.map((a) => a.caste).filter(Boolean)).size} castes • 5 parallel chains
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -214,21 +219,25 @@ function Grid({ agents, open, onSelect }: { agents: AgentData[]; open: string[];
               key={agent.id}
               onClick={() => onSelect(agent.id)}
               className={cn(
-                'bg-[#161622] border rounded-2xl p-6 text-left transition-all hover:scale-[1.02] hover:-translate-y-1',
-                open.includes(agent.id) ? 'border-blue-500/50' : 'border-[#252538] hover:border-slate-500',
+                'bg-card border rounded-2xl p-6 text-left transition-all hover:scale-[1.02] hover:-translate-y-1',
+                open.includes(agent.id) ? 'border-primary-bright/50' : 'border-border hover:border-foreground',
               )}
             >
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-xl">{casteIcon[agent.caste || ''] || '🐜'}</span>
                 <Dot status={agent.status} />
-                <span className="text-white font-medium text-lg">{agent.name}</span>
+                <span className="text-font font-medium text-lg">{agent.name}</span>
               </div>
               {agent.caste && (
-                <div className="text-slate-600 text-[10px] font-mono uppercase tracking-wider mb-3">{agent.caste}</div>
+                <div className="text-muted-foreground text-[10px] font-mono uppercase tracking-wider mb-3">
+                  {agent.caste}
+                </div>
               )}
-              <div className="text-slate-500 text-xs font-mono mb-4">{Object.keys(agent.actions).join(' • ')}</div>
+              <div className="text-muted-foreground text-xs font-mono mb-4">
+                {Object.keys(agent.actions).join(' • ')}
+              </div>
               <div className="flex items-center justify-between">
-                <div className="text-slate-600 text-sm">
+                <div className="text-muted-foreground text-sm">
                   {agent.envelopes.length} envelope{agent.envelopes.length !== 1 ? 's' : ''} →
                 </div>
                 {agent.envelopes.length > 0 && (
@@ -239,8 +248,8 @@ function Grid({ agents, open, onSelect }: { agents: AgentData[]; open: string[];
                         <span
                           key={i}
                           className={cn(
-                            'text-[9px] px-1.5 py-0.5 rounded-full bg-slate-800',
-                            chainColor[chain] || 'text-slate-400',
+                            'text-[9px] px-1.5 py-0.5 rounded-full bg-muted',
+                            chainColor[chain] || 'text-muted-foreground',
                           )}
                         >
                           {chain}
@@ -282,10 +291,10 @@ function Flow({ agent, highways }: { agent: AgentData; highways: Edge[] }) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 p-4 border-b border-[#252538]">
+      <div className="flex items-center gap-3 p-4 border-b border-border">
         <Dot status={agent.status} pulse />
-        <h2 className="text-lg font-medium text-white">{agent.name}</h2>
-        <span className="text-slate-500 text-sm font-mono">{Object.keys(agent.actions).join(', ')}</span>
+        <h2 className="text-lg font-medium text-font">{agent.name}</h2>
+        <span className="text-muted-foreground text-sm font-mono">{Object.keys(agent.actions).join(', ')}</span>
       </div>
       <EdgeInfo highways={highways} agentId={agent.id} direction="incoming" />
       <div className="flex-1 min-h-0">
@@ -319,7 +328,7 @@ export default function AgentWorkspace() {
   // Signal injection — fire all parallel chains simultaneously
   const injectSignal = () => {
     if (!state) return
-    // Fire chain-head signals; continuations run via .then() on each unit
+    // Fire chain-head signals; continuations run via .then() on each actor
     state.world.signal({ receiver: 'scout:observe', data: { source: 'test', chain: 'market' } })
     state.world.signal({ receiver: 'forager:search', data: { source: 'onchain', chain: 'intelligence' } })
     state.world.signal({ receiver: 'soldier:validate', data: { signals: 'all', chain: 'defense' } })
@@ -329,7 +338,7 @@ export default function AgentWorkspace() {
   }
 
   if (!state)
-    return <div className="h-screen bg-[#0f0f17] flex items-center justify-center text-slate-600">Loading...</div>
+    return <div className="h-screen bg-muted flex items-center justify-center text-muted-foreground">Loading...</div>
 
   const openAgent = (id: string) => {
     if (!open.includes(id)) setOpen([...open, id])
@@ -346,7 +355,7 @@ export default function AgentWorkspace() {
   const openTabs = open.map((id) => state.agents.find((a) => a.id === id)!).filter(Boolean)
 
   return (
-    <div className="h-screen bg-[#0f0f17] flex flex-col">
+    <div className="h-screen bg-muted flex flex-col">
       <Tabs tabs={openTabs} active={active} onSelect={setActive} onClose={closeTab} />
       <div className="flex-1 flex min-h-0">
         <div className="flex-1 h-full">
@@ -364,11 +373,11 @@ export default function AgentWorkspace() {
             <Grid agents={state.agents} open={open} onSelect={openAgent} />
           )}
         </div>
-        <div className="w-64 p-4 border-l border-[#252538] flex flex-col gap-4">
+        <div className="w-64 p-4 border-l border-border flex flex-col gap-4">
           <HighwayPanel highways={state.highways} />
           <button
             onClick={injectSignal}
-            className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors"
+            className="w-full px-3 py-2 bg-primary-bright hover:bg-primary-bright/80 text-white text-sm rounded-lg transition-colors"
           >
             Inject Signal
           </button>

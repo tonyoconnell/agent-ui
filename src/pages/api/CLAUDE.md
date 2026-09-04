@@ -262,7 +262,7 @@ C3 port. All routes emit `substrate:pay` on success. ADL PEP-3/3.5/4 gates appli
 
 | Route | Format | What |
 |-------|--------|------|
-| `/api/export/units` | JSON | All units |
+| `/api/export/actors` | JSON | All units |
 | `/api/export/skills` | JSON | All skills |
 | `/api/export/paths` | JSON | All paths |
 | `/api/export/groups` | JSON | All groups |

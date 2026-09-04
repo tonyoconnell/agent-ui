@@ -28,7 +28,7 @@ async function makeWorld() {
   const { world: createWorld } = await import('@/engine/world')
   const net = createWorld()
   const u = apiUnit('test-api', { base: TARGET_BASE })
-  net.units['test-api'] = u
+  net.actors['test-api'] = u
   return net
 }
 

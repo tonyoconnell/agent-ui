@@ -92,10 +92,10 @@ mark() in engine  →  writeSilent() in typedb.ts  →  TypeDB Cloud
 import { read, write, readParsed, writeSilent, writeTracked, decay } from '@/lib/typedb'
 
 // Read
-const rows = await readParsed('match $u isa unit, has name $n; select $n;')
+const rows = await readParsed('match $u isa actor, has name $n; select $n;')
 
 // Write — throws on failure
-await write('insert $u isa unit, has uid "x", has name "X";')
+await write('insert $u isa actor, has aid "x", has name "X";')
 
 // Fire and forget — never throws, never reports outcome
 writeSilent('match $e isa path...; delete...; insert...;')

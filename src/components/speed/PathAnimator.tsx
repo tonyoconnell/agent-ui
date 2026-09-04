@@ -35,23 +35,26 @@ export function PathAnimator({
   return (
     <div className="space-y-4 text-sm">
       <div className="space-y-3">
-        <div className="flex items-center justify-between text-xs text-slate-500">
-          <span className="font-mono text-slate-400">{edge}</span>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span className="font-mono text-muted-foreground/70">{edge}</span>
           <span>highway threshold: 20</span>
         </div>
 
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs">
-            <span className="text-slate-400">strength</span>
+            <span className="text-muted-foreground/70">strength</span>
             <span
-              className={cn('font-mono transition-colors duration-300', marked ? 'text-emerald-400' : 'text-slate-400')}
+              className={cn(
+                'font-mono transition-colors duration-300',
+                marked ? 'text-[hsl(var(--color-tertiary-bright))]' : 'text-muted-foreground/70',
+              )}
             >
               {marked ? strengthAfter.toFixed(1) : strengthBefore.toFixed(1)}
             </span>
           </div>
-          <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+          <div className="h-2 rounded-full bg-muted overflow-hidden">
             <div
-              className="h-full rounded-full bg-cyan-500 transition-all duration-700 ease-out"
+              className="h-full rounded-full bg-[hsl(var(--color-primary-bright))] transition-all duration-700 ease-out"
               style={{ width: `${marked ? afterPct : beforePct}%` }}
             />
           </div>
@@ -63,15 +66,15 @@ export function PathAnimator({
           className={cn(
             'px-2 py-0.5 rounded font-mono border transition-all duration-300',
             marked
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              : 'bg-slate-800 text-slate-500 border-slate-700',
+              ? 'bg-[hsl(var(--color-tertiary-bright)/0.1)] text-[hsl(var(--color-tertiary-bright))] border-[hsl(var(--color-tertiary-bright)/0.2)]'
+              : 'bg-muted text-muted-foreground border-border',
           )}
         >
           {marked
             ? `net.${verb}(edge, ${chainDepth}) → +${(strengthAfter - strengthBefore).toFixed(1)}`
             : 'awaiting result...'}
         </span>
-        {marked && <span className="text-slate-600">scales with chain depth</span>}
+        {marked && <span className="text-muted-foreground/50">scales with chain depth</span>}
       </div>
     </div>
   )

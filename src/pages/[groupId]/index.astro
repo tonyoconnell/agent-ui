@@ -37,7 +37,7 @@ try {
   const unitRows = await readParsed(`
     match
       $g isa group, has gid "${groupId}";
-      $u isa unit, has uid $id, has name $n;
+      $u isa actor, has aid $id, has name $n;
       (member: $u, group: $g) isa membership;
     select $id, $n;
   `)
@@ -60,26 +60,26 @@ if (!groupInfo) {
 <Layout title={groupInfo.name} brandStyle={brandStyle}>
   <div class="min-h-screen bg-background text-foreground">
     <!-- Group header -->
-    <div class="border-b border-[#252538] bg-[#0d0d14] px-6 py-8">
-      <h1 class="text-2xl font-semibold text-slate-100">{groupInfo.name}</h1>
+    <div class="border-b border-border bg-background px-6 py-8">
+      <h1 class="text-2xl font-semibold text-font">{groupInfo.name}</h1>
       {groupInfo.description && (
-        <p class="mt-2 text-sm text-slate-400">{groupInfo.description}</p>
+        <p class="mt-2 text-sm text-muted-foreground">{groupInfo.description}</p>
       )}
     </div>
 
     <!-- Public agent grid -->
     <div class="mx-auto max-w-4xl px-6 py-10">
       {units.length === 0 ? (
-        <p class="text-sm text-slate-500">No public agents in this group.</p>
+        <p class="text-sm text-muted-foreground">No public agents in this group.</p>
       ) : (
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {units.map((u) => (
             <a
               href={`/market?seller=${u.uid}`}
-              class="flex flex-col gap-2 rounded-lg border border-[#252538] bg-[#161622] px-4 py-3 hover:border-indigo-500/50 transition-colors"
+              class="flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 hover:border-[hsl(var(--color-primary-bright)/0.5)] transition-colors"
             >
-              <span class="text-sm font-medium text-slate-100">{u.name}</span>
-              <span class="text-xs text-slate-500 font-mono">{u.uid}</span>
+              <span class="text-sm font-medium text-font">{u.name}</span>
+              <span class="text-xs text-muted-foreground font-mono">{u.uid}</span>
             </a>
           ))}
         </div>

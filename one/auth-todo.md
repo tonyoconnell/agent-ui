@@ -26,7 +26,7 @@ rubric: "fit=0.88 form=0.85 truth=0.90 taste=0.82"
 > carries the owner's role via membership lookup.
 >
 > **Source of truth:**
-> [auth.md](auth.md) § Open Gaps — the six gaps enumerated with line refs,
+> [auth.md](one-ie/dev.one.ie/one/auth.md) § Open Gaps — the six gaps enumerated with line refs,
 > [auth-integration.md](auth-integration.md) — existing bridge proposal (membership-only),
 > [agent-telegram-owner.md](agent-telegram-owner.md) — downstream consumer (AUTO/PAUSED/ASSIST modes assume an owner exists),
 > [DSL.md](one/DSL.md) — signal grammar,
@@ -99,7 +99,7 @@ rubric: "fit=0.88 form=0.85 truth=0.90 taste=0.82"
 
 | Doc | Why it's loaded |
 |-----|-----------------|
-| [auth.md](auth.md) | Current flows + the six gaps with line refs |
+| [auth.md](one-ie/dev.one.ie/one/auth.md) | Current flows + the six gaps with line refs |
 | [auth-integration.md](auth-integration.md) | Prior thinking on session↔unit bridge — confirms membership-only model |
 | [agent-telegram-owner.md](agent-telegram-owner.md) | Downstream: AUTO/PAUSED/ASSIST require a known owner |
 | [dictionary.md](dictionary.md) | Names: `unit`, `membership`, `role`, `chairman`, `api-authorization` |
@@ -399,7 +399,7 @@ Per `documentation.md` rule, on cycle close:
 
 ## See Also
 
-- [auth.md](auth.md) — current flows + the six gaps this TODO closes
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — current flows + the six gaps this TODO closes
 - [auth-integration.md](auth-integration.md) — prior thinking; this TODO supersedes the "TODO" portions
 - [agent-telegram-owner.md](agent-telegram-owner.md) — downstream consumer of ownership
 - [DSL.md](one/DSL.md) — signal grammar

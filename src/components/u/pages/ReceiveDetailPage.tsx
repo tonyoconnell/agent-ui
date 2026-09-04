@@ -227,8 +227,8 @@ export function ReceiveDetailPage({ walletId }: ReceiveDetailPageProps) {
         </Card>
 
         {/* Warning */}
-        <div className="mt-4 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-          <p className="text-sm text-yellow-600 dark:text-yellow-400 text-center">
+        <div className="mt-4 p-3 rounded-lg bg-[hsl(var(--color-gold)/0.1)] border border-[hsl(var(--color-gold)/0.2)]">
+          <p className="text-sm text-[hsl(var(--color-gold))] text-center">
             ⚠️ Only send <strong>{chain.symbol}</strong> on <strong>{chain.network}</strong> to this address
           </p>
         </div>

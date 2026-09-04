@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 export type TqlAction =
   | { kind: 'mark'; from: string; to: string; strength?: number }
   | { kind: 'warn'; from: string; to: string; weight?: number }
-  | { kind: 'add-unit'; uid: string; name: string; actorType: 'agent' | 'human' }
+  | { kind: 'add-actor'; uid: string; name: string; actorType: 'agent' | 'human' }
   | { kind: 'rename-group'; gid: string; oldName: string; newName: string }
   | { kind: 'set-sensitivity'; gid: string; sensitivity: number }
   | { kind: 'set-fade-rate'; gid: string; fadeRate: number }
@@ -56,9 +56,9 @@ export function renderTql(action: TqlAction): TqlRendered {
         body: { from: action.from, to: action.to, weight: w },
       }
     }
-    case 'add-unit': {
+    case 'add-actor': {
       return {
-        summary: `Register unit ${action.name} as ${action.actorType}`,
+        summary: `Register actor ${action.name} as ${action.actorType}`,
         tql: `insert $u isa actor, has aid "${action.uid}", has name "${action.name}", has actor-type "${action.actorType}", has generation 1;`,
         endpoint: '/api/agents/register',
         method: 'POST',
@@ -203,21 +203,21 @@ export function highlightTql(tql: string): React.ReactNode {
       {segments.map((seg, i) => {
         if (seg.type === 'keyword') {
           return (
-            <span key={i} className="text-sky-400">
+            <span key={i} className="text-[hsl(var(--color-primary-bright))]">
               {seg.text}
             </span>
           )
         }
         if (seg.type === 'string') {
           return (
-            <span key={i} className="text-emerald-400">
+            <span key={i} className="text-[hsl(var(--color-tertiary-bright))]">
               {seg.text}
             </span>
           )
         }
         if (seg.type === 'number') {
           return (
-            <span key={i} className="text-amber-400">
+            <span key={i} className="text-[hsl(var(--color-gold))]">
               {seg.text}
             </span>
           )
@@ -287,18 +287,18 @@ export function TqlPreview({ open, action, onApplied, onClose }: Props) {
         className={cn(
           'fixed bottom-0 left-0 right-0 z-50 h-[50vh]',
           'flex flex-col',
-          'bg-[#0d0d14] border-t border-[#252538]',
+          'bg-muted border-t border-border',
           'transition-transform duration-300 ease-in-out',
           open ? 'translate-y-0' : 'translate-y-full',
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#252538] shrink-0">
-          <span className="text-sm font-semibold text-slate-200 tracking-wide">TQL Preview</span>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+          <span className="text-sm font-semibold text-font tracking-wide">TQL Preview</span>
           <button
             type="button"
             onClick={handleCancel}
-            className="text-slate-400 hover:text-slate-200 transition-colors p-1 rounded"
+            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
             aria-label="Close"
           >
             <svg
@@ -322,35 +322,35 @@ export function TqlPreview({ open, action, onApplied, onClose }: Props) {
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
           {/* Summary */}
-          <p className="text-sm text-slate-300 leading-relaxed">{rendered.summary}</p>
+          <p className="text-sm text-foreground leading-relaxed">{rendered.summary}</p>
 
           {/* TQL block */}
-          <pre className="font-mono text-xs leading-relaxed bg-[#0a0a10] border border-[#1e1e30] rounded-md px-4 py-3 overflow-x-auto text-slate-200 whitespace-pre-wrap break-words">
+          <pre className="font-mono text-xs leading-relaxed bg-background border border-border rounded-md px-4 py-3 overflow-x-auto text-font whitespace-pre-wrap break-words">
             {highlightTql(rendered.tql)}
           </pre>
 
           {/* Endpoint */}
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Endpoint:{' '}
-            <span className="text-sky-400 font-mono">
+            <span className="text-[hsl(var(--color-primary-bright))] font-mono">
               {rendered.method} {rendered.endpoint}
             </span>
           </p>
 
           {/* Error */}
           {error && (
-            <p className="text-xs text-red-400 font-mono" role="alert">
+            <p className="text-xs text-[hsl(var(--color-destructive))] font-mono" role="alert">
               {error}
             </p>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-5 py-3 border-t border-[#252538] shrink-0">
+        <div className="flex items-center justify-end gap-3 px-5 py-3 border-t border-border shrink-0">
           <button
             type="button"
             onClick={handleCancel}
-            className="px-4 py-2 text-xs font-medium rounded-md border border-[#252538] text-slate-300 hover:bg-[#1a1a2e] transition-colors"
+            className="px-4 py-2 text-xs font-medium rounded-md border border-border text-foreground hover:bg-card transition-colors"
           >
             Cancel
           </button>
@@ -360,7 +360,7 @@ export function TqlPreview({ open, action, onApplied, onClose }: Props) {
             disabled={applying}
             className={cn(
               'px-4 py-2 text-xs font-medium rounded-md transition-colors',
-              'bg-sky-600 hover:bg-sky-500 text-white',
+              'bg-[hsl(var(--color-primary-bright))] hover:bg-[hsl(var(--color-primary-bright)/0.9)] text-white',
               applying && 'opacity-50 cursor-not-allowed',
             )}
           >

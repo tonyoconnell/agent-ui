@@ -3,9 +3,9 @@
  *
  * 6 Dimensions:
  *   1. Groups    — worlds (personas, teams, colonies)
- *   2. Actors    — units (humans, agents, LLMs)
+ *   2. Actors    — actors (humans, agents, LLMs)
  *   3. Things    — tasks with optional price (work AND services)
- *   4. Edges     — weighted connections (unit↔unit, task→task)
+ *   4. Edges     — weighted connections (actor↔actor, task→task)
  *   5. Events    — signals (who sent what, paid how much)
  *   6. Knowledge — hypotheses, frontiers, objectives
  */
@@ -31,7 +31,7 @@ export interface Group {
 // DIMENSION 2: ACTORS
 // =============================================================================
 
-export interface Unit {
+export interface Actor {
   uid: string
   name: string
   unitKind: 'human' | 'agent' | 'llm' | 'system'
@@ -44,7 +44,7 @@ export interface Unit {
   activityScore: number // 0.0–100.0
   sampleCount: number // interaction count
   created: Date
-  groups?: string[] // gids of groups this unit belongs to
+  groups?: string[] // gids of groups this actor belongs to
 }
 
 // =============================================================================
@@ -66,7 +66,7 @@ export type { Task } from './task'
 export type EdgeStatus = 'highway' | 'fresh' | 'fading' | 'toxic'
 export type TrailStatus = 'proven' | 'fresh' | 'fading' | 'dead'
 
-// Unit-to-unit connection
+// Actor-to-actor connection
 export interface Edge {
   source: string // uid
   target: string // uid
@@ -90,7 +90,7 @@ export interface Trail {
   status: TrailStatus // INFERRED
 }
 
-// Unit can do task (at a price)
+// Actor can do task (at a price)
 export interface Capability {
   provider: string // uid
   skill: string // tid
@@ -163,7 +163,7 @@ export interface Contribution {
 
 export interface WorldState {
   groups: Group[]
-  units: Unit[]
+  actors: Actor[]
   tasks: Task[]
   edges: Edge[]
   trails: Trail[]
@@ -195,7 +195,7 @@ export interface WorldStats {
 export const dimensionLabels = {
   ant: {
     group: 'Colony',
-    unit: 'Ant',
+    actor: 'Ant',
     task: 'Trail',
     edge: 'Pheromone',
     signal: 'Chemical',
@@ -203,7 +203,7 @@ export const dimensionLabels = {
   },
   brain: {
     group: 'Network',
-    unit: 'Neuron',
+    actor: 'Neuron',
     task: 'Pattern',
     edge: 'Synapse',
     signal: 'Impulse',
@@ -211,7 +211,7 @@ export const dimensionLabels = {
   },
   team: {
     group: 'Team',
-    unit: 'Member',
+    actor: 'Member',
     task: 'Task',
     edge: 'Connection',
     signal: 'Message',
@@ -219,7 +219,7 @@ export const dimensionLabels = {
   },
   mail: {
     group: 'Inbox',
-    unit: 'Contact',
+    actor: 'Contact',
     task: 'Thread',
     edge: 'Chain',
     signal: 'Email',
@@ -227,7 +227,7 @@ export const dimensionLabels = {
   },
   water: {
     group: 'Basin',
-    unit: 'Drop',
+    actor: 'Drop',
     task: 'Channel',
     edge: 'Flow',
     signal: 'Wave',
@@ -235,7 +235,7 @@ export const dimensionLabels = {
   },
   signal: {
     group: 'Grid',
-    unit: 'Node',
+    actor: 'Node',
     task: 'Route',
     edge: 'Link',
     signal: 'Packet',

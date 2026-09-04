@@ -21,7 +21,7 @@ interface HealthData {
 }
 
 interface StatsData {
-  units: { total: number; proven: number; atRisk: number }
+  actors: { total: number; proven: number; atRisk: number }
   tasks: { total: number; ready: number; active: number; complete: number }
   highways: { count: number; totalEdges: number }
   revenue: { total: number; gdp: number }
@@ -44,8 +44,8 @@ function HealthDot({ ok }: { ok: boolean }) {
       className={cn(
         'inline-block w-2.5 h-2.5 rounded-full',
         ok
-          ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]'
-          : 'bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.5)]',
+          ? 'bg-tertiary-bright shadow-[0_0_6px_hsl(var(--color-tertiary-bright)/0.5)]'
+          : 'bg-destructive shadow-[0_0_6px_hsl(var(--color-destructive)/0.5)]',
       )}
     />
   )
@@ -53,31 +53,31 @@ function HealthDot({ ok }: { ok: boolean }) {
 
 function HealthRow({ label, ok, detail }: { label: string; ok: boolean; detail?: string }) {
   return (
-    <div className="flex items-center justify-between py-2 border-b border-[#252538] last:border-0">
+    <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
       <div className="flex items-center gap-2">
         <HealthDot ok={ok} />
-        <span className="text-sm text-slate-300">{label}</span>
+        <span className="text-sm text-foreground">{label}</span>
       </div>
-      {detail && <span className="text-xs text-slate-500">{detail}</span>}
+      {detail && <span className="text-xs text-muted-foreground">{detail}</span>}
     </div>
   )
 }
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="bg-[#161622] border border-[#252538] rounded-lg p-4">
-      <div className="text-2xl font-bold text-white tabular-nums">{value}</div>
-      <div className="text-sm text-slate-400 mt-1">{label}</div>
-      {sub && <div className="text-xs text-slate-500 mt-0.5">{sub}</div>}
+    <div className="bg-card border border-border rounded-lg p-4">
+      <div className="text-2xl font-bold text-font tabular-nums">{value}</div>
+      <div className="text-sm text-muted-foreground mt-1">{label}</div>
+      {sub && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
     </div>
   )
 }
 
 function AlertRow({ alert }: { alert: Alert }) {
   const colors = {
-    error: 'text-red-400 bg-red-400/10 border-red-400/20',
-    warning: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
-    info: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+    error: 'text-destructive bg-destructive/10 border-destructive/20',
+    warning: 'text-gold bg-gold/10 border-gold/20',
+    info: 'text-primary-bright bg-primary-bright/10 border-primary-bright/20',
   }
   const icons = { error: '!', warning: '!', info: 'i' }
 
@@ -112,8 +112,8 @@ function RevenueBreakdown() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="text-sm text-slate-500 py-4">Loading revenue data...</div>
-  if (paths.length === 0) return <div className="text-sm text-slate-500 py-4">No revenue recorded yet</div>
+  if (loading) return <div className="text-sm text-muted-foreground py-4">Loading revenue data...</div>
+  if (paths.length === 0) return <div className="text-sm text-muted-foreground py-4">No revenue recorded yet</div>
 
   const maxRevenue = paths[0]?.revenue || 1
 
@@ -122,17 +122,17 @@ function RevenueBreakdown() {
       {paths.map((p) => (
         <div key={`${p.from}-${p.to}`} className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <div className="text-xs text-slate-400 truncate">
+            <div className="text-xs text-muted-foreground truncate">
               {p.from} → {p.to}
             </div>
           </div>
-          <div className="w-24 h-1.5 rounded-full overflow-hidden bg-[#252538]">
+          <div className="w-24 h-1.5 rounded-full overflow-hidden bg-border">
             <div
-              className="h-full rounded-full bg-emerald-500/60"
+              className="h-full rounded-full bg-tertiary-bright/60"
               style={{ width: `${(p.revenue / maxRevenue) * 100}%` }}
             />
           </div>
-          <span className="text-xs font-mono text-emerald-400 w-16 text-right">${p.revenue.toFixed(1)}</span>
+          <span className="text-xs font-mono text-tertiary-bright w-16 text-right">${p.revenue.toFixed(1)}</span>
         </div>
       ))}
     </div>
@@ -190,11 +190,11 @@ export function Dashboard() {
       if (statsRes) {
         const s = statsRes as unknown as StatsData
         setStats(s)
-        if (s.units?.atRisk > 0) {
+        if (s.actors?.atRisk > 0) {
           newAlerts.push({
             id: 'at-risk',
             type: 'warning',
-            message: `${s.units.atRisk} unit(s) at risk`,
+            message: `${s.actors.atRisk} actor(s) at risk`,
             timestamp: now,
           })
         }
@@ -260,14 +260,16 @@ export function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">ONE World Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">Phase 6: Scale {health?.version && `/ v${health.version}`}</p>
+          <h1 className="text-2xl font-bold text-font">ONE World Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Phase 6: Scale {health?.version && `/ v${health.version}`}
+          </p>
         </div>
         <div className="flex items-center gap-4">
-          {lastRefresh && <span className="text-xs text-slate-500">Updated {lastRefresh}</span>}
+          {lastRefresh && <span className="text-xs text-muted-foreground">Updated {lastRefresh}</span>}
           <button
             onClick={fetchData}
-            className="text-xs px-3 py-1.5 bg-[#252538] hover:bg-[#303048] text-slate-300 rounded-md transition-colors"
+            className="text-xs px-3 py-1.5 bg-border hover:bg-card text-foreground rounded-md transition-colors"
           >
             Refresh
           </button>
@@ -275,14 +277,16 @@ export function Dashboard() {
       </div>
 
       {loading ? (
-        <div className="text-center py-20 text-slate-500">Loading dashboard...</div>
+        <div className="text-center py-20 text-muted-foreground">Loading dashboard...</div>
       ) : (
         <>
           {/* Health + Alerts row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* System Health */}
-            <div className="bg-[#0a0a0f] border border-[#252538] rounded-lg p-5">
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">System Health</h2>
+            <div className="bg-background border border-border rounded-lg p-5">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                System Health
+              </h2>
               <HealthRow
                 label="TypeDB"
                 ok={health?.typedb?.status === 'ok'}
@@ -297,8 +301,8 @@ export function Dashboard() {
             </div>
 
             {/* Alerts */}
-            <div className="bg-[#0a0a0f] border border-[#252538] rounded-lg p-5">
-              <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Alerts</h2>
+            <div className="bg-background border border-border rounded-lg p-5">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Alerts</h2>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {alerts.map((a) => (
                   <AlertRow key={a.id} alert={a} />
@@ -309,9 +313,9 @@ export function Dashboard() {
 
           {/* Stats Cards */}
           <div>
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">World Stats</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">World Stats</h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <StatCard label="Units" value={stats?.units?.total ?? 0} sub={`${stats?.units?.proven ?? 0} proven`} />
+              <StatCard label="Actors" value={stats?.actors?.total ?? 0} sub={`${stats?.actors?.proven ?? 0} proven`} />
               <StatCard
                 label="Tasks"
                 value={stats?.tasks?.total ?? 0}
@@ -336,14 +340,14 @@ export function Dashboard() {
           </div>
 
           {/* Revenue Breakdown */}
-          <div className="bg-[#0a0a0f] border border-[#252538] rounded-lg p-5">
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Revenue</h2>
+          <div className="bg-background border border-border rounded-lg p-5">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Revenue</h2>
             <RevenueBreakdown />
           </div>
 
           {/* Actions */}
-          <div className="bg-[#0a0a0f] border border-[#252538] rounded-lg p-5">
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Actions</h2>
+          <div className="bg-background border border-border rounded-lg p-5">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Actions</h2>
             <div className="flex flex-wrap gap-3">
               <ActionButton label="Run Decay Cycle" endpoint="/api/decay-cycle" method="POST" />
               <ActionButton label="Seed World" endpoint="/api/seed" method="POST" />
@@ -375,10 +379,10 @@ function ActionButton({ label, endpoint, method }: { label: string; endpoint: st
       disabled={status === 'loading'}
       className={cn(
         'text-sm px-4 py-2 rounded-md transition-colors',
-        status === 'idle' && 'bg-[#252538] hover:bg-[#303048] text-slate-300',
-        status === 'loading' && 'bg-[#252538] text-slate-500 cursor-wait',
-        status === 'done' && 'bg-emerald-900/50 text-emerald-400 border border-emerald-400/20',
-        status === 'error' && 'bg-red-900/50 text-red-400 border border-red-400/20',
+        status === 'idle' && 'bg-border hover:bg-card text-foreground',
+        status === 'loading' && 'bg-border text-muted-foreground cursor-wait',
+        status === 'done' && 'bg-tertiary-bright/20 text-tertiary-bright border border-tertiary-bright/20',
+        status === 'error' && 'bg-destructive/20 text-destructive border border-destructive/20',
       )}
     >
       {status === 'loading' ? 'Running...' : status === 'done' ? 'Done' : status === 'error' ? 'Failed' : label}

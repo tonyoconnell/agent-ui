@@ -1,7 +1,7 @@
 /**
  * POST /api/g/:gid/signal — Send a signal scoped to a group
  *
- * Validates that the receiver unit is a member of the group before routing.
+ * Validates that the receiver actor is a member of the group before routing.
  * Dissolves (404) if receiver is not in the group — group boundary enforcement.
  *
  * Body: { receiver: string, data?: unknown }
@@ -27,22 +27,22 @@ export const POST: APIRoute = async ({ params, request }) => {
     return Response.json({ error: 'receiver required' }, { status: 400 })
   }
 
-  // Extract unit id (strip skill suffix: "unit:skill" → "unit")
-  const unitId = receiver.includes(':') ? receiver.split(':')[0] : receiver
+  // Extract actor id (strip skill suffix: "actor:skill" → "actor")
+  const actorId = receiver.includes(':') ? receiver.split(':')[0] : receiver
 
-  // Verify unit is a member of this group
+  // Verify actor is a member of this group
   try {
     const rows = await readParsed(`
       match
         $g isa group, has gid "${gid}";
-        $u isa unit, has uid "${unitId}";
+        $u isa actor, has aid "${actorId}";
         (member: $u, group: $g) isa membership;
       select $u;
     `)
 
     if (rows.length === 0) {
       return Response.json(
-        { dissolved: true, reason: `unit ${unitId} is not a member of group ${gid}` },
+        { dissolved: true, reason: `actor ${actorId} is not a member of group ${gid}` },
         { status: 404 },
       )
     }

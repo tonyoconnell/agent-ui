@@ -4,7 +4,7 @@
  * **Schema note (2026-04-20).** The canonical target per `one/template-plan.md`
  * is the `thing` tree (thing-type="plan|cycle|task" + containment relations)
  * defined in `src/schema/one.tql:52-116`. Prod TypeDB Cloud still runs the
- * pre-collapse schema (`unit`, `task`, `skill`, `hypothesis` — no `thing`,
+ * pre-collapse schema (`actor`, `task`, `skill`, `hypothesis` — no `thing`,
  * no `containment`). Until the schema migration ships, we write via the legacy
  * `task` entity using the existing `syncTasks()` pipeline — same pheromone +
  * blocks semantics, fewer concepts. Migration to `thing` is a follow-up cycle.

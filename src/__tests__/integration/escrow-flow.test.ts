@@ -37,14 +37,14 @@ describe.skipIf(!process.env.SUI_PACKAGE_ID)('Escrow Flow (e2e)', () => {
       // Register in TypeDB
       await write(`
         insert
-          $p isa unit, has uid "${posterUid}", has name "Poster", has sui-unit-id "${posterUnitId}";
-          $w isa unit, has uid "${workerUid}", has name "Worker", has sui-unit-id "${workerUnitId}";
+          $p isa actor, has aid "${posterUid}", has name "Poster", has sui-unit-id "${posterUnitId}";
+          $w isa actor, has aid "${workerUid}", has name "Worker", has sui-unit-id "${workerUnitId}";
       `)
 
       // Create a path between them
       const pathId = `path-${Date.now()}`
       await write(`
-        match $from isa unit, has uid "${posterUid}"; $to isa unit, has uid "${workerUid}";
+        match $from isa actor, has aid "${posterUid}"; $to isa actor, has aid "${workerUid}";
         insert
           (source: $from, target: $to) isa path,
             has strength 0.0, has resistance 0.0,
@@ -61,12 +61,12 @@ describe.skipIf(!process.env.SUI_PACKAGE_ID)('Escrow Flow (e2e)', () => {
     // Cleanup: remove test units from TypeDB
     try {
       await write(`
-        match $u isa unit, has uid "${posterUid}";
+        match $u isa actor, has aid "${posterUid}";
         delete $u;
       `).catch(() => {})
 
       await write(`
-        match $u isa unit, has uid "${workerUid}";
+        match $u isa actor, has aid "${workerUid}";
         delete $u;
       `).catch(() => {})
     } catch {
@@ -83,8 +83,8 @@ describe.skipIf(!process.env.SUI_PACKAGE_ID)('Escrow Flow (e2e)', () => {
     const paths = await readParsed(`
       match
         (source: $from, target: $to) isa path;
-        $from has uid "${posterUid}";
-        $to has uid "${workerUid}";
+        $from has aid "${posterUid}";
+        $to has aid "${workerUid}";
         $p isa path,
           (source: $from, target: $to) isa $p,
           has sui-path-id $pi;

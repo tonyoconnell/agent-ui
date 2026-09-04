@@ -119,20 +119,20 @@ export function SignPage() {
   // ── Loading / error screens ──────────────────────────────────────────────
   if (loadState === 'loading') {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <p className="text-slate-400 text-sm animate-pulse">Setting up wallet…</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground text-sm animate-pulse">Setting up wallet…</p>
       </div>
     )
   }
 
   if (loadState === 'error') {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-6">
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="text-center space-y-2">
           <p className="text-destructive text-sm">Wallet initialisation failed</p>
-          <p className="text-slate-500 text-xs font-mono">{errorMsg}</p>
+          <p className="text-muted-foreground text-xs font-mono">{errorMsg}</p>
           <button
-            className="mt-4 text-xs text-slate-400 underline"
+            className="mt-4 text-xs text-muted-foreground underline"
             onClick={() => {
               emitClick('ui:sign:retry')
               window.location.reload()
@@ -147,13 +147,13 @@ export function SignPage() {
 
   // ── Wallet home ──────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col">
+    <div className="min-h-screen bg-background text-font flex flex-col">
       {/* Save banner — State 1 only */}
       {isState1 && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between">
-          <p className="text-xs text-amber-300">Your wallet is unprotected — save it with Touch ID</p>
+        <div className="bg-[hsl(var(--color-gold)/0.1)] border-b border-[hsl(var(--color-gold)/0.2)] px-4 py-2 flex items-center justify-between">
+          <p className="text-xs text-[hsl(var(--color-gold))]">Your wallet is unprotected — save it with Touch ID</p>
           <button
-            className="text-xs font-medium text-amber-400 hover:text-amber-200 transition-colors ml-4 whitespace-nowrap"
+            className="text-xs font-medium text-[hsl(var(--color-gold))] hover:text-[hsl(var(--color-gold)/0.7)] transition-colors ml-4 whitespace-nowrap"
             onClick={() => {
               emitClick('ui:sign:save-wallet')
               window.location.href = '/u/save'
@@ -173,7 +173,7 @@ export function SignPage() {
             {usdDisplay}
           </p>
           <button
-            className="text-sm text-slate-400 font-mono hover:text-slate-200 transition-colors"
+            className="text-sm text-muted-foreground font-mono hover:text-foreground transition-colors"
             onClick={() => {
               emitClick('ui:sign:copy-address')
               void navigator.clipboard.writeText(record?.address ?? '')
@@ -189,7 +189,7 @@ export function SignPage() {
         {/* Action row */}
         <div className="flex gap-4">
           <button
-            className="flex flex-col items-center gap-1 px-6 py-3 rounded-2xl bg-[#161622] border border-[#252538] hover:bg-[#1e1e30] transition-colors min-w-[80px]"
+            className="flex flex-col items-center gap-1 px-6 py-3 rounded-2xl bg-card border border-border hover:bg-muted transition-colors min-w-[80px]"
             onClick={() => {
               emitClick('ui:sign:receive')
               window.location.href = '/u/receive'
@@ -199,11 +199,11 @@ export function SignPage() {
             <span className="text-xl" aria-hidden="true">
               ↓
             </span>
-            <span className="text-xs text-slate-400">Receive</span>
+            <span className="text-xs text-muted-foreground">Receive</span>
           </button>
 
           <button
-            className="flex flex-col items-center gap-1 px-6 py-3 rounded-2xl bg-[#161622] border border-[#252538] hover:bg-[#1e1e30] transition-colors min-w-[80px]"
+            className="flex flex-col items-center gap-1 px-6 py-3 rounded-2xl bg-card border border-border hover:bg-muted transition-colors min-w-[80px]"
             onClick={() => {
               emitClick('ui:sign:send')
               window.location.href = '/u/send'
@@ -213,15 +213,15 @@ export function SignPage() {
             <span className="text-xl" aria-hidden="true">
               ↑
             </span>
-            <span className="text-xs text-slate-400">Send</span>
+            <span className="text-xs text-muted-foreground">Send</span>
           </button>
         </div>
 
         {/* Address card */}
-        <div className="w-full max-w-sm rounded-2xl bg-[#161622] border border-[#252538] p-4 space-y-2">
-          <p className="text-xs text-slate-500 uppercase tracking-wider">Sui address</p>
+        <div className="w-full max-w-sm rounded-2xl bg-card border border-border p-4 space-y-2">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Sui address</p>
           <button
-            className="w-full text-left text-xs font-mono text-slate-300 break-all hover:text-white transition-colors"
+            className="w-full text-left text-xs font-mono text-foreground break-all hover:text-font transition-colors"
             onClick={() => {
               emitClick('ui:sign:copy-address-full')
               void navigator.clipboard.writeText(record?.address ?? '')

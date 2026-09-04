@@ -1,17 +1,17 @@
 /**
- * Federation — another ONE substrate as a unit in this world.
+ * Federation — another ONE substrate as a actor in this world.
  *
  * Signal chains cross world boundaries transparently.
  * Pheromone tracks cross-world reliability: slow or failing worlds
- * accumulate resistance and get routed around, identically to any unit.
+ * accumulate resistance and get routed around, identically to any actor.
  *
  * Memory recall across federation filters by scope:
  * - Only public + group-scoped signals visible to other worlds (federated: true)
  * - Private signals stay in originating world
  *
  * Usage:
- *   net.units['world-legal']   = federate('world-legal',   'https://legal.one.ie',   LEGAL_KEY)
- *   net.units['world-finance'] = federate('world-finance', 'https://finance.one.ie', FINANCE_KEY)
+ *   net.actors['world-legal']   = federate('world-legal',   'https://legal.one.ie',   LEGAL_KEY)
+ *   net.actors['world-finance'] = federate('world-finance', 'https://finance.one.ie', FINANCE_KEY)
  *   net.signal({ receiver: 'world-legal:review', data: { contract } }, 'drafter')
  *   // → forwards to https://legal.one.ie/api/signal with { receiver: 'review', data: { contract } }
  *
@@ -27,7 +27,7 @@
 
 import { readParsed } from '@/lib/typedb'
 import { audit } from './adl-cache'
-import { type Unit, unit } from './world'
+import { type Actor, actor } from './world'
 
 // ── BridgePath — the stored record from TypeDB ───────────────────────────────
 
@@ -157,16 +157,16 @@ export async function lookupBridgePath(peerOwnerAddress: string): Promise<Bridge
   return undefined
 }
 
-// ── federate — outbound unit (unchanged from original) ───────────────────────
+// ── federate — outbound actor (unchanged from original) ───────────────────────
 
-export const federate = (id: string, baseUrl: string, apiKey: string): Unit => {
+export const federate = (id: string, baseUrl: string, apiKey: string): Actor => {
   const base = baseUrl.replace(/\/$/, '')
   const headers = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${apiKey}`,
   }
 
-  return unit(id).on('default', async (data) => {
+  return actor(id).on('default', async (data) => {
     // data may carry { receiver, ...rest } for intra-world routing
     const { receiver, ...rest } = (data as { receiver?: string } & Record<string, unknown>) ?? {}
     const res = await fetch(`${base}/api/signal`, {
@@ -180,19 +180,19 @@ export const federate = (id: string, baseUrl: string, apiKey: string): Unit => {
 
 /**
  * Convenience: forward a fully-formed Signal to another world.
- * Useful when the local unit name IS the target unit in the remote world.
+ * Useful when the local actor name IS the target actor in the remote world.
  *
- * net.units['world-b:scout'] = federateSignal('world-b:scout', 'https://world-b.one.ie', KEY)
+ * net.actors['world-b:scout'] = federateSignal('world-b:scout', 'https://world-b.one.ie', KEY)
  * net.signal({ receiver: 'world-b:scout', data: {} }, 'entry')
  */
-export const federateSignal = (receiver: string, baseUrl: string, apiKey: string): Unit => {
+export const federateSignal = (receiver: string, baseUrl: string, apiKey: string): Actor => {
   const base = baseUrl.replace(/\/$/, '')
   const headers = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${apiKey}`,
   }
 
-  return unit(receiver).on('default', async (data) => {
+  return actor(receiver).on('default', async (data) => {
     const res = await fetch(`${base}/api/signal`, {
       method: 'POST',
       headers,

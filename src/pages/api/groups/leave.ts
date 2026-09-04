@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ request }) => {
   let role: string | undefined
   try {
     const rows = await readParsed(`
-      match $g isa group, has gid "${esc(gid)}"; $u isa unit, has uid "${esc(ctx.user)}";
+      match $g isa group, has gid "${esc(gid)}"; $u isa actor, has aid "${esc(ctx.user)}";
       (group: $g, member: $u) isa membership, has member-role $r;
       select $r;
     `)
@@ -50,7 +50,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
-    writeSilent(`match $g isa group, has gid "${esc(gid)}"; $u isa unit, has uid "${esc(ctx.user)}";
+    writeSilent(`match $g isa group, has gid "${esc(gid)}"; $u isa actor, has aid "${esc(ctx.user)}";
       $m (group: $g, member: $u) isa membership; delete $m isa membership;`)
     return Response.json({ ok: true })
   } catch {

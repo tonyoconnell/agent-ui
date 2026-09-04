@@ -8,17 +8,17 @@ import { getAllTags, getNet, getUnitMeta } from '@/lib/net'
 
 export const GET: APIRoute = async () => {
   const net = await getNet()
-  const units = getUnitMeta()
+  const actors = getUnitMeta()
   const tags = getAllTags()
 
-  const unitList = Object.values(units)
+  const unitList = Object.values(actors)
   const highwayEdges = net.highways(500)
   const totalRevenue = Object.values(net.revenue).reduce((s, v) => s + v, 0)
   const gdp = highwayEdges.reduce((s, e) => s + (net.revenue[e.path] || 0), 0)
 
   return new Response(
     JSON.stringify({
-      units: {
+      actors: {
         total: unitList.length,
         proven: unitList.filter((u) => u.status === 'proven').length,
         atRisk: unitList.filter((u) => u.status === 'at-risk').length,

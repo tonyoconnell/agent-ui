@@ -48,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
   // Look up capability and price
   const capRows = await readParsed(`
     match
-      $u isa unit, has uid "${provider}";
+      $u isa actor, has aid "${provider}";
       $s isa skill, has skill-id "${skillId}";
       $c (provider: $u, offered: $s) isa capability, has price $capPrice;
     select $capPrice;
@@ -62,7 +62,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   // Look up provider Sui address (separate query — optional field)
   const suiRows = await readParsed(`
-    match $u isa unit, has uid "${provider}", has sui-unit-id $suiId;
+    match $u isa actor, has aid "${provider}", has sui-unit-id $suiId;
     select $suiId;
   `).catch(() => [] as unknown[])
 
@@ -85,7 +85,7 @@ export const POST: APIRoute = async ({ request }) => {
       // Payment verified — deposit pheromone and continue to hire below
       net.mark(pathKey, price)
       writeSilent(`
-        match $p isa path, has from-unit "${buyer}", has to-unit "${provider}", has strength $s;
+        match $p isa path, has from-actor "${buyer}", has to-actor "${provider}", has strength $s;
         delete $p has strength $s;
         insert $p has strength ($s + ${price});
       `)
@@ -111,11 +111,11 @@ export const POST: APIRoute = async ({ request }) => {
 
   writeSilent(`insert $g isa group, has gid "${groupId}", has name "hire:${provider}", has tag "hire";`)
   writeSilent(`
-    match $g isa group, has gid "${groupId}"; $b isa unit, has uid "${buyer}";
+    match $g isa group, has gid "${groupId}"; $b isa actor, has aid "${buyer}";
     insert (member: $b, group: $g) isa membership, has member-role "buyer";
   `)
   writeSilent(`
-    match $g isa group, has gid "${groupId}"; $p isa unit, has uid "${provider}";
+    match $g isa group, has gid "${groupId}"; $p isa actor, has aid "${provider}";
     insert (member: $p, group: $g) isa membership, has member-role "provider";
   `)
 
@@ -123,7 +123,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (initialMessage) {
     const ts = new Date().toISOString().replace('Z', '')
     writeSilent(`
-      match $p isa unit, has uid "${provider}";
+      match $p isa actor, has aid "${provider}";
       insert (sender: $p, receiver: $p) isa signal,
         has data ${JSON.stringify(JSON.stringify({ tags: ['hire', 'initial'], content: initialMessage, groupId }))},
         has success true,

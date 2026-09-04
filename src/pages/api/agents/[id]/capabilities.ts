@@ -25,7 +25,7 @@ export const POST: APIRoute = async ({ params, request }) => {
 
   // Verify agent exists
   const existing = await readParsed(`
-    match $u isa unit, has uid "${uid}"; select $u;
+    match $u isa actor, has aid "${uid}"; select $u;
   `).catch(() => [])
 
   if (existing.length === 0) {
@@ -56,7 +56,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     // Create capability relation
     await write(`
       match
-        $u isa unit, has uid "${uid}";
+        $u isa actor, has aid "${uid}";
         $s isa skill, has skill-id "${tid}";
       insert
         (provider: $u, offered: $s) isa capability,

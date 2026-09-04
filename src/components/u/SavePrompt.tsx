@@ -28,11 +28,11 @@ export function SavePrompt({ onSave, onDismiss, isDismissable = false }: SavePro
   }
 
   return (
-    <Card className="w-full max-w-sm bg-[#161622] border-[#252538] text-white shadow-xl">
+    <Card className="w-full max-w-sm bg-card border-border text-font shadow-xl">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3 mb-1">
           {/* Touch ID icon */}
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#252538]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -41,35 +41,35 @@ export function SavePrompt({ onSave, onDismiss, isDismissable = false }: SavePro
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-5 w-5 text-indigo-400"
+              className="h-5 w-5 text-secondary-bright"
               aria-hidden="true"
             >
               <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04.054-.09A13.916 13.916 0 0 0 8 11a4 4 0 1 1 8 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0 0 15.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 0 0 8 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
             </svg>
           </div>
-          <CardTitle className="text-base font-semibold text-white">Save this wallet with Touch ID?</CardTitle>
+          <CardTitle className="text-base font-semibold text-foreground">Save this wallet with Touch ID?</CardTitle>
         </div>
-        <CardDescription className="text-slate-400 text-sm leading-relaxed">
+        <CardDescription className="text-muted-foreground text-sm leading-relaxed">
           One tap to protect your wallet. You'll also get your recovery phrase to keep offline.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="pb-2">
-        <ul className="space-y-1.5 text-sm text-slate-400">
+        <ul className="space-y-1.5 text-sm text-muted-foreground">
           <li className="flex items-center gap-2">
-            <span className="text-indigo-400" aria-hidden="true">
+            <span className="text-secondary-bright" aria-hidden="true">
               ✓
             </span>
             Secured by your device biometrics
           </li>
           <li className="flex items-center gap-2">
-            <span className="text-indigo-400" aria-hidden="true">
+            <span className="text-secondary-bright" aria-hidden="true">
               ✓
             </span>
             BIP39 recovery phrase shown once
           </li>
           <li className="flex items-center gap-2">
-            <span className="text-indigo-400" aria-hidden="true">
+            <span className="text-secondary-bright" aria-hidden="true">
               ✓
             </span>
             No account or password needed
@@ -79,7 +79,7 @@ export function SavePrompt({ onSave, onDismiss, isDismissable = false }: SavePro
 
       <CardFooter className="flex flex-col gap-2 pt-4">
         <Button
-          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium"
+          className="w-full bg-[hsl(var(--color-secondary-bright))] hover:bg-[hsl(var(--color-secondary-mid))] text-background font-medium"
           onClick={handleSave}
           disabled={saving}
           aria-busy={saving}
@@ -91,7 +91,7 @@ export function SavePrompt({ onSave, onDismiss, isDismissable = false }: SavePro
           <button
             type="button"
             onClick={handleDismiss}
-            className="text-sm text-slate-500 hover:text-slate-300 transition-colors py-1"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
           >
             Not now
           </button>

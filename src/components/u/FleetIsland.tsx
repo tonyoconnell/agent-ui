@@ -164,7 +164,13 @@ function FleetNodeCard({ node }: FleetNodeCardProps) {
               <div
                 className={cn(
                   'h-1.5 rounded-full transition-all',
-                  paused ? 'bg-muted-foreground/40' : pct >= 90 ? 'bg-destructive' : pct >= 60 ? 'bg-gold' : 'bg-[hsl(var(--color-primary-bright))]',
+                  paused
+                    ? 'bg-muted-foreground/40'
+                    : pct >= 90
+                      ? 'bg-destructive'
+                      : pct >= 60
+                        ? 'bg-gold'
+                        : 'bg-[hsl(var(--color-primary-bright))]',
                 )}
                 style={{ width: `${Math.min(pct, 100)}%` }}
                 role="progressbar"
@@ -276,7 +282,7 @@ export function FleetIsland() {
         {error && (
           <div
             role="alert"
-            className="flex items-center gap-2 rounded-lg border border-red-800/40 bg-red-950/30 px-4 py-3 text-red-400 text-sm"
+            className="flex items-center gap-2 rounded-lg border border-[hsl(var(--color-destructive)_/_0.4)] bg-[hsl(var(--color-destructive)_/_0.15)] px-4 py-3 text-[hsl(var(--color-destructive))] text-sm"
           >
             <AlertCircle className="w-4 h-4 shrink-0" />
             {error}

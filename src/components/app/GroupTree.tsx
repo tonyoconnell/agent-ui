@@ -80,18 +80,22 @@ export function GroupTree({ groupId, onSelect }: Props) {
 
   if (loading) {
     return (
-      <div className="h-full overflow-y-auto py-2 px-3 text-sm text-zinc-500">
+      <div className="h-full overflow-y-auto py-2 px-3 text-sm text-muted-foreground">
         <div className="animate-pulse space-y-2">
-          <div className="h-4 bg-zinc-800 rounded w-3/4" />
-          <div className="h-4 bg-zinc-800 rounded w-1/2" />
-          <div className="h-4 bg-zinc-800 rounded w-2/3" />
+          <div className="h-4 bg-muted rounded w-3/4" />
+          <div className="h-4 bg-muted rounded w-1/2" />
+          <div className="h-4 bg-muted rounded w-2/3" />
         </div>
       </div>
     )
   }
 
   if (error) {
-    return <div className="h-full overflow-y-auto py-2 px-3 text-sm text-red-400">Error: {error}</div>
+    return (
+      <div className="h-full overflow-y-auto py-2 px-3 text-sm text-[hsl(var(--color-destructive))]">
+        Error: {error}
+      </div>
+    )
   }
 
   return (
@@ -111,22 +115,24 @@ export function GroupTree({ groupId, onSelect }: Props) {
               }}
               className={[
                 'w-full text-left flex items-center gap-1 py-1 px-2 rounded',
-                'hover:bg-zinc-800 transition-colors',
-                isActive ? 'border-l-2 border-blue-500 pl-[6px] text-zinc-100 font-bold' : 'text-zinc-300 font-bold',
+                'hover:bg-muted transition-colors',
+                isActive
+                  ? 'border-l-2 border-[hsl(var(--color-primary-bright))] pl-[6px] text-font font-bold'
+                  : 'text-foreground font-bold',
               ].join(' ')}
             >
-              <span className="text-zinc-500 w-3 shrink-0">{hasMembers ? (isOpen ? '▼' : '▶') : ' '}</span>
+              <span className="text-muted-foreground w-3 shrink-0">{hasMembers ? (isOpen ? '▼' : '▶') : ' '}</span>
               <span className="truncate">{group.name}</span>
             </button>
 
             {isOpen && hasMembers && (
-              <div className="ml-4 border-l border-zinc-700 pl-2">
+              <div className="ml-4 border-l border-border pl-2">
                 {(group.members ?? []).map((member) => (
                   <button
                     key={member}
                     type="button"
                     onClick={() => onSelect(member, 'actor')}
-                    className="w-full text-left py-1 px-2 rounded text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors truncate block"
+                    className="w-full text-left py-1 px-2 rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors truncate block"
                   >
                     {member}
                   </button>
@@ -137,7 +143,7 @@ export function GroupTree({ groupId, onSelect }: Props) {
         )
       })}
 
-      {groups.length === 0 && <div className="text-zinc-600 py-1 px-2">No groups</div>}
+      {groups.length === 0 && <div className="text-muted-foreground/50 py-1 px-2">No groups</div>}
     </div>
   )
 }

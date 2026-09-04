@@ -1,0 +1,17 @@
+---
+import { Fingerprint } from '@/components/icons/security'
+
+interface Props {
+  size?: number
+}
+
+const { size = 180 } = Astro.props
+---
+
+<div class="relative inline-flex items-center justify-center brand-primary">
+  <div
+    class="absolute inset-0 rounded-full blur-3xl opacity-40"
+    style="background: hsl(var(--color-primary-bright) / 0.6); transform: scale(0.7);"
+  ></div>
+  <Fingerprint size={size} />
+</div>

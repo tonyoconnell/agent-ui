@@ -27,11 +27,11 @@ export function GroupSwitcher({ value, onChange, agents }: Props) {
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[10px] uppercase tracking-wider text-slate-500">group</span>
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">group</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded border border-[#252538] bg-[#161622] px-2 py-1 text-xs text-slate-200 focus:border-[#3b82f6] focus:outline-none"
+        className="rounded border border-border bg-card px-2 py-1 text-xs text-font focus:border-primary-bright focus:outline-none"
       >
         {groups.map((g) => (
           <option key={g} value={g}>

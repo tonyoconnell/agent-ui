@@ -23,7 +23,7 @@ function makeRequest(gid: string, body: unknown) {
 describe('POST /api/g/[gid]/signal', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('dissolves (404) when unit is not a group member', async () => {
+  it('dissolves (404) when actor is not a group member', async () => {
     mockReadParsed.mockResolvedValueOnce([]) // no membership row
 
     const res = await POST(makeRequest('acme', { receiver: 'stranger:task' }))
@@ -38,11 +38,11 @@ describe('POST /api/g/[gid]/signal', () => {
     expect(res.status).toBe(400)
   })
 
-  it('checks membership using the unit id segment before the colon', async () => {
+  it('checks membership using the actor id segment before the colon', async () => {
     mockReadParsed.mockResolvedValueOnce([]) // member not found → 404
     await POST(makeRequest('acme', { receiver: 'marketing:cmo:write' }))
     const tql = mockReadParsed.mock.calls[0][0] as string
-    // unit id extracted from 'marketing:cmo:write' → 'marketing'
+    // actor id extracted from 'marketing:cmo:write' → 'marketing'
     expect(tql).toContain('"marketing"')
     expect(tql).toContain('"acme"')
     expect(tql).toContain('membership')

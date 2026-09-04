@@ -1,8 +1,8 @@
 /**
- * CHAIRMAN — Wire recursive org-building handlers onto the CEO unit.
+ * CHAIRMAN — Wire recursive org-building handlers onto the CEO actor.
  *
  * registerChairman(net) wires hire + build-team on the CEO.
- * registerHire(net, uid) wires hire on any unit (enables recursion).
+ * registerHire(net, uid) wires hire on any actor (enables recursion).
  *
  * Closed loop: mark on result, warn(0.5) on dissolved (no template).
  */
@@ -24,9 +24,9 @@ async function loadRole(role: string): Promise<string | null> {
 }
 
 export function registerHire(net: World | PersistentWorld, uid: string): void {
-  const unit = net.has(uid) ? net.get(uid)! : net.add(uid)
+  const actor = net.has(uid) ? net.get(uid)! : net.add(uid)
 
-  unit.on('hire', async (data, emit) => {
+  actor.on('hire', async (data, emit) => {
     const d = data as { role?: string; spec?: string } | null
     const role = d?.role ?? ''
     if (!role) return
@@ -46,7 +46,7 @@ export function registerHire(net: World | PersistentWorld, uid: string): void {
     net.mark(edge, 1) // pheromone: hiring path strengthens on success
 
     const msg = {
-      type: 'unit-hired' as const,
+      type: 'actor-hired' as const,
       uid: hired,
       role,
       wallet: (spec as { wallet?: string | null }).wallet ?? null,
@@ -56,7 +56,7 @@ export function registerHire(net: World | PersistentWorld, uid: string): void {
     wsManager.broadcast(msg)
     relayToGateway(msg)
 
-    registerHire(net, hired) // recursion: hired unit inherits hire skill
+    registerHire(net, hired) // recursion: hired actor inherits hire skill
     return hired
   })
 }
@@ -64,7 +64,7 @@ export function registerHire(net: World | PersistentWorld, uid: string): void {
 export function registerChairman(net: World | PersistentWorld): void {
   const ceoId = 'ceo'
 
-  // Wire hire skill (same recursive primitive as every other unit)
+  // Wire hire skill (same recursive primitive as every other actor)
   registerHire(net, ceoId)
 
   // Wire build-team on top — CEO-specific fan-out

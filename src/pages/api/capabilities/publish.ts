@@ -4,7 +4,7 @@
  * Body: { skillId, name, price, mode?, visibility?, tags?, rubricThresholds? }
  *
  * 1. Insert skill if not exists (match→insert with price update, catch→full insert).
- * 2. Insert capability relation (provider unit → offered skill) with price.
+ * 2. Insert capability relation (provider actor → offered skill) with price.
  * mode, visibility, rubricThresholds stored as tags on the skill (schema has no dedicated attrs).
  */
 import type { APIRoute } from 'astro'
@@ -84,10 +84,10 @@ export const POST: APIRoute = async ({ request }) => {
       `),
     )
 
-    // Insert capability relation: provider unit → offered skill
+    // Insert capability relation: provider actor → offered skill
     await writeSilent(`
       match
-        $u isa unit, has uid "${q(providerUid)}";
+        $u isa actor, has aid "${q(providerUid)}";
         $s isa skill, has skill-id "${q(skillId)}";
       insert (provider: $u, offered: $s) isa capability, has price ${price};
     `)

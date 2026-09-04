@@ -1,0 +1,16 @@
+---
+interface Props {
+  quote: string
+  attribution?: string
+  family?: 'primary' | 'secondary' | 'tertiary'
+}
+
+const { quote, attribution, family = 'primary' } = Astro.props
+---
+
+<aside class="my-32 text-center max-w-3xl mx-auto px-6">
+  <p class:list={['text-4xl sm:text-6xl font-bold tracking-tight leading-[1.1]', `brand-${family}`]}>
+    "{quote}"
+  </p>
+  {attribution && <p class="eyebrow mt-6">{attribution}</p>}
+</aside>

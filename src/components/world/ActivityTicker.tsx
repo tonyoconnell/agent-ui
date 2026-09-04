@@ -8,7 +8,7 @@
  * - Max 10 visible rows
  * - New rows prepend from left
  * - Old rows push off right
- * - Click to focus source unit
+ * - Click to focus source actor
  * - Colour coding: green/red/grey by outcome
  * - Revenue indicator: +/- with icon
  */
@@ -81,7 +81,7 @@ export function ActivityTicker({ onFocusUnit, maxVisible = 10 }: ActivityTickerP
         }}
       >
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-slate-600 animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse" />
           <span>Waiting for signals...</span>
         </div>
         <span className="text-xs" style={{ color: `${skin.colors.muted}60` }}>

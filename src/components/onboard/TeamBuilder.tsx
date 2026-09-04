@@ -181,34 +181,34 @@ export function TeamBuilder() {
     <div className="mx-auto max-w-2xl">
       <div className="mb-10 text-center">
         <h1 className="text-4xl font-bold tracking-tight text-white">Build a Team</h1>
-        <p className="mt-3 text-lg text-slate-400">group + actors + flow + signal</p>
+        <p className="mt-3 text-lg text-muted-foreground">group + actors + flow + signal</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 1. Team Name */}
-        <div className="rounded-xl border border-[#252538] bg-[#161622] p-6 space-y-4">
+        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-white">1. Name the group</h2>
           <Input
             value={teamName}
             onChange={(e) => setTeamName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
             placeholder="marketing, research, engineering..."
             required
-            className="bg-[#0f0f17] border-[#353548] text-white placeholder:text-slate-600 h-11 font-mono"
+            className="bg-muted border-border text-white placeholder:text-muted-foreground h-11 font-mono"
           />
 
           {/* Templates */}
           <div className="space-y-2">
-            <p className="text-sm text-slate-500">Or start from a template:</p>
+            <p className="text-sm text-muted-foreground">Or start from a template:</p>
             <div className="flex flex-wrap gap-2">
               {Object.entries(TEMPLATES).map(([key, t]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => applyTemplate(key)}
-                  className="rounded-lg border border-[#353548] bg-[#0f0f17] px-3 py-2 text-left transition-colors hover:border-violet-500/50 hover:bg-violet-500/5"
+                  className="rounded-lg border border-border bg-muted px-3 py-2 text-left transition-colors hover:border-[hsl(var(--color-secondary-bright)/0.5)] hover:bg-[hsl(var(--color-secondary-bright)/0.05)]"
                 >
                   <span className="block text-sm font-medium text-white">{key}</span>
-                  <span className="block text-xs text-slate-500">{t.description}</span>
+                  <span className="block text-xs text-muted-foreground">{t.description}</span>
                 </button>
               ))}
             </div>
@@ -216,38 +216,38 @@ export function TeamBuilder() {
         </div>
 
         {/* 2. Add Agents */}
-        <div className="rounded-xl border border-[#252538] bg-[#161622] p-6 space-y-4">
+        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-white">2. Add agents</h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Agent name</label>
+              <label className="text-sm font-medium text-foreground">Agent name</label>
               <Input
                 value={agentName}
                 onChange={(e) => setAgentName(e.target.value)}
                 placeholder="strategist"
-                className="bg-[#0f0f17] border-[#353548] text-white placeholder:text-slate-600"
+                className="bg-muted border-border text-white placeholder:text-muted-foreground"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Task</label>
+              <label className="text-sm font-medium text-foreground">Task</label>
               <Input
                 value={agentTask}
                 onChange={(e) => setAgentTask(e.target.value)}
                 placeholder="plan"
-                className="bg-[#0f0f17] border-[#353548] text-white placeholder:text-slate-600"
+                className="bg-muted border-border text-white placeholder:text-muted-foreground"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Emits to</label>
+              <label className="text-sm font-medium text-foreground">Emits to</label>
               {agents.length > 0 ? (
                 <select
                   value={agentEmitsTo}
                   onChange={(e) => setAgentEmitsTo(e.target.value)}
-                  className="h-9 w-full rounded-md border border-[#353548] bg-[#0f0f17] px-3 text-sm text-white"
+                  className="h-9 w-full rounded-md border border-border bg-muted px-3 text-sm text-white"
                 >
                   <option value="">— end of chain —</option>
                   {agents.map((a) => (
@@ -261,16 +261,16 @@ export function TeamBuilder() {
                   value={agentEmitsTo}
                   onChange={(e) => setAgentEmitsTo(e.target.value)}
                   placeholder="next-agent:task (or leave empty)"
-                  className="bg-[#0f0f17] border-[#353548] text-white placeholder:text-slate-600"
+                  className="bg-muted border-border text-white placeholder:text-muted-foreground"
                 />
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Model</label>
+              <label className="text-sm font-medium text-foreground">Model</label>
               <select
                 value={agentModel}
                 onChange={(e) => setAgentModel(e.target.value)}
-                className="h-9 w-full rounded-md border border-[#353548] bg-[#0f0f17] px-3 text-sm text-white"
+                className="h-9 w-full rounded-md border border-border bg-muted px-3 text-sm text-white"
               >
                 {MODELS.map((m) => (
                   <option key={m} value={m}>
@@ -286,7 +286,7 @@ export function TeamBuilder() {
             onClick={addAgent}
             disabled={!agentName || !agentTask}
             variant="outline"
-            className="w-full border-dashed border-[#353548] text-slate-400 hover:text-white hover:border-violet-500"
+            className="w-full border-dashed border-border text-muted-foreground hover:text-white hover:border-[hsl(var(--color-secondary-bright))]"
           >
             + Add agent
           </Button>
@@ -294,35 +294,41 @@ export function TeamBuilder() {
 
         {/* Agent List */}
         {agents.length > 0 && (
-          <div className="rounded-xl border border-[#252538] bg-[#161622] p-6 space-y-4">
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
             <h2 className="text-lg font-semibold text-white">
-              Agents <span className="text-slate-500 text-sm font-normal">({agents.length})</span>
+              Agents <span className="text-muted-foreground text-sm font-normal">({agents.length})</span>
             </h2>
 
             <div className="space-y-2">
               {agents.map((agent, i) => (
                 <div
                   key={agent.name}
-                  className="flex items-center justify-between rounded-lg border border-[#353548] bg-[#0f0f17] px-4 py-3"
+                  className="flex items-center justify-between rounded-lg border border-border bg-muted px-4 py-3"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="text-sm font-mono text-white">{agent.name}</span>
-                    <Badge variant="outline" className="border-violet-500/30 text-violet-400 text-xs">
+                    <Badge
+                      variant="outline"
+                      className="border-[hsl(var(--color-secondary-bright)/0.3)] text-[hsl(var(--color-secondary-bright))] text-xs"
+                    >
                       {agent.task}
                     </Badge>
-                    <Badge variant="outline" className="border-slate-600 text-slate-500 text-xs">
+                    <Badge
+                      variant="outline"
+                      className="border-[hsl(var(--color-border))] text-muted-foreground text-xs"
+                    >
                       {agent.model}
                     </Badge>
                     {agent.emitsTo && (
-                      <span className="text-xs text-slate-500">
-                        → <span className="text-emerald-400 font-mono">{agent.emitsTo}</span>
+                      <span className="text-xs text-muted-foreground">
+                        → <span className="text-[hsl(var(--color-tertiary-bright))] font-mono">{agent.emitsTo}</span>
                       </span>
                     )}
                   </div>
                   <button
                     type="button"
                     onClick={() => removeAgent(i)}
-                    className="text-slate-500 hover:text-red-400 transition-colors text-sm ml-2 shrink-0"
+                    className="text-muted-foreground hover:text-[hsl(var(--color-destructive))] transition-colors text-sm ml-2 shrink-0"
                   >
                     remove
                   </button>
@@ -334,15 +340,15 @@ export function TeamBuilder() {
 
         {/* 3. Flow Preview */}
         {chains && chains.length > 0 && (
-          <div className="rounded-xl border border-[#252538] bg-[#161622] p-6 space-y-4">
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
             <h2 className="text-lg font-semibold text-white">3. Signal flow</h2>
             <div className="space-y-3">
               {chains.map((chain, ci) => (
                 <div key={ci} className="flex items-center gap-2 flex-wrap font-mono text-sm">
                   {chain.map((node, ni) => (
                     <span key={node} className="flex items-center gap-2">
-                      {ni > 0 && <span className="text-violet-500">→</span>}
-                      <span className="rounded bg-violet-500/10 border border-violet-500/20 px-2 py-1 text-violet-300">
+                      {ni > 0 && <span className="text-[hsl(var(--color-secondary-bright))]">→</span>}
+                      <span className="rounded bg-[hsl(var(--color-secondary-bright)/0.1)] border border-[hsl(var(--color-secondary-bright)/0.2)] px-2 py-1 text-[hsl(var(--color-secondary-bright))]">
                         {node}
                       </span>
                     </span>
@@ -350,22 +356,22 @@ export function TeamBuilder() {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               Pheromone accumulates on each edge. Paths that work become highways.
             </p>
           </div>
         )}
 
         {/* 4. Brief */}
-        <div className="rounded-xl border border-[#252538] bg-[#161622] p-6 space-y-4">
+        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
           <h2 className="text-lg font-semibold text-white">4. First signal</h2>
-          <p className="text-sm text-slate-400">The brief that starts the chain. Sent to the first agent.</p>
+          <p className="text-sm text-muted-foreground">The brief that starts the chain. Sent to the first agent.</p>
           <Textarea
             value={brief}
             onChange={(e) => setBrief(e.target.value)}
             placeholder="Q2 product launch campaign for developer tools..."
             rows={3}
-            className="bg-[#0f0f17] border-[#353548] text-white placeholder:text-slate-600 resize-none"
+            className="bg-muted border-border text-white placeholder:text-muted-foreground resize-none"
           />
         </div>
 
@@ -373,30 +379,40 @@ export function TeamBuilder() {
         <Button
           type="submit"
           disabled={!teamName || agents.length < 2 || isPending}
-          className="w-full h-12 text-base font-semibold bg-violet-600 hover:bg-violet-500 text-white"
+          className="w-full h-12 text-base font-semibold bg-[hsl(var(--color-secondary-bright))] hover:bg-[hsl(var(--color-secondary-mid))] text-white"
         >
           {isPending ? 'Creating team...' : `Deploy ${teamName || 'team'} (${agents.length} agents)`}
         </Button>
 
         {/* Result */}
         {result?.ok && (
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-5 text-center space-y-2">
-            <p className="text-emerald-400 font-medium text-lg">Team deployed</p>
-            <p className="text-sm text-slate-400">
+          <div className="rounded-lg border border-[hsl(var(--color-tertiary-bright)/0.3)] bg-[hsl(var(--color-tertiary-bright)/0.1)] p-5 text-center space-y-2">
+            <p className="text-[hsl(var(--color-tertiary-bright))] font-medium text-lg">Team deployed</p>
+            <p className="text-sm text-muted-foreground">
               Group: <span className="font-mono text-white">{result.group}</span>
             </p>
             <div className="flex justify-center gap-2 flex-wrap">
               {result.agents?.map((a) => (
-                <Badge key={a} variant="outline" className="border-emerald-500/30 text-emerald-400">
+                <Badge
+                  key={a}
+                  variant="outline"
+                  className="border-[hsl(var(--color-tertiary-bright)/0.3)] text-[hsl(var(--color-tertiary-bright))]"
+                >
                   {a}
                 </Badge>
               ))}
             </div>
             <div className="flex justify-center gap-4 mt-3 text-sm">
-              <a href="/world" className="text-violet-400 hover:text-violet-300 transition-colors">
+              <a
+                href="/world"
+                className="text-[hsl(var(--color-secondary-bright))] hover:text-[hsl(var(--color-secondary-mid))] transition-colors"
+              >
                 View world
               </a>
-              <a href="/tasks" className="text-violet-400 hover:text-violet-300 transition-colors">
+              <a
+                href="/tasks"
+                className="text-[hsl(var(--color-secondary-bright))] hover:text-[hsl(var(--color-secondary-mid))] transition-colors"
+              >
                 View tasks
               </a>
             </div>
@@ -404,17 +420,17 @@ export function TeamBuilder() {
         )}
 
         {result?.error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-center">
-            <p className="text-red-400 font-medium">{result.error}</p>
+          <div className="rounded-lg border border-[hsl(var(--color-destructive)/0.3)] bg-[hsl(var(--color-destructive)/0.1)] p-4 text-center">
+            <p className="text-[hsl(var(--color-destructive))] font-medium">{result.error}</p>
           </div>
         )}
       </form>
 
       {/* DSL Preview */}
       {agents.length >= 2 && (
-        <div className="mt-8 rounded-xl border border-[#252538] bg-[#161622] p-6 space-y-3">
-          <h3 className="text-sm font-medium text-slate-500">DSL equivalent</h3>
-          <pre className="text-xs font-mono text-slate-400 overflow-x-auto leading-relaxed">
+        <div className="mt-8 rounded-xl border border-border bg-card p-6 space-y-3">
+          <h3 className="text-sm font-medium text-muted-foreground">DSL equivalent</h3>
+          <pre className="text-xs font-mono text-muted-foreground overflow-x-auto leading-relaxed">
             {`const w = world({ persist: typedb() })
 
 w.group('${teamName}', 'team')
@@ -451,16 +467,16 @@ w.signal({ receiver: '${agents[0].name}:${agents[0].task}', data: { brief: '...'
       )}
 
       {/* Links */}
-      <div className="mt-12 flex justify-center gap-6 text-sm text-slate-500">
-        <a href="/build" className="hover:text-violet-400 transition-colors">
+      <div className="mt-12 flex justify-center gap-6 text-sm text-muted-foreground">
+        <a href="/build" className="hover:text-[hsl(var(--color-secondary-bright))] transition-colors">
           Build single agent
         </a>
         <span>|</span>
-        <a href="/discover" className="hover:text-violet-400 transition-colors">
+        <a href="/discover" className="hover:text-[hsl(var(--color-secondary-bright))] transition-colors">
           Discover agents
         </a>
         <span>|</span>
-        <a href="/world" className="hover:text-violet-400 transition-colors">
+        <a href="/world" className="hover:text-[hsl(var(--color-secondary-bright))] transition-colors">
           View world
         </a>
       </div>

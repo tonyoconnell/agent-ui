@@ -20,11 +20,11 @@ interface OrgUnit {
 
 function ChairmanPanelContent() {
   const account = useCurrentAccount()
-  const [unit, setUnit] = useState<HiredUnit | null>(null)
+  const [actor, setUnit] = useState<HiredUnit | null>(null)
   const [hiring, setHiring] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [building, setBuilding] = useState(false)
-  const { units: orgUnits, pending, addPending } = useChairmanStream()
+  const { actors: orgUnits, pending, addPending } = useChairmanStream()
   const [selectedRoles, setSelectedRoles] = useState<string[]>(['cto', 'cmo', 'cfo'])
 
   const hireCeo = async () => {
@@ -37,9 +37,9 @@ function ChairmanPanelContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'ceo' }),
       })
-      const data = (await res.json()) as { unit?: HiredUnit; error?: string }
-      if (data.unit) {
-        setUnit(data.unit)
+      const data = (await res.json()) as { actor?: HiredUnit; error?: string }
+      if (data.actor) {
+        setUnit(data.actor)
       } else {
         setError(data.error ?? 'Hire failed')
       }
@@ -70,12 +70,12 @@ function ChairmanPanelContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0a0a0f] text-slate-200">
+    <div className="min-h-screen flex flex-col bg-background text-font">
       {/* Header */}
       <div className="px-8 pt-8 pb-4 shrink-0 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold mb-1">Chairman</h1>
-          <p className="text-slate-500 text-sm">One click. One CEO. The org builds itself.</p>
+          <h1 className="text-2xl font-semibold mb-1 text-font">Chairman</h1>
+          <p className="text-muted-foreground text-sm">One click. One CEO. The org builds itself.</p>
         </div>
         <div className="pt-1">
           <ConnectButton />
@@ -86,24 +86,24 @@ function ChairmanPanelContent() {
       {!account ? (
         /* No wallet — identity gate */
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
-          <p className="text-slate-400 text-sm">Sign in with your Sui wallet to hire the CEO</p>
+          <p className="text-muted-foreground text-sm">Sign in with your Sui wallet to hire the CEO</p>
           <WalletSignIn label="Sign in with Sui" />
         </div>
-      ) : !unit ? (
+      ) : !actor ? (
         /* Wallet connected, pre-hire */
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <p className="text-xs text-slate-600 font-mono">
+          <p className="text-xs text-muted-foreground font-mono">
             {account.address.slice(0, 10)}…{account.address.slice(-8)}
           </p>
           <button
             type="button"
             onClick={hireCeo}
             disabled={hiring}
-            className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl text-sm font-semibold transition-colors shadow-lg shadow-indigo-900/40"
+            className="px-8 py-4 bg-[hsl(var(--color-secondary-bright))] hover:bg-[hsl(var(--color-secondary-bright))]/90 disabled:opacity-50 rounded-xl text-sm font-semibold text-[hsl(var(--color-secondary-foreground))] transition-colors shadow-lg shadow-[hsl(var(--color-secondary-bright))]/20"
           >
             {hiring ? 'Hiring CEO…' : 'Hire CEO'}
           </button>
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
       ) : (
         /* Post-hire: org chart fills remaining height */
@@ -111,28 +111,28 @@ function ChairmanPanelContent() {
           <RoleCatalog selected={selectedRoles} onChange={setSelectedRoles} />
           <div className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 min-h-0">
-              <OrgChart unit={unit} orgUnits={orgUnits} building={building} pending={pending} />
+              <OrgChart actor={actor} orgUnits={orgUnits} building={building} pending={pending} />
             </div>
 
             {/* Controls below chart */}
-            <div className="px-8 py-5 shrink-0 flex items-center gap-4 border-t border-[#1a1a2e]">
+            <div className="px-8 py-5 shrink-0 flex items-center gap-4 border-t border-border">
               {orgUnits.length === 0 && (
                 <button
                   type="button"
                   onClick={buildTeam}
                   disabled={building}
-                  className="px-6 py-2.5 bg-violet-700 hover:bg-violet-600 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
+                  className="px-6 py-2.5 bg-[hsl(var(--color-secondary-bright))] hover:bg-[hsl(var(--color-secondary-bright))]/90 disabled:opacity-50 rounded-lg text-sm font-medium text-[hsl(var(--color-secondary-foreground))] transition-colors"
                 >
                   {building ? 'Building team…' : 'Build Team'}
                 </button>
               )}
               {orgUnits.length > 0 && (
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-muted-foreground">
                   {orgUnits.length} director{orgUnits.length !== 1 ? 's' : ''} hired —{' '}
                   {orgUnits.map((u) => u.uid.replace('roles:', '').toUpperCase()).join(', ')}
                 </span>
               )}
-              {error && <p className="text-sm text-red-400 ml-auto">{error}</p>}
+              {error && <p className="text-sm text-destructive ml-auto">{error}</p>}
             </div>
           </div>
         </div>

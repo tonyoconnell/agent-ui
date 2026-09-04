@@ -103,13 +103,13 @@ export function BuyInChat() {
         brand = brandMatch ? brandMatch[1] : 'Brand'
       }
 
-      // Extract stock (look for "units available" or "stock" text)
+      // Extract stock (look for "actors available" or "stock" text)
       let stock = 0
       const stockText = Array.from(document.querySelectorAll('*')).find(
-        (el) => el.textContent?.includes('units available') || el.textContent?.includes('stock'),
+        (el) => el.textContent?.includes('actors available') || el.textContent?.includes('stock'),
       )
       if (stockText) {
-        const stockMatch = stockText.textContent?.match(/(\d+)\s*units?/i)
+        const stockMatch = stockText.textContent?.match(/(\d+)\s*actors?/i)
         stock = stockMatch ? parseInt(stockMatch[1], 10) : 0
       }
 
@@ -179,7 +179,7 @@ Brand: ${productContext.brand}
 Category: ${productContext.category}
 Price: $${productContext.price.toFixed(2)}
 Description: ${productContext.description}
-Stock: ${productContext.stock} units available${featuresText}
+Stock: ${productContext.stock} actors available${featuresText}
 
 Answer questions about this product, provide recommendations, compare it to alternatives, and help the customer make an informed purchase decision. Be friendly, knowledgeable, and concise. If they ask about shipping, returns, or warranties, mention: Free shipping worldwide, 90-day money-back guarantee, and 3-year warranty.`
         : 'You are a helpful shopping assistant. Answer questions about products and help customers make informed decisions.'
@@ -388,7 +388,7 @@ function generateResponse(question: string, context: ProductContext | null): str
   }
 
   if (lowerQuestion.includes('stock') || lowerQuestion.includes('available')) {
-    return `Great question! We currently have ${context.stock} units in stock. Given the popularity of this fragrance, I'd recommend ordering soon to avoid missing out. We offer free shipping and a 90-day return policy.`
+    return `Great question! We currently have ${context.stock} actors in stock. Given the popularity of this fragrance, I'd recommend ordering soon to avoid missing out. We offer free shipping and a 90-day return policy.`
   }
 
   if (lowerQuestion.includes('price') || lowerQuestion.includes('cost') || lowerQuestion.includes('discount')) {

@@ -1,5 +1,5 @@
 /**
- * LLM — Language model as a unit
+ * LLM — Language model as a actor
  *
  * Deterministic wrapper around the one probabilistic call: retry on transient
  * errors, timeout on hangs, schema-validate the response. Errors are typed
@@ -10,7 +10,7 @@
 import { Duration, Effect, Schedule, Schema } from 'effect'
 import { readParsed } from '@/lib/typedb'
 import { audit, enforcementMode, LLM_ENV_CACHE, LLM_ENV_TTL } from './adl-cache'
-import { type Unit, unit } from './world'
+import { type Actor, actor } from './world'
 
 // ADL: perm-env gate — shared cache from adl-cache.ts (Cycle 1.6 consolidation).
 // Invalidated by `invalidateAdlCache(uid)` on every ADL write path.
@@ -41,7 +41,7 @@ async function canCallLLM(callerId: string): Promise<boolean> {
     return allowed
   }
   const rows = await readParsed(
-    `match $u isa unit, has uid "${callerId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}", has perm-env $pe; select $pe;`,
+    `match $u isa actor, has aid "${callerId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}", has perm-env $pe; select $pe;`,
   ).catch(() => [])
   const access: string[] = []
   if (rows.length) {
@@ -72,8 +72,8 @@ async function canCallLLM(callerId: string): Promise<boolean> {
 
 type Complete = (prompt: string, ctx?: Record<string, unknown>) => Promise<string>
 
-export const llm = (id: string, complete: Complete): Unit => {
-  return unit(id)
+export const llm = (id: string, complete: Complete): Actor => {
+  return actor(id)
     .on('complete', async (d, emit, ctx) => {
       if (!(await canCallLLM(ctx.from))) return { dissolved: true }
       const { prompt, system, history } = d as { prompt: string; system?: string; history?: unknown }

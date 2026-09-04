@@ -10,10 +10,16 @@ interface Props {
 }
 
 const CHIPS: { id: DraftKind; label: string; subtitle: string; color: string; icon: string }[] = [
-  { id: 'person', label: 'Person', subtitle: 'human or agent', color: '#3b82f6', icon: '◯' },
-  { id: 'thing', label: 'Thing', subtitle: 'skill or task', color: '#10b981', icon: '▢' },
-  { id: 'group', label: 'Group', subtitle: 'world or team', color: '#6366f1', icon: '▭' },
-  { id: 'insight', label: 'Insight', subtitle: 'what was learned', color: '#a855f7', icon: '⬡' },
+  { id: 'person', label: 'Person', subtitle: 'human or agent', color: 'hsl(var(--color-primary-bright))', icon: '◯' },
+  { id: 'thing', label: 'Thing', subtitle: 'skill or task', color: 'hsl(var(--color-tertiary-bright))', icon: '▢' },
+  { id: 'group', label: 'Group', subtitle: 'world or team', color: 'hsl(var(--color-primary-bright))', icon: '▭' },
+  {
+    id: 'insight',
+    label: 'Insight',
+    subtitle: 'what was learned',
+    color: 'hsl(var(--color-secondary-bright))',
+    icon: '⬡',
+  },
 ]
 
 export function EditPalette({ visible, enabled, onDragStart }: Props) {
@@ -32,8 +38,8 @@ export function EditPalette({ visible, enabled, onDragStart }: Props) {
 
   return (
     <div
-      className="absolute bottom-4 left-4 z-10 flex gap-1.5 rounded-lg border border-[#252538] bg-[#0d0d14]/95 p-2 backdrop-blur"
-      title={enabled ? 'Drag onto canvas to add' : 'Sign in + edit mode to add units'}
+      className="absolute bottom-4 left-4 z-10 flex gap-1.5 rounded-lg border border-border bg-background/95 p-2 backdrop-blur"
+      title={enabled ? 'Drag onto canvas to add' : 'Sign in + edit mode to add actors'}
     >
       {CHIPS.map((c) => (
         <button
@@ -45,8 +51,8 @@ export function EditPalette({ visible, enabled, onDragStart }: Props) {
           className={cn(
             'flex w-20 flex-col items-start rounded-md border px-2 py-1.5 text-left text-xs transition',
             enabled
-              ? 'border-[#252538] bg-[#161622] text-slate-100 hover:border-[#3b82f6] cursor-grab active:cursor-grabbing'
-              : 'cursor-not-allowed border-transparent bg-transparent text-slate-600',
+              ? 'border-border bg-card text-font hover:border-primary-bright cursor-grab active:cursor-grabbing'
+              : 'cursor-not-allowed border-transparent bg-transparent text-muted-foreground',
           )}
           aria-disabled={!enabled}
         >
@@ -54,7 +60,7 @@ export function EditPalette({ visible, enabled, onDragStart }: Props) {
             {c.icon}
           </span>
           <span className="mt-1 font-medium">{c.label}</span>
-          <span className="text-[10px] text-slate-500">{c.subtitle}</span>
+          <span className="text-[10px] text-muted-foreground">{c.subtitle}</span>
         </button>
       ))}
     </div>

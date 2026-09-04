@@ -75,10 +75,10 @@ function signalOutcome(sig: Record<string, unknown>): 'result' | 'timeout' | 'di
 }
 
 const OUTCOME_COLOR: Record<string, string> = {
-  result: 'text-emerald-400',
-  timeout: 'text-amber-400',
-  dissolved: 'text-sky-400',
-  failure: 'text-red-400',
+  result: 'text-tertiary-bright',
+  timeout: 'text-gold',
+  dissolved: 'text-primary-bright',
+  failure: 'text-destructive',
 }
 
 const CAN_MARK_ROLES = new Set(['chairman', 'ceo', 'operator', 'agent'])
@@ -205,17 +205,17 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
   }
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-[#252538] bg-[#0d0d14] text-slate-200 overflow-y-auto">
+    <aside className="flex w-80 shrink-0 flex-col border-l border-border bg-muted text-font overflow-y-auto">
       {/* Header */}
-      <header className="flex shrink-0 items-center justify-between border-b border-[#252538] px-3 py-2">
-        <span className="text-[10px] uppercase tracking-wider text-slate-500">Inspector</span>
+      <header className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Inspector</span>
         <button
           type="button"
           onClick={() => {
             emitClick('ui:ontology:inspector-close', { node: node.id })
             onClose()
           }}
-          className="rounded px-1.5 py-0.5 text-xs text-slate-400 hover:bg-[#161622] hover:text-slate-100"
+          className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-card hover:text-font"
           aria-label="Close inspector"
         >
           ✕
@@ -225,58 +225,60 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
       {/* Identity row */}
       <div className="shrink-0 space-y-1.5 px-3 py-3 text-xs">
         <div>
-          <span className="text-[10px] uppercase tracking-wider text-slate-500">ID</span>
-          <div className="mt-0.5 break-all font-mono text-slate-200">{node.id}</div>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">ID</span>
+          <div className="mt-0.5 break-all font-mono text-font">{node.id}</div>
         </div>
         <div className="flex gap-4">
           <div>
-            <span className="text-[10px] uppercase tracking-wider text-slate-500">kind</span>
-            <div className="mt-0.5 text-slate-300">{kind}</div>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">kind</span>
+            <div className="mt-0.5 text-foreground">{kind}</div>
           </div>
           {generation !== undefined && (
             <div>
-              <span className="text-[10px] uppercase tracking-wider text-slate-500">gen</span>
-              <div className="mt-0.5 text-slate-300">{generation}</div>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">gen</span>
+              <div className="mt-0.5 text-foreground">{generation}</div>
             </div>
           )}
         </div>
       </div>
 
       {/* Attributes */}
-      <div className="shrink-0 border-t border-[#252538] px-3 py-3 text-xs">
-        <div className="mb-1.5 text-[10px] uppercase tracking-wider text-slate-500">Attributes</div>
+      <div className="shrink-0 border-t border-border px-3 py-3 text-xs">
+        <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">Attributes</div>
 
         {state.loading ? (
-          <div className="text-slate-500 italic">Loading…</div>
+          <div className="text-muted-foreground italic">Loading…</div>
         ) : state.error ? (
-          <div className="text-red-400 text-[11px]">Could not load: {state.error}</div>
+          <div className="text-destructive text-[11px]">Could not load: {state.error}</div>
         ) : !state.record && !attrName ? (
-          <div className="text-slate-500 italic text-[11px]">No record yet — this node may have just been created.</div>
+          <div className="text-muted-foreground italic text-[11px]">
+            No record yet — this node may have just been created.
+          </div>
         ) : (
           <table className="w-full text-[11px]">
             <tbody>
               {attrName && (
                 <tr>
-                  <td className="pr-2 py-0.5 text-slate-500 w-24 align-top">name</td>
-                  <td className="text-slate-200 break-words">{attrName}</td>
+                  <td className="pr-2 py-0.5 text-muted-foreground w-24 align-top">name</td>
+                  <td className="text-font break-words">{attrName}</td>
                 </tr>
               )}
               {attrModel && (
                 <tr>
-                  <td className="pr-2 py-0.5 text-slate-500 align-top">model</td>
-                  <td className="font-mono text-slate-300 break-all">{attrModel}</td>
+                  <td className="pr-2 py-0.5 text-muted-foreground align-top">model</td>
+                  <td className="font-mono text-foreground break-all">{attrModel}</td>
                 </tr>
               )}
               {attrSensitivity !== undefined && (
                 <tr>
-                  <td className="pr-2 py-0.5 text-slate-500 align-top">sensitivity</td>
-                  <td className="text-slate-300">{attrSensitivity}</td>
+                  <td className="pr-2 py-0.5 text-muted-foreground align-top">sensitivity</td>
+                  <td className="text-foreground">{attrSensitivity}</td>
                 </tr>
               )}
               {promptPreview && (
                 <tr>
-                  <td className="pr-2 py-0.5 text-slate-500 align-top">prompt</td>
-                  <td className="text-slate-400 italic break-words">{promptPreview}…</td>
+                  <td className="pr-2 py-0.5 text-muted-foreground align-top">prompt</td>
+                  <td className="text-muted-foreground italic break-words">{promptPreview}…</td>
                 </tr>
               )}
             </tbody>
@@ -288,7 +290,7 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
             {attrTags.map((tag) => (
               <span
                 key={tag}
-                className="rounded bg-[#1a1a2e] px-1.5 py-0.5 text-[10px] text-sky-400 border border-[#252538]"
+                className="rounded bg-card px-1.5 py-0.5 text-[10px] text-primary-bright border border-border"
               >
                 {tag}
               </span>
@@ -298,12 +300,12 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
       </div>
 
       {/* Outgoing paths */}
-      <div className="shrink-0 border-t border-[#252538] px-3 py-3 text-xs">
-        <div className="mb-1.5 text-[10px] uppercase tracking-wider text-slate-500">Outgoing paths (top 5)</div>
+      <div className="shrink-0 border-t border-border px-3 py-3 text-xs">
+        <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">Outgoing paths (top 5)</div>
         {state.loading ? (
-          <div className="text-slate-500 italic">Loading…</div>
+          <div className="text-muted-foreground italic">Loading…</div>
         ) : outgoing.length === 0 ? (
-          <div className="text-slate-600 italic">None yet</div>
+          <div className="text-muted-foreground italic">None yet</div>
         ) : (
           <ul className="space-y-1">
             {outgoing.map((h, i) => {
@@ -312,13 +314,13 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
               return (
                 <li
                   key={i}
-                  className="flex items-center justify-between rounded px-1.5 py-1 hover:bg-[#161622] cursor-pointer"
+                  className="flex items-center justify-between rounded px-1.5 py-1 hover:bg-card cursor-pointer"
                   onClick={() => {
                     emitClick('ui:ontology:edge-click', { from: node.id, to })
                   }}
                 >
-                  <span className="font-mono text-slate-300">→ {to}</span>
-                  <span className="text-slate-500 ml-2 tabular-nums">str {strength.toFixed(1)}</span>
+                  <span className="font-mono text-foreground">→ {to}</span>
+                  <span className="text-muted-foreground ml-2 tabular-nums">str {strength.toFixed(1)}</span>
                 </li>
               )
             })}
@@ -327,12 +329,12 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
       </div>
 
       {/* Recent signals */}
-      <div className="shrink-0 border-t border-[#252538] px-3 py-3 text-xs">
-        <div className="mb-1.5 text-[10px] uppercase tracking-wider text-slate-500">Recent signals (last 5)</div>
+      <div className="shrink-0 border-t border-border px-3 py-3 text-xs">
+        <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">Recent signals (last 5)</div>
         {state.loading ? (
-          <div className="text-slate-500 italic">Loading…</div>
+          <div className="text-muted-foreground italic">Loading…</div>
         ) : recentSignals.length === 0 ? (
-          <div className="text-slate-600 italic">None yet</div>
+          <div className="text-muted-foreground italic">None yet</div>
         ) : (
           <ul className="space-y-1">
             {recentSignals.map((sig, i) => {
@@ -341,9 +343,9 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
               const age = relativeTime(sig.ts ?? sig.timestamp)
               return (
                 <li key={i} className="flex items-center gap-1.5 text-[11px] leading-snug">
-                  <span className="text-slate-500 tabular-nums w-12 shrink-0">{age}</span>
+                  <span className="text-muted-foreground tabular-nums w-12 shrink-0">{age}</span>
                   <span className={cn('shrink-0', OUTCOME_COLOR[outcome])}>{outcome}</span>
-                  <span className="text-slate-400 truncate">{label}</span>
+                  <span className="text-muted-foreground truncate">{label}</span>
                 </li>
               )
             })}
@@ -352,27 +354,29 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
       </div>
 
       {/* On-chain twin */}
-      <div className="shrink-0 border-t border-[#252538] px-3 py-3 text-xs">
-        <div className="mb-1.5 text-[10px] uppercase tracking-wider text-slate-500">On-chain twin</div>
+      <div className="shrink-0 border-t border-border px-3 py-3 text-xs">
+        <div className="mb-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">On-chain twin</div>
         {state.wallet ? (
           <div className="flex items-center justify-between">
-            <span className="font-mono text-slate-300 text-[11px]">{shortenAddress(state.wallet)}</span>
+            <span className="font-mono text-foreground text-[11px]">{shortenAddress(state.wallet)}</span>
             <button
               type="button"
               onClick={handleViewOnSui}
-              className="ml-2 rounded border border-[#252538] bg-[#161622] px-2 py-0.5 text-[10px] text-sky-400 hover:border-sky-500 hover:text-sky-300 transition-colors"
+              className="ml-2 rounded border border-border bg-card px-2 py-0.5 text-[10px] text-primary-bright hover:border-primary-bright hover:text-primary-bright/80 transition-colors"
             >
               View on Sui
             </button>
           </div>
         ) : (
-          <div className="text-slate-600 italic text-[11px]">{state.loading ? 'Loading…' : 'No on-chain twin yet'}</div>
+          <div className="text-muted-foreground italic text-[11px]">
+            {state.loading ? 'Loading…' : 'No on-chain twin yet'}
+          </div>
         )}
       </div>
 
       {/* Actions */}
-      <div className="shrink-0 border-t border-[#252538] px-3 py-3 space-y-1.5">
-        <div className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">Actions</div>
+      <div className="shrink-0 border-t border-border px-3 py-3 space-y-1.5">
+        <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">Actions</div>
 
         {/* Mark path */}
         <button
@@ -391,13 +395,13 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
           className={cn(
             'w-full rounded-md border px-2 py-1.5 text-left text-xs transition',
             canMark && markTarget
-              ? 'border-[#252538] bg-[#161622] text-slate-100 hover:border-[#3b82f6]'
-              : 'cursor-not-allowed border-transparent bg-transparent text-slate-600',
+              ? 'border-border bg-card text-font hover:border-primary-bright'
+              : 'cursor-not-allowed border-transparent bg-transparent text-muted-foreground',
           )}
           aria-disabled={!canMark || !markTarget}
         >
           <div className="font-medium">Mark path</div>
-          <div className="text-[10px] text-slate-500">
+          <div className="text-[10px] text-muted-foreground">
             {!editable
               ? 'Switch to edit mode'
               : !CAN_MARK_ROLES.has(groupRole ?? '')
@@ -425,13 +429,13 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
           className={cn(
             'w-full rounded-md border px-2 py-1.5 text-left text-xs transition',
             canMark && markTarget
-              ? 'border-[#252538] bg-[#161622] text-slate-100 hover:border-amber-500'
-              : 'cursor-not-allowed border-transparent bg-transparent text-slate-600',
+              ? 'border-border bg-card text-font hover:border-gold'
+              : 'cursor-not-allowed border-transparent bg-transparent text-muted-foreground',
           )}
           aria-disabled={!canMark || !markTarget}
         >
           <div className="font-medium">Warn path</div>
-          <div className="text-[10px] text-slate-500">
+          <div className="text-[10px] text-muted-foreground">
             {!editable
               ? 'Switch to edit mode'
               : !CAN_MARK_ROLES.has(groupRole ?? '')
@@ -457,13 +461,13 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
           className={cn(
             'w-full rounded-md border px-2 py-1.5 text-left text-xs transition',
             canMint
-              ? 'border-[#252538] bg-[#161622] text-slate-100 hover:border-emerald-500'
-              : 'cursor-not-allowed border-transparent bg-transparent text-slate-600',
+              ? 'border-border bg-card text-font hover:border-tertiary-bright'
+              : 'cursor-not-allowed border-transparent bg-transparent text-muted-foreground',
           )}
           aria-disabled={!canMint}
         >
           <div className="font-medium">Mint Capability</div>
-          <div className="text-[10px] text-slate-500">
+          <div className="text-[10px] text-muted-foreground">
             {!editable
               ? 'Switch to edit mode'
               : !CAN_MINT_ROLES.has(groupRole ?? '')
@@ -481,13 +485,13 @@ export function InspectorV2({ node, mode, groupRole, onTqlAction, onClose }: Pro
           className={cn(
             'w-full rounded-md border px-2 py-1.5 text-left text-xs transition',
             state.wallet
-              ? 'border-[#252538] bg-[#161622] text-slate-100 hover:border-sky-500'
-              : 'cursor-not-allowed border-transparent bg-transparent text-slate-600',
+              ? 'border-border bg-card text-font hover:border-primary-bright'
+              : 'cursor-not-allowed border-transparent bg-transparent text-muted-foreground',
           )}
           aria-disabled={!state.wallet}
         >
           <div className="font-medium">View on Sui</div>
-          <div className="text-[10px] text-slate-500">
+          <div className="text-[10px] text-muted-foreground">
             {state.wallet ? `Open on suiscan.xyz testnet` : 'No on-chain twin yet'}
           </div>
         </button>

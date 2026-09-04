@@ -9,9 +9,9 @@ const NETWORK_LABEL: Record<Network, string> = {
 }
 
 const NETWORK_DOT: Record<Network, string> = {
-  testnet: 'bg-amber-400',
-  mainnet: 'bg-emerald-400',
-  devnet: 'bg-sky-400',
+  testnet: 'bg-gold',
+  mainnet: 'bg-tertiary-bright',
+  devnet: 'bg-primary-bright',
   offchain: 'bg-white/30',
 }
 

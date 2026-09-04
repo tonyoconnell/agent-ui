@@ -51,7 +51,7 @@ export const GET: APIRoute = async ({ url }) => {
     const unitFallback = () =>
       readParsed(`
         match
-          $u isa unit, has uid $uid, has name $uname, has success-rate $sr;
+          $u isa actor, has aid $uid, has name $uname, has success-rate $sr;
         select $uid, $uname, $sr;
       `).catch(() => [])
 
@@ -63,7 +63,7 @@ export const GET: APIRoute = async ({ url }) => {
       readParsed(`
         match
           (source: $from, target: $to) isa path, has strength $s, has resistance $r;
-          $to has uid $uid;
+          $to has aid $uid;
         select $uid, $s, $r;
       `).catch(() => []),
       new Promise<Array<Record<string, unknown>>>((resolve) => setTimeout(() => resolve([]), 2000)),
@@ -82,12 +82,12 @@ export const GET: APIRoute = async ({ url }) => {
           match
             (provider: $u, offered: $s) isa capability, has price $p;
             $s isa skill, has skill-id $sid, has name $sname;
-            $u has uid $uid;
+            $u has aid $uid;
           select $sid, $sname, $p, $uid;
         `).catch(() => []),
         readParsed(`
           match
-            $u isa unit, has uid $uid, has name $uname;
+            $u isa actor, has aid $uid, has name $uname;
             try { $u has success-rate $sr; };
           select $uid, $uname, $sr;
         `).catch(unitFallback),
@@ -143,7 +143,7 @@ export const GET: APIRoute = async ({ url }) => {
       const price = r.p as number
       const uid = r.uid as string
       const pheromone = pheromoneMap.get(uid) ?? { strength: 0, resistance: 0 }
-      const unit = unitMap.get(uid) ?? { name: uid, successRate: 0.5 }
+      const actor = unitMap.get(uid) ?? { name: uid, successRate: 0.5 }
       const weight = 1 + Math.max(0, pheromone.strength - pheromone.resistance) * SENSITIVITY
       return {
         skillId: r.sid as string,
@@ -151,8 +151,8 @@ export const GET: APIRoute = async ({ url }) => {
         price,
         pricingMode: price > 0 ? 'static' : 'free',
         sellerUid: uid,
-        sellerName: unit.name,
-        successRate: unit.successRate,
+        sellerName: actor.name,
+        successRate: actor.successRate,
         tags: tagMap.get(r.sid as string) ?? [],
         strength: pheromone.strength,
         resistance: pheromone.resistance,

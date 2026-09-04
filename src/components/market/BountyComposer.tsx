@@ -47,38 +47,38 @@ export function BountyComposer({ listing, posterUid, onCreated, onClose }: Props
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4 min-w-[360px]">
-      <h3 className="text-sm font-semibold text-slate-100">Post bounty — {listing.name}</h3>
+      <h3 className="text-sm font-semibold text-font">Post bounty — {listing.name}</h3>
 
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-slate-400">Price (FET)</Label>
+        <Label className="text-xs text-muted-foreground">Price (FET)</Label>
         <Input
           type="number"
           step="0.01"
           min="0"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          className="bg-white/5 border-white/10 text-slate-100"
+          className="bg-white/5 border-white/10 text-font"
           required
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs text-slate-400">
-          Deadline <span className="text-slate-600">(optional)</span>
+        <Label className="text-xs text-muted-foreground">
+          Deadline <span className="text-muted-foreground">(optional)</span>
         </Label>
         <Input
           type="date"
           value={deadline}
           onChange={(e) => setDeadline(e.target.value)}
-          className="bg-white/5 border-white/10 text-slate-100"
+          className="bg-white/5 border-white/10 text-font"
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs text-slate-400">Quality gates (0–1)</span>
+        <span className="text-xs text-muted-foreground">Quality gates (0–1)</span>
         {(['fit', 'form', 'truth', 'taste'] as const).map((dim) => (
           <div key={dim} className="flex items-center gap-3">
-            <span className="w-10 text-xs text-slate-500">{dim}</span>
+            <span className="w-10 text-xs text-muted-foreground">{dim}</span>
             <input
               type="range"
               min="0"
@@ -86,26 +86,28 @@ export function BountyComposer({ listing, posterUid, onCreated, onClose }: Props
               step="0.05"
               value={rubric[dim]}
               onChange={(e) => setRubric((r) => ({ ...r, [dim]: Number(e.target.value) }))}
-              className="flex-1 accent-indigo-500"
+              className="flex-1 accent-[hsl(var(--color-secondary-bright))]"
             />
-            <span className="w-8 text-right text-xs text-slate-400">{rubric[dim].toFixed(2)}</span>
+            <span className="w-8 text-right text-xs text-muted-foreground">{rubric[dim].toFixed(2)}</span>
           </div>
         ))}
       </div>
 
       {error && (
-        <p className="text-xs text-red-400 bg-red-900/20 rounded px-3 py-2 border border-red-700/30">{error}</p>
+        <p className="text-xs text-[hsl(var(--color-destructive))] bg-[hsl(var(--color-destructive)/0.15)] rounded px-3 py-2 border border-[hsl(var(--color-destructive)/0.3)]">
+          {error}
+        </p>
       )}
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={onClose} className="text-slate-400">
+        <Button type="button" variant="ghost" size="sm" onClick={onClose} className="text-muted-foreground">
           Cancel
         </Button>
         <Button
           type="submit"
           size="sm"
           disabled={isPending}
-          className="bg-indigo-600 hover:bg-indigo-500"
+          className="bg-[hsl(var(--color-secondary-bright))] hover:bg-[hsl(var(--color-secondary-mid))]"
           onClick={() =>
             emitClick('ui:market:bounty-submit', {
               type: 'payment',

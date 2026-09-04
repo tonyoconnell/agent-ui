@@ -2,7 +2,7 @@
  * POST /api/board/join
  *
  * Stage 3 (Join Board) of the lifecycle funnel.
- * Creates a membership relation between a unit and a group.
+ * Creates a membership relation between a actor and a group.
  *
  * Body:
  *   { uid: string, group?: string }
@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request }) => {
     const hasPrivilege = ['chairman', 'ceo', 'operator'].includes(gate.role)
     if (!isSelf && !hasPrivilege) {
       return Response.json(
-        { error: 'caller must be the joining unit or have operator+ role', gate: 'stage-3' },
+        { error: 'caller must be the joining actor or have operator+ role', gate: 'stage-3' },
         { status: 403 },
       )
     }
@@ -46,7 +46,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Check if membership already exists (idempotency)
     const existing = await readParsed(`
       match
-        $u isa unit, has uid "${uid}";
+        $u isa actor, has aid "${uid}";
         $g isa group, has gid "${group}";
         $m (group: $g, member: $u) isa membership;
       select $m;
@@ -56,7 +56,7 @@ export const POST: APIRoute = async ({ request }) => {
       // Create membership relation
       await writeSilent(`
         match
-          $u isa unit, has uid "${uid}";
+          $u isa actor, has aid "${uid}";
           $g isa group, has gid "${group}";
         insert
           (group: $g, member: $u) isa membership, has member-role "agent";

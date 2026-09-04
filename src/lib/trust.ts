@@ -11,7 +11,7 @@ export async function isTrustedActor(uid: string): Promise<boolean> {
 
   try {
     const ownRows = await readParsed(`
-      match $u isa unit, has uid "${safeUid}";
+      match $u isa actor, has aid "${safeUid}";
       (member: $u, group: $g) isa membership;
       $g has group-type "owns";
       select $u;
@@ -20,7 +20,7 @@ export async function isTrustedActor(uid: string): Promise<boolean> {
     if (ownRows.length > 0) return true
 
     const revRows = await readParsed(`
-      match $u isa unit, has uid "${safeUid}";
+      match $u isa actor, has aid "${safeUid}";
       (source: $u) isa path, has revenue $r;
       $r > 0.0;
       select $u;
@@ -29,7 +29,7 @@ export async function isTrustedActor(uid: string): Promise<boolean> {
     if (revRows.length > 0) return true
 
     const invRows = await readParsed(`
-      match $u isa unit, has uid "${safeUid}";
+      match $u isa actor, has aid "${safeUid}";
       (member: $u) isa membership, has member-role "invited";
       select $u;
       limit 1;

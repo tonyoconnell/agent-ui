@@ -10,7 +10,7 @@ ONE substrate API. Every endpoint participates in the closed loop.
 
 **Auth:** `Authorization: Bearer <api_key>` on write endpoints. Read endpoints are public unless noted.
 
-**Gate mode (`AUTH_GATE_MODE`):** `audit` (default, logs `security:gate:would-deny` signals but lets requests through) or `enforce` (returns 403 on role/scope denial). See [auth.md § Gate Matrix](auth.md#gate-matrix) and [api-todo.md § Cycle 2](api-todo.md) for the rollout protocol.
+**Gate mode (`AUTH_GATE_MODE`):** `audit` (default, logs `security:gate:would-deny` signals but lets requests through) or `enforce` (returns 403 on role/scope denial). See [auth.md § Gate Matrix](one-ie/dev.one.ie/one/auth.md#gate-matrix) and [api-todo.md § Cycle 2](api-todo.md) for the rollout protocol.
 
 ---
 
@@ -484,7 +484,7 @@ All errors return JSON with an `error` string:
 - [lifecycle.md](lifecycle.md) — substrate-view sibling (REGISTER → HARDEN arc)
 - [api-todo.md](api-todo.md) — 3-cycle roadmap closing every lifecycle gap (WIRE → GATE → COMPLETE)
 - [sdk.md](sdk.md) — SDK contract; every row in Lifecycle Coverage has a matching method
-- [auth.md](auth.md) — Authentication deep-dive, wallet derivation, BetterAuth flows, gate matrix
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — Authentication deep-dive, wallet derivation, BetterAuth flows, gate matrix
 - [TODO-governance.md](TODO-governance.md) — Role × Pheromone permission matrix (feeds the gates)
 - [DSL.md](DSL.md) — Signal grammar: the six verbs
 - [routing.md](routing.md) — How signals find their way

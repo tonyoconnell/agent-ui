@@ -32,28 +32,28 @@ const ResponsiveContainer = lazy(() => import('recharts').then((m) => ({ default
 // Constants
 // ---------------------------------------------------------------------------
 const COLORS = {
-  fit: '#67e8f9',
-  form: '#c084fc',
-  truth: '#6ee7b7',
-  taste: '#fbbf24',
-  verified: '#6ee7b7',
-  failed: '#f87171',
-  dissolved: '#64748b',
-  gate: '#fbbf24',
+  fit: 'hsl(var(--color-primary-bright))',
+  form: 'hsl(var(--color-secondary-bright))',
+  truth: 'hsl(var(--color-tertiary-bright))',
+  taste: 'hsl(var(--color-gold))',
+  verified: 'hsl(var(--color-tertiary-bright))',
+  failed: 'hsl(var(--color-destructive))',
+  dissolved: 'hsl(var(--color-muted-foreground))',
+  gate: 'hsl(var(--color-gold))',
 } as const
 
 const TOOLTIP_STYLE = {
   contentStyle: {
-    backgroundColor: '#0f0f18',
-    border: '1px solid #252538',
+    backgroundColor: 'hsl(var(--color-card))',
+    border: '1px solid hsl(var(--color-border))',
     borderRadius: '0.375rem',
     fontSize: '0.75rem',
-    color: '#e2e8f0',
+    color: 'hsl(var(--color-font))',
   },
 } as const
 
-const TICK_STYLE = { fill: '#94a3b8', fontSize: 11 } as const
-const GRID_PROPS = { stroke: '#252538', strokeDasharray: '2 2' } as const
+const TICK_STYLE = { fill: 'hsl(var(--color-muted-foreground))', fontSize: 11 } as const
+const GRID_PROPS = { stroke: 'hsl(var(--color-border))', strokeDasharray: '2 2' } as const
 
 // ---------------------------------------------------------------------------
 // Derived data shapes
@@ -139,17 +139,21 @@ export function BurndownView({ tasks }: Props) {
       {/* ----------------------------------------------------------------- */}
       {/* RUBRIC TREND                                                        */}
       {/* ----------------------------------------------------------------- */}
-      <section className="rounded-lg border border-[#252538] bg-[#0f0f18] p-3">
-        <h3 className="mb-2 text-sm font-medium text-slate-100">Rubric trend</h3>
+      <section className="rounded-lg border border-border bg-card p-3">
+        <h3 className="mb-2 text-sm font-medium text-font">Rubric trend</h3>
         {hasRubricData ? (
-          <Suspense fallback={<div className="h-[220px] animate-pulse rounded bg-[#1a1a24]" />}>
+          <Suspense fallback={<div className="h-[220px] animate-pulse rounded bg-muted" />}>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={rubricData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid {...GRID_PROPS} />
                 <XAxis dataKey="cycle" tick={TICK_STYLE} axisLine={false} tickLine={false} />
                 <YAxis domain={[0, 1]} tick={TICK_STYLE} axisLine={false} tickLine={false} tickCount={5} width={30} />
                 <Tooltip {...TOOLTIP_STYLE} />
-                <Legend wrapperStyle={{ fontSize: '0.7rem', color: '#94a3b8' }} iconType="circle" iconSize={8} />
+                <Legend
+                  wrapperStyle={{ fontSize: '0.7rem', color: 'hsl(var(--color-muted-foreground))' }}
+                  iconType="circle"
+                  iconSize={8}
+                />
                 <ReferenceLine
                   y={0.65}
                   stroke={COLORS.gate}
@@ -193,7 +197,7 @@ export function BurndownView({ tasks }: Props) {
             </ResponsiveContainer>
           </Suspense>
         ) : (
-          <div className="flex h-[220px] items-center justify-center text-sm text-slate-500">
+          <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
             Rubric data populates after cycle closes
           </div>
         )}
@@ -202,17 +206,21 @@ export function BurndownView({ tasks }: Props) {
       {/* ----------------------------------------------------------------- */}
       {/* VELOCITY                                                            */}
       {/* ----------------------------------------------------------------- */}
-      <section className="rounded-lg border border-[#252538] bg-[#0f0f18] p-3">
-        <h3 className="mb-2 text-sm font-medium text-slate-100">Velocity</h3>
+      <section className="rounded-lg border border-border bg-card p-3">
+        <h3 className="mb-2 text-sm font-medium text-font">Velocity</h3>
         {hasVelocityData ? (
-          <Suspense fallback={<div className="h-[180px] animate-pulse rounded bg-[#1a1a24]" />}>
+          <Suspense fallback={<div className="h-[180px] animate-pulse rounded bg-muted" />}>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={velocityData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid {...GRID_PROPS} vertical={false} />
                 <XAxis dataKey="cycle" tick={TICK_STYLE} axisLine={false} tickLine={false} />
                 <YAxis allowDecimals={false} tick={TICK_STYLE} axisLine={false} tickLine={false} width={30} />
                 <Tooltip {...TOOLTIP_STYLE} />
-                <Legend wrapperStyle={{ fontSize: '0.7rem', color: '#94a3b8' }} iconType="circle" iconSize={8} />
+                <Legend
+                  wrapperStyle={{ fontSize: '0.7rem', color: 'hsl(var(--color-muted-foreground))' }}
+                  iconType="circle"
+                  iconSize={8}
+                />
                 <Bar dataKey="verified" stackId="v" fill={COLORS.verified} radius={[0, 0, 0, 0]} />
                 <Bar dataKey="failed" stackId="v" fill={COLORS.failed} radius={[0, 0, 0, 0]} />
                 <Bar dataKey="dissolved" stackId="v" fill={COLORS.dissolved} radius={[4, 4, 0, 0]} />
@@ -220,7 +228,9 @@ export function BurndownView({ tasks }: Props) {
             </ResponsiveContainer>
           </Suspense>
         ) : (
-          <div className="flex h-[180px] items-center justify-center text-sm text-slate-500">No velocity yet</div>
+          <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground">
+            No velocity yet
+          </div>
         )}
       </section>
     </div>

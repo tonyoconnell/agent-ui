@@ -44,7 +44,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     // Authority check: caller must be chairman or ceo of gid
     const callerRows = await readParsed(`
       match
-        $caller isa unit, has uid "${safeCaller}";
+        $caller isa actor, has aid "${safeCaller}";
         $g isa group, has gid "${safeGid}";
         (member: $caller, group: $g) isa membership, has member-role $r;
       select $r;
@@ -56,19 +56,19 @@ export const POST: APIRoute = async ({ request, params }) => {
       return Response.json({ error: 'forbidden: chairman or ceo role required' }, { status: 403 })
     }
 
-    // Validate target unit exists
+    // Validate target actor exists
     const targetRows = await readParsed(`
-      match $t isa unit, has uid "${safeTarget}";
+      match $t isa actor, has aid "${safeTarget}";
       select $t;
     `)
     if (targetRows.length === 0) {
-      return Response.json({ error: `unit ${uid} not found` }, { status: 404 })
+      return Response.json({ error: `actor ${uid} not found` }, { status: 404 })
     }
 
     // Idempotency check: is target already a member?
     const memberRows = await readParsed(`
       match
-        $t isa unit, has uid "${safeTarget}";
+        $t isa actor, has aid "${safeTarget}";
         $g isa group, has gid "${safeGid}";
         (member: $t, group: $g) isa membership, has member-role $r;
       select $r;
@@ -83,7 +83,7 @@ export const POST: APIRoute = async ({ request, params }) => {
       // Role update: delete old + insert new (best-effort)
       await write(`
         match
-          $t isa unit, has uid "${safeTarget}";
+          $t isa actor, has aid "${safeTarget}";
           $g isa group, has gid "${safeGid}";
           $m (member: $t, group: $g) isa membership, has member-role $old;
         delete $old of $m;
@@ -91,7 +91,7 @@ export const POST: APIRoute = async ({ request, params }) => {
       `).catch(() =>
         writeSilent(`
           match
-            $t isa unit, has uid "${safeTarget}";
+            $t isa actor, has aid "${safeTarget}";
             $g isa group, has gid "${safeGid}";
           insert (member: $t, group: $g) isa membership, has member-role "${safeRole}";
         `),
@@ -103,7 +103,7 @@ export const POST: APIRoute = async ({ request, params }) => {
     // Fresh insert
     await write(`
       match
-        $t isa unit, has uid "${safeTarget}";
+        $t isa actor, has aid "${safeTarget}";
         $g isa group, has gid "${safeGid}";
       insert (member: $t, group: $g) isa membership, has member-role "${safeRole}";
     `)

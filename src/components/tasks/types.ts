@@ -42,10 +42,20 @@ export interface ColumnDef {
 export type ColumnKey = 'todo' | 'doing' | 'done' | 'listed'
 
 export const COLUMNS: ColumnDef[] = [
-  { id: 'todo', label: 'To do', hint: 'Ready to start — drop here or auto-assign', color: '#94a3b8' },
-  { id: 'doing', label: 'Doing', hint: 'Active work — one task at a time', color: '#fbbf24' },
-  { id: 'done', label: 'Done', hint: 'Verified — ready to list for sale', color: '#4ade80' },
-  { id: 'listed', label: 'Listed', hint: 'Sellable skill — on-chain when bought', color: '#c084fc' },
+  {
+    id: 'todo',
+    label: 'To do',
+    hint: 'Ready to start — drop here or auto-assign',
+    color: 'hsl(var(--color-muted-foreground))',
+  },
+  { id: 'doing', label: 'Doing', hint: 'Active work — one task at a time', color: 'hsl(var(--color-gold))' },
+  { id: 'done', label: 'Done', hint: 'Verified — ready to list for sale', color: 'hsl(var(--color-tertiary-bright))' },
+  {
+    id: 'listed',
+    label: 'Listed',
+    hint: 'Sellable skill — on-chain when bought',
+    color: 'hsl(var(--color-secondary-bright))',
+  },
 ]
 
 import type { TaskWave } from '@/types/task'
@@ -60,11 +70,11 @@ export type WaveDef = {
 }
 
 export const WAVES: readonly WaveDef[] = [
-  { key: 'W1', label: 'W1 · Recon', hint: 'Haiku reads, reports verbatim', color: '#67e8f9' },
-  { key: 'W2', label: 'W2 · Decide', hint: 'Opus produces diff specs', color: '#c084fc' },
-  { key: 'W3', label: 'W3 · Edit', hint: 'Sonnet applies changes', color: '#fbbf24' },
-  { key: 'W4', label: 'W4 · Verify', hint: 'Rubric + tests + cycle gate', color: '#6ee7b7' },
-  { key: 'unwaved', label: 'Backlog', hint: 'No wave assigned', color: '#64748b' },
+  { key: 'W1', label: 'W1 · Recon', hint: 'Haiku reads, reports verbatim', color: 'hsl(var(--color-primary-bright))' },
+  { key: 'W2', label: 'W2 · Decide', hint: 'Opus produces diff specs', color: 'hsl(var(--color-secondary-bright))' },
+  { key: 'W3', label: 'W3 · Edit', hint: 'Sonnet applies changes', color: 'hsl(var(--color-gold))' },
+  { key: 'W4', label: 'W4 · Verify', hint: 'Rubric + tests + cycle gate', color: 'hsl(var(--color-tertiary-bright))' },
+  { key: 'unwaved', label: 'Backlog', hint: 'No wave assigned', color: 'hsl(var(--color-muted-foreground))' },
 ] as const
 
 /** Bucket a task to a wave key (falls back to 'unwaved' when task_wave is null). */

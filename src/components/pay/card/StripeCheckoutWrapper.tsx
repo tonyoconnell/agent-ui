@@ -50,10 +50,10 @@ function getStripeAppearance() {
   return {
     theme: 'stripe' as const,
     variables: {
-      colorPrimary: 'hsl(222.2 47.4% 11.2%)',
-      colorBackground: 'hsl(0 0% 100%)',
-      colorText: 'hsl(222.2 84% 4.9%)',
-      colorDanger: 'hsl(0 84.2% 60.2%)',
+      colorPrimary: 'hsl(var(--color-primary-mid))',
+      colorBackground: 'hsl(var(--color-background))',
+      colorText: 'hsl(var(--color-font))',
+      colorDanger: 'hsl(var(--color-destructive))',
       fontFamily: 'system-ui, sans-serif',
       spacingUnit: '4px',
       borderRadius: '6px',

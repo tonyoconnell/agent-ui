@@ -23,7 +23,7 @@ audit_totals: 24 Critical · 52 High · 62 Medium · 34 Low · 25 Praise
 > encrypt the payload.
 >
 > **Source of truth:** [security.md](one/security.md) — the plan,
-> [auth.md](auth.md) — identity and credentials,
+> [auth.md](one-ie/dev.one.ie/one/auth.md) — identity and credentials,
 > [groups.md](one/groups.md) — RBAC/ABAC/ReBAC scope,
 > [DSL.md](one/DSL.md) — signal grammar,
 > [dictionary.md](dictionary.md) — canonical names,
@@ -134,7 +134,7 @@ new invariant tests (see each cycle's exit condition).
 ## Source of Truth
 
 **[security.md](one/security.md)** — five choke points, twelve invariants
-**[auth.md](auth.md)** — credential lifecycle
+**[auth.md](one-ie/dev.one.ie/one/auth.md)** — credential lifecycle
 **[groups.md](one/groups.md)** — scope model
 **[DSL.md](one/DSL.md)** — signal grammar
 **[dictionary.md](dictionary.md)** — canonical names
@@ -961,7 +961,7 @@ waves, maximum parallel within.
 
 - [security.md](one/security.md) — source of truth for the five choke points
 - [SYSTEM-HEALTH.md](../docs/SYSTEM-HEALTH.md) — 2026-04-20 audit (24 Crit · 52 High) that expanded this TODO from 5 cycles to 7
-- [auth.md](auth.md) — identity + credential model
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — identity + credential model
 - [groups.md](one/groups.md) — RBAC/ABAC/ReBAC scope
 - [DSL.md](one/DSL.md) — signal grammar (loaded in W2)
 - [dictionary.md](dictionary.md) — canonical names (loaded in W2)

@@ -85,7 +85,7 @@ describe('Act 1: isToxic — arithmetic firewall, no I/O', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 2: PersistentWorld factory — the substrate with memory
 //
-// actor() creates a unit. flow() wraps mark/warn. open(), blocked(), toxic()
+// actor() creates a actor. flow() wraps mark/warn. open(), blocked(), toxic()
 // inspect pheromone state. proven() and confidence() expose learning signals.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -97,7 +97,7 @@ describe('Act 2: world() factory — pheromone layer + TypeDB bridge', () => {
     w = world()
   })
 
-  it('actor() creates a unit accessible via has()', () => {
+  it('actor() creates a actor accessible via has()', () => {
     w.actor('scout')
     expect(w.has('scout')).toBe(true)
   })
@@ -175,7 +175,7 @@ describe('Act 2: world() factory — pheromone layer + TypeDB bridge', () => {
   })
 
   it('confidence() returns 0 for a type with no paths', () => {
-    expect(w.confidence('unknown-unit')).toBe(0)
+    expect(w.confidence('unknown-actor')).toBe(0)
   })
 
   it('best() returns the target with highest net strength (strength - resistance)', () => {
@@ -235,7 +235,7 @@ describe('Act 3: signal sandwich — toxic edge blocked before delivery', () => 
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 4: ask() with missing capability → dissolved (pre-LLM)
 //
-// If a receiver is `unit:skill` the sandwich checks TypeDB for a matching
+// If a receiver is `actor:skill` the sandwich checks TypeDB for a matching
 // capability record. readParsed returns [] → no capability → dissolved.
 // The LLM is never called. The path is not penalised (not the agent's fault).
 // ═══════════════════════════════════════════════════════════════════════════
@@ -246,20 +246,20 @@ describe('Act 4: ask() capability sandwich — no capability = dissolved', () =>
   beforeEach(() => {
     vi.clearAllMocks()
     w = world()
-    // Default: readParsed returns [] — unit has no declared capabilities
+    // Default: readParsed returns [] — actor has no declared capabilities
     vi.mocked(readParsed).mockResolvedValue([])
   })
 
-  it('ask to unit:skill with no TypeDB capability returns dissolved', async () => {
+  it('ask to actor:skill with no TypeDB capability returns dissolved', async () => {
     w.actor('analyst')
     const result = await w.ask({ receiver: 'analyst:summarise' })
     expect(result.dissolved).toBe(true)
   })
 
-  it('ask to bare unit (no skill) is not capability-checked', async () => {
-    // A unit:skill pattern triggers the capability check; a plain unit bypasses it.
-    // PEP-3.5 (lifecycle gate) fires once for any unit ask.
-    // PEP-3 (capability gate) does NOT fire for bare unit asks.
+  it('ask to bare actor (no skill) is not capability-checked', async () => {
+    // A actor:skill pattern triggers the capability check; a plain actor bypasses it.
+    // PEP-3.5 (lifecycle gate) fires once for any actor ask.
+    // PEP-3 (capability gate) does NOT fire for bare actor asks.
     const callsBefore = vi.mocked(readParsed).mock.calls.length
     await w.ask({ receiver: 'ghost' })
     // +1 readParsed call expected: lifecycle check (PEP-3.5), NOT capability (PEP-3)
@@ -273,8 +273,8 @@ describe('Act 4: ask() capability sandwich — no capability = dissolved', () =>
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 5: subscribe and tasksFor — tag-based work routing
 //
-// subscribe() writes tags to TypeDB for a unit.
-// tasksFor() fetches the unit's tags, finds matching open tasks,
+// subscribe() writes tags to TypeDB for a actor.
+// tasksFor() fetches the actor's tags, finds matching open tasks,
 // and ranks them by overlap × priority + pheromone strength.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -294,16 +294,16 @@ describe('Act 5: subscribe and tasksFor — tag routing', () => {
     expect(tagCalls.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('tasksFor returns empty when unit has no tags', async () => {
+  it('tasksFor returns empty when actor has no tags', async () => {
     vi.mocked(readParsed).mockResolvedValueOnce([]) // no tags
-    const tasks = await w.tasksFor('untagged-unit')
+    const tasks = await w.tasksFor('untagged-actor')
     expect(tasks).toEqual([])
   })
 
   it('tasksFor ranks tasks: higher overlap × priority wins', async () => {
-    // Step 1: unit has tags [engine, routing]
+    // Step 1: actor has tags [engine, routing]
     vi.mocked(readParsed)
-      .mockResolvedValueOnce([{ tag: 'engine' }, { tag: 'routing' }]) // unit tags
+      .mockResolvedValueOnce([{ tag: 'engine' }, { tag: 'routing' }]) // actor tags
       // Step 2: tasks sharing those tags
       .mockResolvedValueOnce([
         { id: 'task-A', name: 'Rewrite router', p: 5, tag: 'engine' },
@@ -321,7 +321,7 @@ describe('Act 5: subscribe and tasksFor — tag routing', () => {
   it('tasksFor incorporates pheromone strength into ranking', async () => {
     // Two tasks with equal overlap×priority — pheromone breaks the tie
     vi.mocked(readParsed)
-      .mockResolvedValueOnce([{ tag: 'build' }]) // unit tag
+      .mockResolvedValueOnce([{ tag: 'build' }]) // actor tag
       .mockResolvedValueOnce([
         { id: 'task-X', name: 'Task X', p: 3, tag: 'build' }, // overlap×p = 3
         { id: 'task-Y', name: 'Task Y', p: 3, tag: 'build' }, // overlap×p = 3
@@ -473,7 +473,7 @@ describe('Act 7: taskBlockers() — visibility into blocking relationships', () 
 // ACT 8: canBeDiscovered() — lifecycle gate for agent discovery
 //
 // canBeDiscovered(uid) enforces the CAPABLE → DISCOVER gate.
-// A unit is only discoverable if it has at least one capability relation.
+// A actor is only discoverable if it has at least one capability relation.
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Act 8: canBeDiscovered() — discovery lifecycle gate', () => {
@@ -484,18 +484,18 @@ describe('Act 8: canBeDiscovered() — discovery lifecycle gate', () => {
     w = world()
   })
 
-  it('canBeDiscovered() returns true when unit has capabilities', async () => {
+  it('canBeDiscovered() returns true when actor has capabilities', async () => {
     vi.mocked(readParsed).mockResolvedValueOnce([{ s: 'skill-1' }]) // has capability
 
-    const discoverable = await w.canBeDiscovered('capable-unit')
+    const discoverable = await w.canBeDiscovered('capable-actor')
 
     expect(discoverable).toBe(true)
   })
 
-  it('canBeDiscovered() returns false when unit has no capabilities', async () => {
+  it('canBeDiscovered() returns false when actor has no capabilities', async () => {
     vi.mocked(readParsed).mockResolvedValueOnce([]) // no capabilities
 
-    const discoverable = await w.canBeDiscovered('dormant-unit')
+    const discoverable = await w.canBeDiscovered('dormant-actor')
 
     expect(discoverable).toBe(false)
   })
@@ -503,19 +503,19 @@ describe('Act 8: canBeDiscovered() — discovery lifecycle gate', () => {
   it('canBeDiscovered() returns false on TypeDB errors', async () => {
     vi.mocked(readParsed).mockRejectedValue(new Error('TypeDB unavailable'))
 
-    const discoverable = await w.canBeDiscovered('unit')
+    const discoverable = await w.canBeDiscovered('actor')
 
     expect(discoverable).toBe(false)
   })
 
-  it('canBeDiscovered() queries capability relations for the unit', async () => {
+  it('canBeDiscovered() queries capability relations for the actor', async () => {
     vi.mocked(readParsed).mockResolvedValueOnce([])
 
-    await w.canBeDiscovered('test-unit-id')
+    await w.canBeDiscovered('test-actor-id')
 
     const calls = vi.mocked(readParsed).mock.calls
     const lastCall = calls[calls.length - 1][0] as string
-    expect(lastCall).toContain('test-unit-id')
+    expect(lastCall).toContain('test-actor-id')
     expect(lastCall).toContain('capability')
   })
 })
@@ -523,9 +523,9 @@ describe('Act 8: canBeDiscovered() — discovery lifecycle gate', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 // ACT 9: dissolve() — graceful exit (lifecycle Stage 10)
 //
-// dissolve(uid) is NOT forget(). It drains pending signals, marks the unit
+// dissolve(uid) is NOT forget(). It drains pending signals, marks the actor
 // "dissolved" in TypeDB with a timestamp, and emits a final dissolve signal
-// on all paths touching the unit so downstream units can learn.
+// on all paths touching the actor so downstream actors can learn.
 //
 // It does NOT remove from memory (L3 fade handles trail decay) and does NOT
 // delete TypeDB records (forget() does that — GDPR erasure is separate).
@@ -551,7 +551,7 @@ describe('Act 9: dissolve() — graceful exit, not erasure', () => {
     expect(typeof result.pathsTouched).toBe('number')
   })
 
-  it('dissolve() marks the unit status "dissolved" in TypeDB via writeSilent', async () => {
+  it('dissolve() marks the actor status "dissolved" in TypeDB via writeSilent', async () => {
     w.actor('retiring')
 
     await w.dissolve('retiring')
@@ -562,22 +562,22 @@ describe('Act 9: dissolve() — graceful exit, not erasure', () => {
     expect(dissolveCall).toContain('dissolved-at')
   })
 
-  it('dissolve() drains pending queue signals addressed to the unit', async () => {
+  it('dissolve() drains pending queue signals addressed to the actor', async () => {
     w.actor('drainable')
-    // Enqueue signals for 'drainable' and an unrelated unit
+    // Enqueue signals for 'drainable' and an unrelated actor
     w.enqueue({ receiver: 'drainable:task', data: { x: 1 } })
     w.enqueue({ receiver: 'drainable', data: { x: 2 } })
-    w.enqueue({ receiver: 'other-unit', data: { x: 3 } })
+    w.enqueue({ receiver: 'other-actor', data: { x: 3 } })
 
     expect(w.pending()).toBe(3)
 
     const result = await w.dissolve('drainable')
 
     expect(result.drainedSignals).toBe(2)
-    expect(w.pending()).toBe(1) // only 'other-unit' signal remains
+    expect(w.pending()).toBe(1) // only 'other-actor' signal remains
   })
 
-  it('dissolve() emits final dissolve signal on paths touching the unit', async () => {
+  it('dissolve() emits final dissolve signal on paths touching the actor', async () => {
     w.actor('dissolving')
     w.actor('neighbor')
     // Lay a path from dissolving → neighbor so neighbor can receive the final signal
@@ -598,24 +598,24 @@ describe('Act 9: dissolve() — graceful exit, not erasure', () => {
     expect((received[0] as Record<string, unknown>).uid).toBe('dissolving')
   })
 
-  it('dissolve() does NOT remove the unit from memory (forget() does that)', async () => {
+  it('dissolve() does NOT remove the actor from memory (forget() does that)', async () => {
     w.actor('lingering')
 
     await w.dissolve('lingering')
 
-    // Unit is still present in-memory — L3 fade handles trail decay
+    // Actor is still present in-memory — L3 fade handles trail decay
     expect(w.has('lingering')).toBe(true)
   })
 
-  it('dissolve() does NOT delete the unit entity from TypeDB (no "delete $u isa unit")', async () => {
+  it('dissolve() does NOT delete the actor entity from TypeDB (no "delete $u isa actor")', async () => {
     w.actor('non-erased')
 
     await w.dissolve('non-erased')
 
     // dissolve may use delete-attribute syntax (match/delete attr/insert attr) for updates,
-    // but must NOT issue an entity delete ("delete $u isa unit") — that is forget()'s job.
+    // but must NOT issue an entity delete ("delete $u isa actor") — that is forget()'s job.
     const calls = vi.mocked(writeSilent).mock.calls.map((c) => c[0] as string)
-    const entityDeleteCalls = calls.filter((q) => q.includes('non-erased') && /delete\s+\$\w+\s+isa\s+unit/.test(q))
+    const entityDeleteCalls = calls.filter((q) => q.includes('non-erased') && /delete\s+\$\w+\s+isa\s+actor/.test(q))
     expect(entityDeleteCalls.length).toBe(0)
   })
 })

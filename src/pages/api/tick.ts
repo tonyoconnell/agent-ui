@@ -23,7 +23,7 @@ const L1_INTERVAL = 100 // signal routing per message
 const L2_INTERVAL = 1000 // path-strength accumulation per outcome
 const L3_INTERVAL = 300_000 // fade every 5 min
 const L4_INTERVAL = 60_000 // economic payment tracking per min
-const L5_INTERVAL = 600_000 // evolution every 10 min (24h cooldown per unit)
+const L5_INTERVAL = 600_000 // evolution every 10 min (24h cooldown per actor)
 const L6_INTERVAL = 3_600_000 // hypothesis/highway hardening every hour
 const L7_INTERVAL = 3_600_000 // frontier detection every hour
 
@@ -163,7 +163,7 @@ export const GET: APIRoute = async ({ url, request, locals }) => {
         const tags = (taskRow.t as Record<string, unknown>)?.tag as string[] | string | undefined
         const tagList = Array.isArray(tags) ? tags : tags ? [tags] : []
         // Multi-tag Jaccard × pheromone match. Falls back to legacy single-tag
-        // select() when no unit shares any tag with the task.
+        // select() when no actor shares any tag with the task.
         const bestAgent = tagList.length > 0 ? ((await pickBest(net, tagList)) ?? net.select(tagList[0])) : net.select()
         if (taskId && bestAgent) {
           const { result: taskResult, dissolved } = await net.ask({ receiver: bestAgent, data: taskRow.t })

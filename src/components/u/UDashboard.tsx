@@ -50,7 +50,7 @@ const SUPPORTED_CHAINS = [
     id: 'sol',
     name: 'Solana',
     symbol: 'SOL',
-    color: 'from-purple-500 to-pink-500',
+    color: 'from-[hsl(var(--color-secondary-bright))] to-[hsl(var(--color-destructive))]',
     icon: '◎',
     description: 'Fast & scalable',
     decimals: 9,
@@ -77,7 +77,7 @@ const SUPPORTED_CHAINS = [
     id: 'one',
     name: 'ONEIE',
     symbol: 'ONE',
-    color: 'from-emerald-400 to-teal-600',
+    color: 'from-[hsl(var(--color-tertiary-bright))] to-[hsl(var(--color-primary-bright))]',
     icon: '①',
     description: 'ONE Protocol Token',
     decimals: 18,
@@ -260,18 +260,18 @@ export function UDashboard() {
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20">
         {/* Animated Background */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-[hsl(var(--color-primary-bright)/0.1)] rounded-full blur-3xl animate-pulse" />
           <div
-            className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+            className="absolute -bottom-40 -left-40 w-96 h-96 bg-[hsl(var(--color-secondary-bright)/0.1)] rounded-full blur-3xl animate-pulse"
             style={{ animationDelay: '1s' }}
           />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-[hsl(var(--color-primary-bright)/0.05)] to-[hsl(var(--color-secondary-bright)/0.05)] rounded-full blur-3xl" />
         </div>
 
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-16">
           {/* Hero */}
           <div className="text-center mb-8 sm:mb-16">
-            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 mb-4 sm:mb-6 shadow-2xl">
+            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[hsl(var(--color-primary-bright)/0.2)] to-[hsl(var(--color-primary-bright)/0.05)] mb-4 sm:mb-6 shadow-2xl">
               <span className="text-3xl sm:text-5xl font-bold gradient-text">u</span>
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">Your Universal Wallet</h1>
@@ -304,10 +304,10 @@ export function UDashboard() {
                     relative overflow-hidden rounded-2xl border-2 transition-all duration-500
                     ${
                       hasWallet
-                        ? 'border-green-500/30 bg-green-500/5'
-                        : 'border-dashed border-muted-foreground/20 hover:border-primary/40 bg-card/50 backdrop-blur-sm'
+                        ? 'border-[hsl(var(--color-tertiary-bright)/0.3)] bg-[hsl(var(--color-tertiary-bright)/0.05)]'
+                        : 'border-dashed border-muted-foreground/20 hover:border-[hsl(var(--color-primary-bright)/0.4)] bg-card/50 backdrop-blur-sm'
                     }
-                    ${isCurrentlyGenerating ? 'animate-pulse border-primary/50' : ''}
+                    ${isCurrentlyGenerating ? 'animate-pulse border-[hsl(var(--color-primary-bright)/0.5)]' : ''}
                     hover:shadow-xl hover:-translate-y-1
                   `}
                   >
@@ -323,10 +323,10 @@ export function UDashboard() {
                         w-10 h-10 sm:w-14 sm:h-14 mx-auto mb-2 sm:mb-3 rounded-lg sm:rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-lg transition-all
                         ${
                           hasWallet
-                            ? `bg-gradient-to-br ${chain.color} text-white`
+                            ? `bg-gradient-to-br ${chain.color} text-font`
                             : 'bg-muted/50 text-muted-foreground group-hover:bg-gradient-to-br group-hover:' +
                               chain.color.split(' ')[0] +
-                              ' group-hover:text-white'
+                              ' group-hover:text-font'
                         }
                       `}
                       >
@@ -345,7 +345,7 @@ export function UDashboard() {
 
                       {/* Status */}
                       {hasWallet ? (
-                        <Badge className="bg-green-500/20 text-green-600 border-green-500/30 text-[10px] sm:text-xs">
+                        <Badge className="bg-[hsl(var(--color-tertiary-bright)/0.2)] text-[hsl(var(--color-tertiary-bright))] border-[hsl(var(--color-tertiary-bright)/0.3)] text-[10px] sm:text-xs">
                           ✓ Created
                         </Badge>
                       ) : (
@@ -374,7 +374,7 @@ export function UDashboard() {
               size="lg"
               onClick={handleGenerateAllWallets}
               disabled={isGeneratingAll || SUPPORTED_CHAINS.every((c) => hasWalletForChain(c.id))}
-              className="h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 shadow-xl font-semibold w-full sm:w-auto"
+              className="h-12 sm:h-14 px-6 sm:px-8 text-base sm:text-lg bg-gradient-to-r from-[hsl(var(--color-primary-bright))] to-[hsl(var(--color-secondary-bright))] hover:opacity-90 shadow-xl font-semibold w-full sm:w-auto"
             >
               {isGeneratingAll ? (
                 <>
@@ -412,9 +412,9 @@ export function UDashboard() {
 
           {/* Security Note - Enhanced */}
           <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4">
-            <Card className="bg-muted/30 border-dashed">
+            <Card className="bg-[hsl(var(--color-card)/0.3)] border-dashed">
               <CardContent className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 pt-4 sm:pt-6">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500/10 flex items-center justify-center text-xl sm:text-2xl shrink-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[hsl(var(--color-tertiary-bright)/0.1)] flex items-center justify-center text-xl sm:text-2xl shrink-0">
                   🛡️
                 </div>
                 <div>
@@ -429,10 +429,10 @@ export function UDashboard() {
             </Card>
 
             {/* Storage Explanation Card */}
-            <Card className="bg-blue-500/5 border-blue-500/20">
+            <Card className="bg-[hsl(var(--color-primary-bright)/0.05)] border-[hsl(var(--color-primary-bright)/0.2)]">
               <CardContent className="pt-4 sm:pt-6">
                 <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-xl sm:text-2xl shrink-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[hsl(var(--color-primary-bright)/0.1)] flex items-center justify-center text-xl sm:text-2xl shrink-0">
                     💾
                   </div>
                   <div>
@@ -493,7 +493,7 @@ export function UDashboard() {
       <div className="px-4 sm:px-6 pb-6">
         {/* Total Value Card - Hero card at top */}
         <div className="mb-4 sm:mb-6">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <Card className="bg-gradient-to-br from-[hsl(var(--color-primary-bright)/0.1)] to-[hsl(var(--color-primary-bright)/0.05)] border-[hsl(var(--color-primary-bright)/0.2)]">
             <CardContent className="p-4 sm:pt-4 sm:pb-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -501,7 +501,7 @@ export function UDashboard() {
                   <div className="text-xs sm:text-sm text-muted-foreground">Total Value</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-green-500 text-xs sm:text-sm font-medium">+12.5%</div>
+                  <div className="text-[hsl(var(--color-tertiary-bright))] text-xs sm:text-sm font-medium">+12.5%</div>
                   <div className="text-[10px] sm:text-xs text-muted-foreground">24h</div>
                 </div>
               </div>
@@ -510,17 +510,17 @@ export function UDashboard() {
         </div>
 
         {substrateData && (
-          <div className="rounded-lg border border-[#252538] bg-[#161622] p-4 mt-4">
-            <div className="text-xs text-slate-500 mb-2">Substrate</div>
+          <div className="rounded-lg border border-border bg-card p-4 mt-4">
+            <div className="text-xs text-muted-foreground mb-2">Substrate</div>
             <div className="flex gap-4 text-sm">
-              <span className="text-slate-300">
-                Rep: <span className="text-indigo-400">{substrateData.reputation.toFixed(2)}</span>
+              <span className="text-foreground">
+                Rep: <span className="text-primary-bright">{substrateData.reputation.toFixed(2)}</span>
               </span>
-              <span className="text-slate-300">
-                Highways: <span className="text-indigo-400">{substrateData.highways.length}</span>
+              <span className="text-foreground">
+                Highways: <span className="text-primary-bright">{substrateData.highways.length}</span>
               </span>
-              <span className="text-slate-300">
-                Frontier: <span className="text-indigo-400">{substrateData.frontier.length}</span>
+              <span className="text-foreground">
+                Frontier: <span className="text-primary-bright">{substrateData.frontier.length}</span>
               </span>
             </div>
           </div>
@@ -531,25 +531,25 @@ export function UDashboard() {
           <QuickActionButton
             icon="↗"
             label="Send"
-            color="bg-green-600"
+            color="bg-[hsl(var(--color-tertiary-bright))]"
             onClick={() => (window.location.href = '/u/send')}
           />
           <QuickActionButton
             icon="↙"
             label="Receive"
-            color="bg-blue-600"
+            color="bg-[hsl(var(--color-primary-bright))]"
             onClick={() => (window.location.href = '/u/receive')}
           />
           <QuickActionButton
             icon="⇄"
             label="Swap"
-            color="bg-purple-600"
+            color="bg-[hsl(var(--color-secondary-bright))]"
             onClick={() => (window.location.href = '/u/swap')}
           />
           <QuickActionButton
             icon="🛍️"
             label="Shop"
-            color="bg-orange-600"
+            color="bg-[hsl(var(--color-gold))]"
             onClick={() => (window.location.href = '/u/products')}
           />
         </div>
@@ -593,7 +593,7 @@ export function UDashboard() {
                     >
                       <CardContent className="pt-6 text-center">
                         <div
-                          className={`w-14 h-14 mx-auto mb-3 rounded-2xl bg-muted/50 group-hover:bg-gradient-to-br group-hover:${chain.color.split(' ')[0]} flex items-center justify-center text-2xl text-muted-foreground group-hover:text-white transition-all`}
+                          className={`w-14 h-14 mx-auto mb-3 rounded-2xl bg-[hsl(var(--color-muted)/0.5)] group-hover:bg-gradient-to-br group-hover:${chain.color.split(' ')[0]} flex items-center justify-center text-2xl text-muted-foreground group-hover:text-font transition-all`}
                         >
                           {chain.icon}
                         </div>
@@ -650,10 +650,10 @@ export function UDashboard() {
                         <div
                           className={`w-10 h-10 rounded-full flex items-center justify-center ${
                             tx.type === 'receive'
-                              ? 'bg-green-500/10 text-green-500'
+                              ? 'bg-[hsl(var(--color-tertiary-bright)/0.1)] text-[hsl(var(--color-tertiary-bright))]'
                               : tx.type === 'send'
-                                ? 'bg-red-500/10 text-red-500'
-                                : 'bg-purple-500/10 text-purple-500'
+                                ? 'bg-[hsl(var(--color-destructive)/0.1)] text-[hsl(var(--color-destructive))]'
+                                : 'bg-[hsl(var(--color-secondary-bright)/0.1)] text-[hsl(var(--color-secondary-bright))]'
                           }`}
                         >
                           {tx.type === 'receive' ? '↙' : tx.type === 'send' ? '↗' : '⇄'}
@@ -666,7 +666,9 @@ export function UDashboard() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className={`font-medium ${tx.type === 'receive' ? 'text-green-500' : ''}`}>
+                        <div
+                          className={`font-medium ${tx.type === 'receive' ? 'text-[hsl(var(--color-tertiary-bright))]' : ''}`}
+                        >
                           {tx.type === 'receive' ? '+' : '-'}
                           {tx.amount} {tx.token}
                         </div>
@@ -767,28 +769,30 @@ function ViewMnemonicWithVault({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
-        className="max-w-lg w-full rounded-lg border border-[#252538] bg-[#0a0a0f] p-6"
+        className="max-w-lg w-full rounded-lg border border-border bg-background p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-lg font-semibold text-slate-100">Recovery phrase — {walletName}</h3>
-        <p className="mt-1 text-sm text-slate-400">Write this down. Anyone with these words can spend your funds.</p>
+        <h3 className="text-lg font-semibold text-foreground">Recovery phrase — {walletName}</h3>
+        <p className="mt-1 text-sm text-[hsl(var(--color-muted-foreground))]">
+          Write this down. Anyone with these words can spend your funds.
+        </p>
         {loading && (
-          <div className="mt-4 flex items-center gap-2 text-slate-400 text-sm">
+          <div className="mt-4 flex items-center gap-2 text-[hsl(var(--color-muted-foreground))] text-sm">
             <Fingerprint className="h-4 w-4 shrink-0" />
             <span>Touch ID required…</span>
             <Loader2 className="h-3 w-3 animate-spin" />
           </div>
         )}
-        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+        {error && <p className="mt-4 text-sm text-[hsl(var(--color-destructive))]">{error}</p>}
         {mnemonic && (
           <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
             {mnemonic.split(' ').map((word, i) => (
               <div
                 key={`${i}-${word}`}
-                className="flex items-center gap-1.5 rounded-md border border-[#252538] bg-[#161622] px-2 py-1.5 font-mono text-sm"
+                className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5 font-mono text-sm"
               >
-                <span className="text-xs text-slate-500">{i + 1}</span>
-                <span className="text-slate-100">{word}</span>
+                <span className="text-xs text-muted-foreground">{i + 1}</span>
+                <span className="text-foreground">{word}</span>
               </div>
             ))}
           </div>
@@ -831,7 +835,7 @@ function QuickActionButton({
   return (
     <button
       onClick={onClick}
-      className={`${color} hover:opacity-90 active:scale-95 transition-all text-white rounded-xl p-2.5 sm:p-3 flex flex-col items-center gap-0.5 sm:gap-1 min-h-[56px] sm:min-h-[64px]`}
+      className={`${color} hover:opacity-90 active:scale-95 transition-all text-font rounded-xl p-2.5 sm:p-3 flex flex-col items-center gap-0.5 sm:gap-1 min-h-[56px] sm:min-h-[64px]`}
     >
       <span className="text-lg sm:text-xl">{icon}</span>
       <span className="text-[10px] sm:text-xs font-medium">{label}</span>
@@ -871,7 +875,13 @@ function _StatCard({
           <div>
             <div className="text-2xl font-bold">{value}</div>
             <div className="text-sm text-muted-foreground">{label}</div>
-            {trend && <div className={`text-xs mt-1 ${trendUp ? 'text-green-500' : 'text-red-500'}`}>{trend}</div>}
+            {trend && (
+              <div
+                className={`text-xs mt-1 ${trendUp ? 'text-[hsl(var(--color-tertiary-bright))]' : 'text-[hsl(var(--color-destructive))]'}`}
+              >
+                {trend}
+              </div>
+            )}
           </div>
           <span className="text-3xl">{icon}</span>
         </div>

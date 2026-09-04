@@ -36,7 +36,7 @@ export const GET: APIRoute = async ({ request, params }) => {
       match
         $g isa group, has gid "${safeGid}";
         (member: $u, group: $g) isa membership, has member-role $r;
-        $u has uid $uid;
+        $u has aid $uid;
         $u has name $name;
       select $uid, $name, $r;
     `).catch(() => [])

@@ -16,7 +16,7 @@
  *   const runner = waveRunner(net)
  *   net.signal({ receiver: 'wave-runner:recon', data: taskEnvelope })
  *
- *   // Form 2 — wire an existing unit (used by builder.ts):
+ *   // Form 2 — wire an existing actor (used by builder.ts):
  *   const runner = waveRunner(net.add('wave-runner'), complete, onDone)
  *   net.signal({ receiver: 'wave-runner:recon', data: taskEnvelope })
  */
@@ -26,7 +26,7 @@ import { score } from './rubric'
 import { markDims } from './rubric-score'
 import type { AuditResult } from './skill-audit'
 import { WAVE_MODEL } from './task-parse'
-import type { Unit } from './world'
+import type { Actor } from './world'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -112,33 +112,33 @@ async function mark(env: WaveEnvelope): Promise<{ ok: boolean; score: number; me
 // ── Form 1: waveRunner(net) ────────────────────────────────────────────────
 
 /**
- * Wire a new 'wave-runner' unit into the world.
+ * Wire a new 'wave-runner' actor into the world.
  * Handlers call sense/select/act/mark stubs — replace stubs with real LLM
  * calls to graduate from wiring to production.
  *
  * Entry:  net.signal({ receiver: 'wave-runner:recon', data: taskEnvelope })
  * Exit:   'wave-runner:verify' emits final WaveEnvelope back to _replyTo
  */
-export function waveRunner(net: PersistentWorld): Unit
+export function waveRunner(net: PersistentWorld): Actor
 
 /**
- * Wire an existing unit as a 4-wave runner with a live LLM caller.
+ * Wire an existing actor as a 4-wave runner with a live LLM caller.
  * Used by builder.ts: waveRunner(net.add('builder'), complete, onDone)
  */
 export function waveRunner(
-  u: Unit,
+  u: Actor,
   complete: Completer,
   onDone?: OnComplete,
   net?: Pick<PersistentWorld, 'mark' | 'warn'>,
-): Unit
+): Actor
 
 export function waveRunner(
-  netOrUnit: PersistentWorld | Unit,
+  netOrUnit: PersistentWorld | Actor,
   complete?: Completer,
   onDone?: OnComplete,
   net?: Pick<PersistentWorld, 'mark' | 'warn'>,
-): Unit {
-  // Dispatch: PersistentWorld has .actor(); Unit has .on()
+): Actor {
+  // Dispatch: PersistentWorld has .actor(); Actor has .on()
   if ('actor' in netOrUnit) {
     return _wireUnit(netOrUnit.add('wave-runner'))
   }
@@ -147,7 +147,7 @@ export function waveRunner(
 
 // ── Internal: stub-based wiring (Form 1) ──────────────────────────────────
 
-function _wireUnit(u: Unit): Unit {
+function _wireUnit(u: Actor): Actor {
   // ENTRY POINT — strips replyTo before entering the wave chain.
   // ask() injects replyTo; this dispatch captures it as _replyTo so
   // world.ts doesn't auto-reply after W1.
@@ -224,11 +224,11 @@ function _wireUnit(u: Unit): Unit {
 // ── Internal: LLM-based wiring (Form 2, used by builder.ts) ───────────────
 
 function _wireUnitWithLLM(
-  u: Unit,
+  u: Actor,
   complete: Completer,
   onDone?: OnComplete,
   net?: Pick<PersistentWorld, 'mark' | 'warn'>,
-): Unit {
+): Actor {
   // ENTRY POINT — strips replyTo before entering the wave chain
   u.on('task', async (data, emit) => {
     const d = data as TaskEnvelope & { replyTo?: string }

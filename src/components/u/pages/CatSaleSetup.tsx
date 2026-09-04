@@ -185,7 +185,7 @@ export function CatSaleSetup() {
                 onClick={generateWallets}
                 disabled={loading}
                 size="lg"
-                className="bg-gradient-to-r from-green-500 to-emerald-600"
+                className="bg-gradient-to-r from-[hsl(var(--color-tertiary-bright))] to-[hsl(var(--color-tertiary-bright)/0.8)]"
               >
                 {loading ? 'Generating...' : 'Generate Wallets'}
               </Button>
@@ -199,7 +199,9 @@ export function CatSaleSetup() {
                       <div className="flex-1">
                         <Badge variant={wallet.success ? 'default' : 'destructive'}>{wallet.chain}</Badge>
                         {wallet.success ? (
-                          <div className="mt-2 font-mono text-sm break-all text-green-600">✅ {wallet.address}</div>
+                          <div className="mt-2 font-mono text-sm break-all text-[hsl(var(--color-tertiary-bright))]">
+                            ✅ {wallet.address}
+                          </div>
                         ) : (
                           <div className="mt-2 text-sm text-destructive">❌ {wallet.error}</div>
                         )}
@@ -233,7 +235,7 @@ export function CatSaleSetup() {
                   onClick={createCatProduct}
                   disabled={loading}
                   size="lg"
-                  className="bg-gradient-to-r from-blue-500 to-indigo-600"
+                  className="bg-gradient-to-r from-[hsl(var(--color-primary-bright))] to-primary-bright"
                 >
                   {loading ? 'Creating...' : 'Create Product'}
                 </Button>
@@ -244,7 +246,7 @@ export function CatSaleSetup() {
                   {product.success ? (
                     <>
                       <div>
-                        <h4 className="font-semibold text-green-600">✅ Product Created!</h4>
+                        <h4 className="font-semibold text-[hsl(var(--color-tertiary-bright))]">✅ Product Created!</h4>
                         <p className="text-sm text-muted-foreground mt-1">
                           Product ID: <code className="bg-background px-2 py-1 rounded">{product.id}</code>
                         </p>
@@ -306,7 +308,7 @@ export function CatSaleSetup() {
 
       {/* Summary */}
       {product?.success && (
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-tertiary/10 border-tertiary/20">
           <CardContent className="pt-6">
             <h3 className="font-bold text-lg mb-3">🐱 Your Cat Sale is Live!</h3>
             <div className="space-y-2 text-sm">

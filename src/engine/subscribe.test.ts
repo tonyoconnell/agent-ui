@@ -1,8 +1,8 @@
 /**
  * SUBSCRIBE — Tag-based task routing via TypeDB
  *
- * subscribe(unitId, tags) adds tags to a unit in TypeDB.
- * tasksFor(unitId) queries open tasks matching the unit's tags,
+ * subscribe(actorId, tags) adds tags to a actor in TypeDB.
+ * tasksFor(actorId) queries open tasks matching the actor's tags,
  * ranked by overlap × priority × pheromone strength.
  *
  * Run: bun vitest run src/engine/subscribe.test.ts
@@ -37,11 +37,11 @@ import { world } from './persist'
 // ═══════════════════════════════════════════════════════════════════════════
 // Subscribe — Tag Storage in TypeDB
 //
-// subscribe(unitId, tags) inserts tag attributes on a unit entity.
+// subscribe(actorId, tags) inserts tag attributes on a actor entity.
 // Each tag is independently written so they accumulate.
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('subscribe — add tags to unit for task routing', () => {
+describe('subscribe — add tags to actor for task routing', () => {
   let w: PersistentWorld
 
   beforeEach(() => {
@@ -53,7 +53,7 @@ describe('subscribe — add tags to unit for task routing', () => {
     w.subscribe('scout', ['engine', 'P0'])
 
     // Each tag should trigger a writeSilent call
-    expect(writeSilent).toHaveBeenCalledWith(expect.stringContaining('match $u isa unit, has uid "scout"'))
+    expect(writeSilent).toHaveBeenCalledWith(expect.stringContaining('match $u isa actor, has aid "scout"'))
 
     // Check that both tags were attempted
     const calls = (writeSilent as any).mock.calls as unknown[][]
@@ -62,7 +62,7 @@ describe('subscribe — add tags to unit for task routing', () => {
   })
 
   it('(b) agent markdown with tags: [build, P0] flows to subscribe via syncAgent', async () => {
-    // Mock readParsed to return an empty unit result
+    // Mock readParsed to return an empty actor result
     ;(readParsed as any).mockResolvedValueOnce([{ uid: 'marketing:creative' }])
 
     // Simulate syncing an agent with tags in markdown frontmatter
@@ -77,19 +77,19 @@ describe('subscribe — add tags to unit for task routing', () => {
   })
 
   it('empty tags → empty task list', async () => {
-    // Mock readParsed to return no tags for the unit
-    ;(readParsed as any).mockResolvedValueOnce([]) // no unit tags
+    // Mock readParsed to return no tags for the actor
+    ;(readParsed as any).mockResolvedValueOnce([]) // no actor tags
 
-    const tasks = await w.tasksFor('untagged-unit')
+    const tasks = await w.tasksFor('untagged-actor')
 
     expect(tasks).toHaveLength(0)
   })
 
-  it('tasksFor returns tasks matching unit tags ranked by overlap × priority', async () => {
-    // Set up mocks: first call gets unit tags, second call gets matching tasks
+  it('tasksFor returns tasks matching actor tags ranked by overlap × priority', async () => {
+    // Set up mocks: first call gets actor tags, second call gets matching tasks
     ;(readParsed as any)
       .mockResolvedValueOnce([
-        // Unit tags response
+        // Actor tags response
         { tag: 'engine' },
         { tag: 'P0' },
       ])
@@ -113,7 +113,7 @@ describe('subscribe — add tags to unit for task routing', () => {
   })
 
   it('(c) tasksFor ranks by overlap × priority × pheromone strength', async () => {
-    // Unit has two tags
+    // Actor has two tags
     ;(readParsed as any).mockResolvedValueOnce([{ tag: 'engine' }, { tag: 'P0' }]).mockResolvedValueOnce([
       // Two tasks with same priority but different overlaps
       { id: 'high-overlap', name: 'Main Task', p: 2, tag: 'engine' },
@@ -144,7 +144,7 @@ describe('subscribe — add tags to unit for task routing', () => {
     expect(tqlCalls.some((sql) => sql.includes('\\"'))).toBe(true)
   })
 
-  it('tasksFor returns empty array when unit has tags but no matching open tasks', async () => {
+  it('tasksFor returns empty array when actor has tags but no matching open tasks', async () => {
     ;(readParsed as any).mockResolvedValueOnce([{ tag: 'rare-tag' }]).mockResolvedValueOnce([]) // no matching open tasks
 
     const tasks = await w.tasksFor('scout')
@@ -152,10 +152,10 @@ describe('subscribe — add tags to unit for task routing', () => {
     expect(tasks).toHaveLength(0)
   })
 
-  it('tasksFor handles missing unit gracefully (returns empty)', async () => {
+  it('tasksFor handles missing actor gracefully (returns empty)', async () => {
     ;(readParsed as any).mockResolvedValueOnce([]) // no tags found
 
-    const tasks = await w.tasksFor('nonexistent-unit')
+    const tasks = await w.tasksFor('nonexistent-actor')
 
     expect(tasks).toHaveLength(0)
   })

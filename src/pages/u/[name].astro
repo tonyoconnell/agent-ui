@@ -42,10 +42,10 @@ try {
   // Fetch unit
   const unitRows = await readParsed(`
     match
-      $u isa unit,
-        has uid "${name}",
+      $u isa actor,
+        has aid "${name}",
         has name $n,
-        has unit-kind $k,
+        has actor-type $k,
         has status $st,
         has balance $bal,
         has reputation $rep,
@@ -72,7 +72,7 @@ try {
 
     // Try to get wallet separately (optional attribute)
     const walletRows = await readParsed(`
-      match $u isa unit, has uid "${name}", has wallet $w;
+      match $u isa actor, has aid "${name}", has wallet $w;
       select $w;
     `).catch(() => [])
 
@@ -84,7 +84,7 @@ try {
   // Fetch capabilities
   const capRows = await readParsed(`
     match
-      $u isa unit, has uid "${name}";
+      $u isa actor, has aid "${name}";
       (provider: $u, offered: $t) isa capability, has price $p;
       $t has name $tn, has thing-type $tt;
     select $tn, $tt, $p;
@@ -100,11 +100,11 @@ try {
   // Fetch edges (paths where this unit is the source)
   const edgeRows = await readParsed(`
     match
-      $u isa unit, has uid "${name}";
+      $u isa actor, has aid "${name}";
       $e (source: $u, target: $t) isa path,
         has strength $s,
         has traversals $tr;
-      $t isa unit, has name $tn, has unit-kind $tk;
+      $t isa actor, has name $tn, has actor-type $tk;
     select $tn, $tk, $s, $tr;
   `).catch(() => [])
 
@@ -119,11 +119,11 @@ try {
   // Also fetch paths where this unit is the target
   const inboundRows = await readParsed(`
     match
-      $u isa unit, has uid "${name}";
+      $u isa actor, has aid "${name}";
       $e (source: $s, target: $u) isa path,
         has strength $str,
         has traversals $tr;
-      $s isa unit, has name $sn, has unit-kind $sk;
+      $s isa actor, has name $sn, has actor-type $sk;
     select $sn, $sk, $str, $tr;
   `).catch(() => [])
 

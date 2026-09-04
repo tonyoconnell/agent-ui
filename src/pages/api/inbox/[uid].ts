@@ -1,5 +1,5 @@
 /**
- * GET /api/inbox/[uid] — Signals received by a unit (inbox)
+ * GET /api/inbox/[uid] — Signals received by a actor (inbox)
  *
  * Auth: caller must be the uid in the path (v1: ctx.user === uid).
  * Returns 403 if uid does not match authenticated user.
@@ -48,8 +48,8 @@ export const GET: APIRoute = async ({ request, params }) => {
           has amount $amt,
           has success $ok,
           has ts $ts;
-        $to has uid "${esc(uid)}";
-        $from has uid $fid, has name $fn;
+        $to has aid "${esc(uid)}";
+        $from has aid $fid, has name $fn;
     `
 
     if (before) {

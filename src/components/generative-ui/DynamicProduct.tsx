@@ -259,10 +259,10 @@ export function DynamicProduct({
       {showCheckout && (
         <div ref={checkoutRef} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Success Message */}
-          <Card className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+          <Card className="bg-[hsl(var(--color-tertiary-bright)_/_0.05)] dark:bg-[hsl(var(--color-tertiary-bright)_/_0.1)] border-[hsl(var(--color-tertiary-bright)_/_0.2)] dark:border-[hsl(var(--color-tertiary-bright)_/_0.3)]">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <CheckCircle2 className="h-5 w-5 text-tertiary-bright dark:text-tertiary-bright" />
                 <p className="text-sm font-medium">
                   <span className="font-semibold">{data.title}</span> has been added to your cart
                 </p>
@@ -314,7 +314,7 @@ export function DynamicProduct({
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping:</span>
-                  <span className="font-bold text-green-600">FREE</span>
+                  <span className="font-bold text-[hsl(var(--color-tertiary-bright))]">FREE</span>
                 </div>
                 <div className="flex justify-between items-center pt-3 border-t">
                   <span className="font-semibold">Total:</span>

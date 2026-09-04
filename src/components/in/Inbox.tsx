@@ -83,7 +83,7 @@ export function Inbox({
       // plus the live conversation/session feeds. Each fetch is independent;
       // any failure leaves its dimension empty rather than breaking the others.
       const [unitsRes, convRes, sessRes, groupsRes, skillsRes, highwaysRes, frontiersRes] = await Promise.allSettled([
-        fetch('/api/export/units'),
+        fetch('/api/export/actors'),
         fetch(`${clawUrl}/conversations`),
         fetch(groupId ? `/api/in/sessions?group=${encodeURIComponent(groupId)}` : '/api/in/sessions'),
         fetch('/api/export/groups'),
@@ -95,7 +95,7 @@ export function Inbox({
       const jsonOr = async <T,>(r: PromiseSettledResult<Response>, fallback: T): Promise<T> =>
         r.status === 'fulfilled' && r.value.ok ? ((await r.value.json().catch(() => fallback)) as T) : fallback
 
-      const units = await jsonOr<Array<Record<string, unknown>>>(unitsRes, [])
+      const actors = await jsonOr<Array<Record<string, unknown>>>(unitsRes, [])
       const convData = await jsonOr<{ conversations?: Array<Record<string, unknown>> }>(convRes, {})
       const sessions = await jsonOr<InboxEntity[]>(sessRes, [])
       const groupsData = await jsonOr<Array<Record<string, unknown>>>(groupsRes, [])
@@ -103,7 +103,7 @@ export function Inbox({
       const highwaysData = await jsonOr<Array<Record<string, unknown>>>(highwaysRes, [])
       const frontiersData = await jsonOr<{ frontiers?: Array<Record<string, unknown>> }>(frontiersRes, {})
 
-      const actorEntities: InboxEntity[] = units.map((u) => ({
+      const actorEntities: InboxEntity[] = actors.map((u) => ({
         id: `actor:${String(u.uid)}`,
         dimension: 'actors' as const,
         type: 'actor' as const,

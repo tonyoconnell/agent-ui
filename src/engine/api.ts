@@ -1,5 +1,5 @@
 /**
- * API Unit Factory — wrap any HTTP endpoint as a substrate unit.
+ * API Actor Factory — wrap any HTTP endpoint as a substrate actor.
  *
  * null return → warn() fires automatically (no result = failure).
  * STAN learns latency, penalises slow APIs, routes around failures.
@@ -7,7 +7,7 @@
  * Tasks: get | post | put | del
  *
  * Usage:
- *   net.units['github'] = apiUnit('github', {
+ *   net.actors['github'] = apiUnit('github', {
  *     base: 'https://api.github.com',
  *     auth: `Bearer ${GITHUB_TOKEN}`
  *   })
@@ -18,7 +18,7 @@
 
 import { readParsed } from '@/lib/typedb'
 import { API_PERM_CACHE, API_PERM_TTL, audit, enforcementMode } from './adl-cache'
-import { type Unit, unit } from './world'
+import { type Actor, actor } from './world'
 
 // ADL: perm-network gate — shared cache from adl-cache.ts (Cycle 1.6 consolidation).
 // Invalidated by `invalidateAdlCache(uid)` on every ADL write path.
@@ -55,7 +55,7 @@ async function canCallAPI(callerId: string, targetBase: string): Promise<boolean
     return allowed
   }
   const rows = await readParsed(
-    `match $u isa unit, has uid "${callerId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}", has perm-network $pn; select $pn;`,
+    `match $u isa actor, has aid "${callerId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}", has perm-network $pn; select $pn;`,
   ).catch(() => [])
   const allowedHosts: string[] = []
   if (rows.length) {
@@ -103,12 +103,12 @@ const ctrl = (timeout: number) => {
   return ac
 }
 
-export const apiUnit = (id: string, opts: ApiOpts): Unit => {
+export const apiUnit = (id: string, opts: ApiOpts): Actor => {
   const h = buildHeaders(opts)
   const base = opts.base.replace(/\/$/, '')
   const timeout = opts.timeout ?? 10_000
 
-  return unit(id)
+  return actor(id)
     .on('get', async (data, _emit, ctx) => {
       if (!(await canCallAPI(ctx.from, opts.base))) return { dissolved: true }
       const { path, params } = data as { path: string; params?: Record<string, string> }

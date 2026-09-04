@@ -1,7 +1,7 @@
 /**
  * AGENTVERSE-CONNECT — Fast-think bridge between ONE and Agentverse.
  *
- * A signal is a signal. Whether it lands on a local unit or an AV agent
+ * A signal is a signal. Whether it lands on a local actor or an AV agent
  * 30ms away, the substrate doesn't care. `av:<address>` is just a namespace.
  *
  *   ONE  ─send(addr, data)─►  [av:addr]  ─POST /submit─►  Agentverse

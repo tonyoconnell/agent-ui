@@ -205,7 +205,7 @@ export function formatPriceChange(change: number): {
 } {
   const isPositive = change > 0
   const icon = isPositive ? '📈' : '📉'
-  const color = isPositive ? 'text-green-600' : 'text-red-600'
+  const color = isPositive ? 'text-[hsl(var(--color-tertiary-bright))]' : 'text-[hsl(var(--color-destructive))]'
   const text = `${isPositive ? '+' : ''}${change.toFixed(2)}%`
 
   return { text, color, icon }

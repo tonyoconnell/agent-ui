@@ -1,0 +1,71 @@
+---
+import Layout from "@/layouts/Layout.astro"
+import { auth } from "@/lib/auth"
+
+export const prerender = false
+
+const token = Astro.url.searchParams.get("token") ?? ""
+
+if (!token) return Astro.redirect("/signin")
+
+// Decode payload to show group name (no crypto needed — just preview)
+let groupLabel = "this group"
+let expired = false
+try {
+  const [payloadB64] = token.split(".")
+  const payload = JSON.parse(atob(payloadB64)) as { gid?: string; exp?: number; role?: string }
+  if (payload.gid) groupLabel = payload.gid.replace(/^group:/, "")
+  if (payload.exp && payload.exp < Date.now()) expired = true
+} catch { /* malformed token — let accept handle it */ }
+
+if (expired) return Astro.redirect("/auth/link-expired")
+
+// Unauthenticated: redirect to signin, which will come back here after auth
+let session = null
+try {
+  session = await auth.api.getSession({ headers: Astro.request.headers })
+} catch { /* ignore */ }
+
+if (!session) {
+  const redirect = encodeURIComponent(`/join?token=${encodeURIComponent(token)}`)
+  return Astro.redirect(`/signin?redirect=${redirect}`)
+}
+
+// Authenticated: accept the invite server-side then redirect
+let accepted = false
+let error = ""
+try {
+  const res = await fetch(`${Astro.url.origin}/api/invites/accept`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: Astro.request.headers.get("cookie") ?? "" },
+    body: JSON.stringify({ token }),
+  })
+  if (res.ok) {
+    accepted = true
+  } else if (res.status === 410) {
+    return Astro.redirect("/auth/link-expired")
+  } else {
+    const body = await res.json().catch(() => ({})) as { error?: string }
+    error = body.error ?? "Failed to accept invite"
+  }
+} catch (e) {
+  error = "Network error accepting invite"
+}
+
+if (accepted) return Astro.redirect("/app")
+---
+
+<Layout title={`Join ${groupLabel} · ONE`} hideHeader={true}>
+  <main class="flex min-h-screen items-center justify-center bg-background px-4">
+    <div class="w-full max-w-sm rounded-2xl bg-foreground p-8 text-center"
+         style="box-shadow: var(--shadow-card)">
+      <h1 class="text-xl font-bold text-font mb-2">Join {groupLabel}</h1>
+      {error && (
+        <p class="text-sm text-destructive mt-4">{error}</p>
+      )}
+      <p class="text-sm text-font/60 mt-2">
+        Something went wrong. <a href="/signin" class="text-primary underline">Sign in again</a> to retry.
+      </p>
+    </div>
+  </main>
+</Layout>

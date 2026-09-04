@@ -7,7 +7,7 @@
  * Usage:
  *   import { read, write, parseAnswers } from '@/lib/typedb'
  *
- *   const answers = await read('match $u isa unit; $u has name $n; select $n;')
+ *   const answers = await read('match $u isa actor; $u has name $n; select $n;')
  *   const rows = parseAnswers(answers)
  */
 

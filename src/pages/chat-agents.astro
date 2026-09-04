@@ -10,8 +10,8 @@ import { ChatShell } from "@/components/ai/chat-v3"
 
 <style is:global>
   @keyframes voice-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-    50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--color-destructive) / 0.4); }
+    50% { box-shadow: 0 0 0 8px hsl(var(--color-destructive) / 0); }
   }
   .animate-voice-pulse { animation: voice-pulse 1.5s ease-in-out infinite; }
   @keyframes message-in {

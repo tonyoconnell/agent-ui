@@ -48,7 +48,7 @@ const NAV = [
     label: 'Inbox',
     desc: 'Agent signals and messages',
     Icon: Inbox,
-    gradient: 'from-[hsl(216_55%_35%)] to-[hsl(216_63%_50%)]',
+    gradient: 'from-primary to-[hsl(var(--color-primary-bright))]',
     signal: 'inbox',
   },
 ]
@@ -179,7 +179,7 @@ export function AccountPanel({ user }: Props) {
                 )}
               </div>
               <span
-                className="absolute bottom-0.5 right-0.5 size-[11px] rounded-full bg-emerald-400 ring-[2px]"
+                className="absolute bottom-0.5 right-0.5 size-[11px] rounded-full bg-[hsl(var(--color-tertiary-bright))] ring-[2px]"
                 style={{ ringColor: 'hsl(var(--color-background))' }}
                 title="Active"
               />
@@ -274,12 +274,12 @@ export function AccountPanel({ user }: Props) {
                 </button>
               </div>
               {nameStatus === 'saved' && (
-                <p className="flex items-center gap-1.5 text-xs text-emerald-400">
+                <p className="flex items-center gap-1.5 text-xs text-[hsl(var(--color-tertiary-bright))]">
                   <CheckCircle2 className="size-3.5 shrink-0" /> Name updated
                 </p>
               )}
               {nameStatus === 'error' && (
-                <p className="flex items-center gap-1.5 text-xs text-red-400">
+                <p className="flex items-center gap-1.5 text-xs text-[hsl(var(--color-destructive))]">
                   <XCircle className="size-3.5 shrink-0" /> Failed to save — try again
                 </p>
               )}
@@ -385,12 +385,12 @@ export function AccountPanel({ user }: Props) {
                     </button>
                   </div>
                   {emailError && (
-                    <p className="flex items-center gap-1.5 text-xs text-red-400">
+                    <p className="flex items-center gap-1.5 text-xs text-[hsl(var(--color-destructive))]">
                       <XCircle className="size-3.5 shrink-0" /> {emailError}
                     </p>
                   )}
                   {emailStatus === 'saved' && (
-                    <p className="flex items-center gap-1.5 text-xs text-emerald-400">
+                    <p className="flex items-center gap-1.5 text-xs text-[hsl(var(--color-tertiary-bright))]">
                       <CheckCircle2 className="size-3.5 shrink-0" /> Email updated
                     </p>
                   )}

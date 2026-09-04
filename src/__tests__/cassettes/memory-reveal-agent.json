@@ -1,5 +1,5 @@
 {
-  "schema_hash": "47029bcf5549",
+  "schema_hash": "5fb3f10ff831",
   "interactions": [
     {
       "id": "memory-reveal-agent-001",
@@ -7,7 +7,7 @@
         "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      insert $u isa unit,\n        has uid \"vcr-actor-1777261547245\",\n        has name \"VCR Test Actor\",\n        has tag \"vcr-test\";\n    ",
+          "query": "\n      insert $u isa actor,\n        has aid \"vcr-actor-1777261547245\",\n        has name \"VCR Test Actor\",\n        has tag \"vcr-test\";\n    ",
           "transactionType": "write",
           "commit": true
         }
@@ -256,7 +256,7 @@
         "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      match $u isa unit, has uid \"vcr-actor-1777261547245\", has name $n;\n      select $n;\n    ",
+          "query": "\n      match $u isa actor, has aid \"vcr-actor-1777261547245\", has name $n;\n      select $n;\n    ",
           "transactionType": "read",
           "commit": false
         }
@@ -437,7 +437,7 @@
         "url": "https://api.one.ie/typedb/query",
         "method": "POST",
         "body": {
-          "query": "\n      match $u isa unit, has uid \"vcr-nonexistent-actor-xyz-1777261549832\";\n      select $u;\n    ",
+          "query": "\n      match $u isa actor, has aid \"vcr-nonexistent-actor-xyz-1777261549832\";\n      select $u;\n    ",
           "transactionType": "read",
           "commit": false
         }

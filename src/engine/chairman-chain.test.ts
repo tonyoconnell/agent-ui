@@ -151,7 +151,7 @@ describe('chairman-chain', () => {
     const net = createWorld() as Parameters<typeof wireChairmanChain>[0]
     wireChairmanChain(net)
 
-    // Specialist target is seeded but never added as a unit — signal dissolves silently.
+    // Specialist target is seeded but never added as a actor — signal dissolves silently.
     expect(() =>
       net.signal({
         receiver: 'ceo:route',
@@ -297,14 +297,14 @@ describe('chairman-chain CEO low-confidence LLM fallback', () => {
     net.add('ops-director').on('route', (data) => ({ data }))
 
     const classifier = vi.fn(async () => ({
-      directorUid: 'not-a-real-unit',
+      directorUid: 'not-a-real-actor',
       tag: 'ops',
       confidence: 0.9,
       latencyMs: 10,
     }))
     setClassifierForTests(classifier)
 
-    const edgeBefore = net.sense('ops→not-a-real-unit')
+    const edgeBefore = net.sense('ops→not-a-real-actor')
     const out = await net.ask({
       receiver: 'ceo:route',
       data: { content: 'x', tags: ['x'], confidence: 0.1 },
@@ -314,7 +314,7 @@ describe('chairman-chain CEO low-confidence LLM fallback', () => {
     const res = out.result as { dissolved?: boolean } | undefined
     expect(res?.dissolved).toBe(true)
     // No mark on an invalid uid — defensive guard.
-    expect(net.sense('ops→not-a-real-unit')).toBe(edgeBefore)
+    expect(net.sense('ops→not-a-real-actor')).toBe(edgeBefore)
   })
 
   it('5b. classifier returning a uid the CEO filters (same as self or in chain) → dissolve', async () => {
@@ -506,8 +506,8 @@ describe('chairman-chain dynamic leaf registration', () => {
 
 describe('Cycle 3: scope enforcement', () => {
   // Tests call makeRouteHandler directly to exercise the uid-prefix scope guard.
-  // world.ts splits receivers on the FIRST colon (unitId = receiver.split(':')[0]),
-  // so units with ':' in their uid cannot receive signals via normal routing.
+  // world.ts splits receivers on the FIRST colon (actorId = receiver.split(':')[0]),
+  // so actors with ':' in their uid cannot receive signals via normal routing.
   // makeRouteHandler is exported for test-only direct invocation.
 
   it('Test A — scope=public routes across groups (guard does not fire)', () => {

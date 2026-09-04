@@ -16,7 +16,7 @@ export const GET: APIRoute = async () => {
   try {
     // Query all active units
     const rows = await readParsed(`
-      match $u isa unit, has uid $id, has adl-status $status;
+      match $u isa actor, has aid $id, has adl-status $status;
             $status in ["active"];
       select $id;
     `).catch(() => [])

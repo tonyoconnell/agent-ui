@@ -18,7 +18,7 @@ This doc is the plan to harden, test, and verify every path end-to-end.**
 > graph.
 
 **Status:** PORTED + LIVE + HARDENED (C1-C4 complete — see [u-todo.md](u-todo.md)). 24 integration test files, Signer abstraction layer, lifecycle signals wired. Rubric: fit=0.90 form=0.88 truth=0.92 taste=0.85.
-Builds on [auth.md](auth.md) (session/API-key identity), [pay.md](pay.md) (the
+Builds on [auth.md](one-ie/dev.one.ie/one/auth.md) (session/API-key identity), [pay.md](pay.md) (the
 wallet is the buyer UI for Stripe/Sui rails), [SUI.md](SUI.md) (deterministic
 agent wallets; the `/u` flow is the *human* equivalent — non-deterministic,
 user-held keys), [zklogin.md](zklogin.md) (OAuth → Sui address, the *optional*
@@ -189,7 +189,7 @@ Libs:
 
 ### Two front doors, one substrate identity
 
-`/u` is ONE of THREE identity front doors (see [auth.md](auth.md) and
+`/u` is ONE of THREE identity front doors (see [auth.md](one-ie/dev.one.ie/one/auth.md) and
 [zklogin.md](zklogin.md) skill). zkLogin is a **sibling**, not a dependency —
 the wallet ships, tests, and ships again without a single zkLogin call.
 
@@ -602,7 +602,7 @@ taste ≥ 0.70  — one signal shape family; one vault API; pages are shells
 
 ## See Also
 
-- [auth.md](auth.md) — session + API-key identity; `/u` is the *wallet* layer, `/auth` is the *session* layer
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — session + API-key identity; `/u` is the *wallet* layer, `/auth` is the *session* layer
 - [pay.md](pay.md) — Stripe / Sui / weight rails; `/u/send` is the crypto-rail buyer UI
 - [SUI.md](SUI.md) — deterministic agent wallets (seed + uid → keypair). `/u` is the *human* counterpart (device-held keys)
 - [zklogin.md](zklogin.md) — OAuth → Sui address; the sibling front door. Optional, not required by `/u`

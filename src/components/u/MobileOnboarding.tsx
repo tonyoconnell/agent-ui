@@ -63,7 +63,7 @@ export function MobileOnboarding({
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-64 md:w-96 h-64 md:h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
         <div
-          className="absolute -bottom-40 -left-40 w-64 md:w-96 h-64 md:h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+          className="absolute -bottom-40 -left-40 w-64 md:w-96 h-64 md:h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse"
           style={{ animationDelay: '1s' }}
         />
       </div>
@@ -129,7 +129,7 @@ export function MobileOnboarding({
                     relative overflow-hidden transition-all duration-300
                     ${
                       hasWallet
-                        ? 'border-green-500/30 bg-green-500/5'
+                        ? 'border-[hsl(var(--color-tertiary-bright)_/_0.3)] bg-[hsl(var(--color-tertiary-bright)_/_0.05)]'
                         : 'border-dashed border-muted-foreground/20 hover:border-primary/40 bg-card/50 backdrop-blur-sm'
                     }
                     ${isCurrentlyGenerating ? 'animate-pulse border-primary/50' : ''}
@@ -172,7 +172,9 @@ export function MobileOnboarding({
 
                     {/* Status Badge */}
                     {hasWallet ? (
-                      <Badge className="bg-green-500/20 text-green-600 border-green-500/30 text-xs">Created</Badge>
+                      <Badge className="bg-tertiary-bright/20 text-tertiary-bright border-tertiary-bright/30 text-xs">
+                        Created
+                      </Badge>
                     ) : (
                       <Badge variant="outline" className={`text-xs ${isMobile ? 'text-[10px] px-2' : ''}`}>
                         {isMobile ? '+ Add' : '+ Add Wallet'}
@@ -204,7 +206,7 @@ export function MobileOnboarding({
             className={`
               ${isMobile ? 'w-full h-14' : 'h-14 px-8'}
               text-base sm:text-lg
-              bg-gradient-to-r from-primary to-purple-600
+              bg-gradient-to-r from-primary to-secondary
               hover:opacity-90 shadow-xl font-semibold
             `}
           >
@@ -294,7 +296,7 @@ export function MobileOnboarding({
           >
             <Card className="bg-muted/30 border-dashed">
               <CardContent className="flex items-start gap-4 pt-6">
-                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-2xl shrink-0">
+                <div className="w-12 h-12 rounded-full bg-tertiary-bright/10 flex items-center justify-center text-2xl shrink-0">
                   🛡️
                 </div>
                 <div>

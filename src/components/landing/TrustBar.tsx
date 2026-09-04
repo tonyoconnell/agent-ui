@@ -30,10 +30,10 @@ export function TrustBar() {
   const items = [`✓ ${tests}/320 tests green`, ...STATIC_ITEMS]
 
   return (
-    <div className="w-full border-y border-[#252538] bg-[#0d0d14] py-3">
+    <div className="w-full border-y border-border bg-background py-3">
       <div className="flex gap-8 overflow-x-auto px-6" style={{ scrollbarWidth: 'none' }}>
         {items.map((item) => (
-          <span key={item} className="whitespace-nowrap text-xs text-slate-400 shrink-0">
+          <span key={item} className="whitespace-nowrap text-xs text-muted-foreground shrink-0">
             {item}
           </span>
         ))}

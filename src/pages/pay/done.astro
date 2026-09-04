@@ -39,19 +39,19 @@ const copy: Record<Outcome, { title: string; description: string; tone: string; 
   succeeded: {
     title: "Payment complete",
     description: amountFormatted ? `${amountFormatted} received.` : "Your payment has been received.",
-    tone: "text-emerald-400",
+    tone: "text-tertiary-bright",
     icon: "check",
   },
   processing: {
     title: "Confirming payment",
     description: amountFormatted ? `${amountFormatted} pending. We'll notify you when it clears.` : "Your bank is finishing the transfer.",
-    tone: "text-amber-400",
+    tone: "text-gold",
     icon: "clock",
   },
   failed: {
     title: "Payment didn't go through",
     description: "No charge was made. You can try again on the previous page.",
-    tone: "text-rose-400",
+    tone: "text-destructive",
     icon: "x",
   },
 }

@@ -1,7 +1,7 @@
 /**
  * POST /api/seed — Seed the world with initial O-1 data
  *
- * Creates: 3 swarms, 8 units (personas), 3 LLM agents, 13 tasks, 5 paths,
+ * Creates: 3 swarms, 8 actors (personas), 3 LLM agents, 13 tasks, 5 paths,
  *          3 agent capabilities, 3 agent paths.
  * Idempotent: checks for existing data before inserting.
  */
@@ -13,14 +13,14 @@ export const POST: APIRoute = async () => {
 
   // Check if already seeded
   const existing = await readParsed(`
-    match $u isa unit, has uid $id; select $id;
+    match $u isa actor, has aid $id; select $id;
   `).catch(() => [])
 
   if (existing.length > 0) {
     return new Response(
       JSON.stringify({
         seeded: false,
-        message: `World already has ${existing.length} units. Delete first to re-seed.`,
+        message: `World already has ${existing.length} actors. Delete first to re-seed.`,
       }),
       {
         headers: { 'Content-Type': 'application/json' },
@@ -46,9 +46,9 @@ export const POST: APIRoute = async () => {
   }
   results.push(`${swarms.length} swarms`)
 
-  // ─── Units (8 personas) ───────────────────────────────────────────────────
+  // ─── Actors (8 personas) ───────────────────────────────────────────────────
 
-  const units = [
+  const actors = [
     { id: 'executives', name: 'Executives', kind: 'persona', status: 'active', swarm: 'swarm-platform' },
     { id: 'engineers', name: 'Engineers', kind: 'persona', status: 'active', swarm: 'swarm-platform' },
     { id: 'designers', name: 'Designers', kind: 'persona', status: 'active', swarm: 'swarm-platform' },
@@ -59,16 +59,16 @@ export const POST: APIRoute = async () => {
     { id: 'kids', name: 'Kids', kind: 'persona', status: 'active', swarm: 'swarm-agents' },
   ]
 
-  for (const u of units) {
+  for (const u of actors) {
     await write(`
-      insert $u isa unit,
-        has uid "${u.id}",
+      insert $u isa actor,
+        has aid "${u.id}",
         has name "${u.name}",
-        has unit-kind "${u.kind}",
+        has actor-type "${u.kind}",
         has status "${u.status}";
     `).catch(() => {})
   }
-  results.push(`${units.length} units`)
+  results.push(`${actors.length} actors`)
 
   // ─── LLM Agents (3 with model + system-prompt) ────────────────────────────
 
@@ -104,10 +104,10 @@ export const POST: APIRoute = async () => {
 
   for (const a of agents) {
     await write(`
-      insert $u isa unit,
-        has uid "${a.id}",
+      insert $u isa actor,
+        has aid "${a.id}",
         has name "${a.name}",
-        has unit-kind "${a.kind}",
+        has actor-type "${a.kind}",
         has status "active",
         has model "${a.model}",
         has system-prompt "${a.systemPrompt}",
@@ -142,7 +142,7 @@ export const POST: APIRoute = async () => {
 
     await write(`
       match
-        $u isa unit, has uid "${c.agent}";
+        $u isa actor, has aid "${c.agent}";
         $s isa skill, has gid "${gid}";
       insert
         (provider: $u, offered: $s) isa capability,
@@ -162,8 +162,8 @@ export const POST: APIRoute = async () => {
   for (const p of agentPaths) {
     await write(`
       match
-        $from isa unit, has uid "${p.from}";
-        $to isa unit, has uid "${p.to}";
+        $from isa actor, has aid "${p.from}";
+        $to isa actor, has aid "${p.to}";
       insert
         (source: $from, target: $to) isa path,
           has strength ${p.strength}.0,
@@ -215,8 +215,8 @@ export const POST: APIRoute = async () => {
   for (const e of edges) {
     await write(`
       match
-        $from isa unit, has uid "${e.from}";
-        $to isa unit, has uid "${e.to}";
+        $from isa actor, has aid "${e.from}";
+        $to isa actor, has aid "${e.to}";
       insert
         (source: $from, target: $to) isa path,
           has strength ${e.strength}.0,

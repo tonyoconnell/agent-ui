@@ -58,10 +58,10 @@ const infraBench: Bench[] = [
 ]
 
 const benchCards = [
-  { title: "Routing Layer",   ops: routingBench,   titleCls: "text-cyan-400",    p50Cls: "text-cyan-400" },
-  { title: "Pheromone Layer", ops: pheromoneBench, titleCls: "text-emerald-400", p50Cls: "text-emerald-400" },
-  { title: "Signal Layer",    ops: signalBench,    titleCls: "text-violet-400",  p50Cls: "text-violet-400" },
-  { title: "Edge · Sui",      ops: infraBench,     titleCls: "text-amber-400",   p50Cls: "text-amber-400" },
+  { title: "Routing Layer",   ops: routingBench,   titleCls: "text-primary-bright",    p50Cls: "text-primary-bright" },
+  { title: "Pheromone Layer", ops: pheromoneBench, titleCls: "text-tertiary-bright", p50Cls: "text-tertiary-bright" },
+  { title: "Signal Layer",    ops: signalBench,    titleCls: "text-secondary-bright",  p50Cls: "text-secondary-bright" },
+  { title: "Edge · Sui",      ops: infraBench,     titleCls: "text-gold",   p50Cls: "text-gold" },
 ] as const
 
 const principles = [
@@ -91,58 +91,58 @@ const principles = [
   description="Watch one real signal travel through 9 stops — click, edge, route, sandwich, LLM, mark, loops, highway, harden — with live timings at every step."
   imageAlt="ONE Speed — the 9-stop journey of a signal through the substrate"
 >
-  <main class="min-h-screen bg-[#0a0a0f] text-slate-200">
+  <main class="min-h-screen bg-background text-foreground">
 
     <!-- Hero -->
-    <section class="relative overflow-hidden border-b border-slate-800 px-6 py-20 md:px-10 md:py-28">
-      <div class="absolute inset-0 -z-10 bg-gradient-to-br from-cyan-950/40 via-[#0a0a0f] to-transparent"></div>
-      <div class="absolute -right-40 top-16 hidden h-[540px] w-[540px] rounded-full bg-cyan-500/10 blur-3xl md:block"></div>
-      <div class="absolute -left-40 bottom-0 hidden h-[440px] w-[440px] rounded-full bg-violet-500/10 blur-3xl md:block"></div>
+    <section class="relative overflow-hidden border-b border-border px-6 py-20 md:px-10 md:py-28">
+      <div class="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-background to-transparent"></div>
+      <div class="absolute -right-40 top-16 hidden h-[540px] w-[540px] rounded-full bg-primary/10 blur-3xl md:block"></div>
+      <div class="absolute -left-40 bottom-0 hidden h-[440px] w-[440px] rounded-full bg-secondary/10 blur-3xl md:block"></div>
 
       <div class="mx-auto max-w-5xl space-y-8 text-center">
-        <Badge variant="outline" className="border-cyan-800/60 bg-cyan-950/30 text-cyan-300 font-mono text-xs uppercase tracking-wider">
+        <Badge variant="outline" className="border-primary/60 bg-primary/20 text-primary-bright font-mono text-xs uppercase tracking-wider">
           <Sparkles className="mr-1.5 h-3 w-3" /> live · verified · measured
         </Badge>
 
-        <h1 class="text-4xl font-semibold leading-[1.05] tracking-tight text-slate-100 sm:text-5xl md:text-6xl lg:text-7xl">
+        <h1 class="text-4xl font-semibold leading-[1.05] tracking-tight text-font sm:text-5xl md:text-6xl lg:text-7xl">
           Ride a Signal
         </h1>
 
-        <p class="mx-auto max-w-3xl text-base leading-relaxed text-slate-400 md:text-lg">
+        <p class="mx-auto max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">
           One real signal. Nine stops. Click → edge → route → sandwich → LLM →
           mark → loops → highway → harden. Every step measured, every step honest.
         </p>
 
         <div class="mx-auto flex max-w-3xl flex-wrap items-center justify-center gap-3 pt-4">
-          <span class="inline-flex items-center gap-2 rounded-full border border-emerald-800/50 bg-emerald-950/30 px-4 py-1.5 font-mono text-xs text-emerald-300">
+          <span class="inline-flex items-center gap-2 rounded-full border border-tertiary-bright/50 bg-tertiary-bright/20 px-4 py-1.5 font-mono text-xs text-tertiary-bright">
             <Zap className="h-3 w-3" /> routing &lt;0.005ms
           </span>
-          <span class="inline-flex items-center gap-2 rounded-full border border-cyan-800/50 bg-cyan-950/30 px-4 py-1.5 font-mono text-xs text-cyan-300">
+          <span class="inline-flex items-center gap-2 rounded-full border border-primary-bright/50 bg-primary-bright/20 px-4 py-1.5 font-mono text-xs text-primary-bright">
             <Activity className="h-3 w-3" /> mark &lt;0.001ms
           </span>
-          <span class="inline-flex items-center gap-2 rounded-full border border-violet-800/50 bg-violet-950/30 px-4 py-1.5 font-mono text-xs text-violet-300">
+          <span class="inline-flex items-center gap-2 rounded-full border border-secondary-bright/50 bg-secondary-bright/20 px-4 py-1.5 font-mono text-xs text-secondary-bright">
             <GitBranch className="h-3 w-3" /> gateway &lt;10ms
           </span>
-          <span class="inline-flex items-center gap-2 rounded-full border border-amber-800/50 bg-amber-950/30 px-4 py-1.5 font-mono text-xs text-amber-300">
+          <span class="inline-flex items-center gap-2 rounded-full border border-gold/50 bg-gold/20 px-4 py-1.5 font-mono text-xs text-gold">
             <Shield className="h-3 w-3" /> 320 tests · &lt;7s
           </span>
         </div>
 
-        <div class="pt-4 text-xs font-mono text-slate-600">
-          ↓ scroll — or skip to the <a href="#lifecycle" class="text-cyan-400 hover:underline">lifecycle speedrun</a>
+        <div class="pt-4 text-xs font-mono text-muted-foreground">
+          ↓ scroll — or skip to the <a href="#lifecycle" class="text-primary-bright hover:underline">lifecycle speedrun</a>
         </div>
       </div>
     </section>
 
     <!-- Section 1 · The Interactive Journey -->
-    <section class="border-b border-slate-800 px-6 py-16 md:px-10 md:py-24">
+    <section class="border-b border-border px-6 py-16 md:px-10 md:py-24">
       <div class="mx-auto max-w-5xl space-y-10">
         <div class="space-y-2">
-          <p class="font-mono text-xs uppercase tracking-wider text-cyan-400">§ 01 · The Journey</p>
-          <h2 class="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">
+          <p class="font-mono text-xs uppercase tracking-wider text-primary-bright">§ 01 · The Journey</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-font sm:text-4xl">
             Send a signal. Watch it travel.
           </h2>
-          <p class="max-w-2xl text-sm text-slate-400 md:text-base">
+          <p class="max-w-2xl text-sm text-muted-foreground md:text-base">
             Click the button. The signal fires into a real Cloudflare Worker,
             runs through every layer of the substrate, and streams its timing
             back over SSE. No mock. No delay. Live numbers.
@@ -153,14 +153,14 @@ const principles = [
     </section>
 
     <!-- Section 2 · Why it's fast -->
-    <section class="border-b border-slate-800 bg-slate-950/40 px-6 py-16 md:px-10 md:py-24">
+    <section class="border-b border-border bg-muted/20 px-6 py-16 md:px-10 md:py-24">
       <div class="mx-auto max-w-6xl space-y-12">
         <div class="space-y-3 text-center">
-          <p class="font-mono text-xs uppercase tracking-wider text-cyan-400">§ 02 · The Math</p>
-          <h2 class="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">
+          <p class="font-mono text-xs uppercase tracking-wider text-primary-bright">§ 02 · The Math</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-font sm:text-4xl">
             Why it&rsquo;s fast
           </h2>
-          <p class="mx-auto max-w-2xl text-sm text-slate-400 md:text-base">
+          <p class="mx-auto max-w-2xl text-sm text-muted-foreground md:text-base">
             We don&rsquo;t compete on LLMs. Everyone&rsquo;s inference runs at physics speed.
             The difference is everything around it — and everything around it is arithmetic.
           </p>
@@ -168,18 +168,18 @@ const principles = [
 
         <div class="grid gap-4 md:grid-cols-3">
           {principles.map((p) => (
-            <Card className="bg-[#111118] border-slate-800 hover:border-slate-700 transition-colors">
+            <Card className="bg-card border-border hover:border-foreground/20 transition-colors">
               <CardHeader className="space-y-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400">
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary-bright">
                   <p.icon className="h-5 w-5" />
                 </div>
-                <CardTitle className="text-slate-100">{p.title}</CardTitle>
-                <CardDescription className="text-slate-400 leading-relaxed">
+                <CardTitle className="text-font">{p.title}</CardTitle>
+                <CardDescription className="text-muted-foreground leading-relaxed">
                   {p.body}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div class="inline-flex items-center gap-2 rounded-md bg-slate-900 px-3 py-1.5 font-mono text-xs text-emerald-400 ring-1 ring-emerald-900/40">
+                <div class="inline-flex items-center gap-2 rounded-md bg-muted px-3 py-1.5 font-mono text-xs text-tertiary-bright ring-1 ring-tertiary/40">
                   {p.stat}
                 </div>
               </CardContent>
@@ -190,14 +190,14 @@ const principles = [
     </section>
 
     <!-- Section 3 · Lifecycle speedrun -->
-    <section id="lifecycle" class="border-b border-slate-800 px-6 py-16 md:px-10 md:py-24">
+    <section id="lifecycle" class="border-b border-border px-6 py-16 md:px-10 md:py-24">
       <div class="mx-auto max-w-5xl space-y-10">
         <div class="space-y-2">
-          <p class="font-mono text-xs uppercase tracking-wider text-cyan-400">§ 03 · End-to-End</p>
-          <h2 class="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">
+          <p class="font-mono text-xs uppercase tracking-wider text-primary-bright">§ 03 · End-to-End</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-font sm:text-4xl">
             Lifecycle speedrun
           </h2>
-          <p class="max-w-2xl text-sm text-slate-400 md:text-base">
+          <p class="max-w-2xl text-sm text-muted-foreground md:text-base">
             Full commerce loop on Sui testnet: create wallet, fund, list service,
             discover, message, sell, subscribe, browse, buy, verify. Ten stages.
             One continuous run. Real wallets, real digests.
@@ -208,40 +208,40 @@ const principles = [
     </section>
 
     <!-- Section 4 · Verified benchmarks -->
-    <section class="border-b border-slate-800 bg-slate-950/40 px-6 py-16 md:px-10 md:py-24">
+    <section class="border-b border-border bg-muted/20 px-6 py-16 md:px-10 md:py-24">
       <div class="mx-auto max-w-6xl space-y-12">
         <div class="space-y-3 text-center">
-          <p class="font-mono text-xs uppercase tracking-wider text-cyan-400">§ 04 · Receipts</p>
-          <h2 class="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">
+          <p class="font-mono text-xs uppercase tracking-wider text-primary-bright">§ 04 · Receipts</p>
+          <h2 class="text-3xl font-semibold tracking-tight text-font sm:text-4xl">
             Verified benchmarks
           </h2>
-          <p class="mx-auto max-w-2xl text-sm text-slate-400 md:text-base">
-            Every number below is produced by <code class="rounded bg-slate-900 px-1.5 py-0.5 text-xs text-cyan-300">scripts/speed-report.ts</code>
-            after every <code class="rounded bg-slate-900 px-1.5 py-0.5 text-xs text-cyan-300">bun test</code>.
+          <p class="mx-auto max-w-2xl text-sm text-muted-foreground md:text-base">
+            Every number below is produced by <code class="rounded bg-muted px-1.5 py-0.5 text-xs text-primary-bright">scripts/speed-report.ts</code>
+            after every <code class="rounded bg-muted px-1.5 py-0.5 text-xs text-primary-bright">bun test</code>.
             p50 observed vs. budget target · PERF_SCALE=3 · 125 samples.
           </p>
         </div>
 
         <div class="grid gap-6 lg:grid-cols-2">
           {benchCards.map((group) => (
-            <Card className="bg-[#111118] border-slate-800">
+            <Card className="bg-card border-border">
               <CardHeader className="pb-3">
-                <CardTitle className={`text-base ${group.titleCls}`}>{group.title}</CardTitle>
-                <CardDescription className="text-xs text-slate-500">
+                <CardTitle className={`text-base text-primary-bright`}>{group.title}</CardTitle>
+                <CardDescription className="text-xs text-muted-foreground">
                   budget · p50 observed · replaces
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-1.5">
                 {group.ops.map((o) => (
-                  <div class="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-md border border-slate-800/60 bg-slate-900/40 px-3 py-2">
+                  <div class="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-md border border-border/60 bg-muted/40 px-3 py-2">
                     <div class="min-w-0">
-                      <p class="truncate text-sm font-mono text-slate-200">{o.op}</p>
-                      <p class="truncate text-[10px] text-slate-500">{o.replaces}</p>
+                      <p class="truncate text-sm font-mono text-foreground">{o.op}</p>
+                      <p class="truncate text-[10px] text-muted-foreground">{o.replaces}</p>
                     </div>
-                    <span class="font-mono text-[10px] uppercase tracking-wider text-slate-500">
-                      budget <span class="text-slate-300">{o.budget}</span>
+                    <span class="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                      budget <span class="text-foreground">{o.budget}</span>
                     </span>
-                    <span class={`font-mono text-xs tabular-nums ${group.p50Cls}`}>
+                    <span class={`font-mono text-xs tabular-nums text-primary-bright`}>
                       {o.p50}
                     </span>
                   </div>
@@ -251,9 +251,9 @@ const principles = [
           ))}
         </div>
 
-        <p class="text-center text-xs text-slate-500">
-          Full table: <a href="/speedtest" class="text-cyan-400 hover:underline">/speedtest</a> ·
-          source: <code class="text-slate-400">docs/speed-test.md</code>
+        <p class="text-center text-xs text-muted-foreground">
+          Full table: <a href="/speedtest" class="text-primary-bright hover:underline">/speedtest</a> ·
+          source: <code class="text-muted-foreground">docs/speed-test.md</code>
         </p>
       </div>
     </section>
@@ -261,34 +261,34 @@ const principles = [
     <!-- CTA -->
     <section class="px-6 py-20 md:px-10 md:py-28">
       <div class="mx-auto max-w-3xl space-y-8 text-center">
-        <h2 class="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">
+        <h2 class="text-3xl font-semibold tracking-tight text-font sm:text-4xl">
           Run it yourself.
         </h2>
-        <p class="text-sm text-slate-400 md:text-base">
+        <p class="text-sm text-muted-foreground md:text-base">
           Don&rsquo;t take our word for it. Every benchmark above is reproducible in
           under seven seconds on your machine. The substrate has no secret sauce —
           just 670 lines of engine and a formula.
         </p>
         <div class="flex flex-wrap items-center justify-center gap-3">
           <a href="/speedtest">
-            <Button className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-medium">
+            <Button className="bg-primary-bright hover:bg-primary-bright/80 text-black font-medium">
               See the engine benchmarks
             </Button>
           </a>
           <a href="https://api.one.ie/health" target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800">
+            <Button variant="outline" className="border-border text-foreground hover:bg-muted">
               Ping the gateway
             </Button>
           </a>
           <a href="https://dev.one.ie/api/export/highways" target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800">
+            <Button variant="outline" className="border-border text-foreground hover:bg-muted">
               Export live highways
             </Button>
           </a>
         </div>
-        <div class="pt-6 text-xs text-slate-600">
+        <div class="pt-6 text-xs text-muted-foreground">
           <span class="font-mono">math + pheromone + 4-layer sandwich = </span>
-          <span class="font-mono text-cyan-400">instant routing, forever learning.</span>
+          <span class="font-mono text-primary-bright">instant routing, forever learning.</span>
         </div>
       </div>
     </section>

@@ -27,13 +27,13 @@ const FADE_RATE = 0.05
 const EVOLUTION_INTERVAL = 600_000 // 10 minutes between evolution sweeps
 const EVOLUTION_COOLDOWN = 86_400_000 // 24 hours between rewrites per agent
 const EVOLUTION_THRESHOLD = 0.5 // success rate below which agents evolve
-const PRIORITY_EVOLUTION_THRESHOLD = 0.65 // relaxed threshold for priority units
+const PRIORITY_EVOLUTION_THRESHOLD = 0.65 // relaxed threshold for priority actors
 const EVOLUTION_MIN_SAMPLES = 20
 const REVENUE_SKIP_THRESHOLD = 1.0 // revenue above which low-success agents are spared
 const REVENUE_MIN_SUCCESS = 0.3 // min success rate even for profitable agents
 const HARDEN_INTERVAL = 3_600_000 // 1 hour between knowledge cycles
 const SURGE_THRESHOLD = 10 // strength delta to flag as surge
-const FRONTIER_MIN_ACTIVITY = 3 // min edges involving a unit to consider it active
+const FRONTIER_MIN_ACTIVITY = 3 // min edges involving a actor to consider it active
 
 export type TickResult = {
   cycle: number
@@ -266,7 +266,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
   // Fall back to probabilistic (select) for exploration.
   let next = previousTarget ? net.follow() : null
   if (!next) {
-    // No proven path from current unit, use probabilistic selection
+    // No proven path from current actor, use probabilistic selection
     next = net.select()
   }
 
@@ -316,7 +316,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     // Try tag-filtered first: if we have a known executor, match its tags
     if (previousTarget) {
       topTasks = await readParsed(`
-        match $u isa unit, has uid "${previousTarget}", has tag $tag;
+        match $u isa actor, has aid "${previousTarget}", has tag $tag;
         $t isa task, has task-id $id, has name $name, has done false,
           has priority-score $p, has task-status "open", has tag $tag;
         $t has task-effort $effort, has task-phase $phase;
@@ -389,7 +389,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       // Load blocking context: what tasks will be unblocked when this completes
       const blockers = await net.taskBlockers(taskId).catch(() => [])
 
-      // Route as signal: enqueue for the builder unit WITH full context envelope
+      // Route as signal: enqueue for the builder actor WITH full context envelope
       // Entry point is builder:task — the dispatch handler strips replyTo before recon
       const taskWave = (waveRows[0]?.wave as string) || 'W3'
       const taskModel =
@@ -514,7 +514,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
 
     // EV-2: Targeted evolution — query per-skill data, not just blanket
     const struggling = await readParsed(`
-      match $u isa unit, has uid $id, has system-prompt $sp, has success-rate $sr,
+      match $u isa actor, has aid $id, has system-prompt $sp, has success-rate $sr,
             has sample-count $sc, has generation $g;
       $sr < ${EVOLUTION_THRESHOLD}; $sc >= ${EVOLUTION_MIN_SAMPLES};
       not { $u has last-evolved $le; $le > ${new Date(now - EVOLUTION_COOLDOWN).toISOString().slice(0, 19)}; };
@@ -523,20 +523,20 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       select $id, $sp, $sr, $sc, $g, $sid, $tag;
     `).catch(() => [])
 
-    // Deduplicate by unit id (query returns one row per skill×tag)
+    // Deduplicate by actor id (query returns one row per skill×tag)
     const unitIds = [...new Set(struggling.map((s) => s.id as string))]
 
     for (const uid of unitIds) {
       const u = struggling.find((s) => s.id === uid)!
       const isPriority = priorityEvolve.includes(uid)
 
-      // Priority units evolve with a relaxed threshold
+      // Priority actors evolve with a relaxed threshold
       if (!isPriority && (u.sr as number) >= EVOLUTION_THRESHOLD) continue
       if (isPriority && (u.sr as number) >= PRIORITY_EVOLUTION_THRESHOLD) continue
 
       // EL-3: Cost-aware — skip evolution for profitable agents
       const revenueRows = await readParsed(`
-        match $e (source: $f, target: $t) isa path; $t isa unit, has uid "${uid}";
+        match $e (source: $f, target: $t) isa path; $t isa actor, has aid "${uid}";
         $e has revenue $rev; $rev > 0.0; select $rev;
       `).catch(() => [])
       const totalRevenue = revenueRows.reduce((sum, r) => sum + (r.rev as number), 0)
@@ -623,7 +623,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
           has hypothesis-status "testing", has observations-count 0, has p-value 1.0;
       `)
       const promptOk = await writeTracked(`
-        match $u isa unit, has uid "${uid}", has system-prompt $sp, has generation $g;
+        match $u isa actor, has aid "${uid}", has system-prompt $sp, has generation $g;
         delete $sp of $u; delete $g of $u;
         insert $u has system-prompt "${finalPrompt.replace(/"/g, '\\"')}", has generation (${u.g} + 1),
                has last-evolved ${new Date(now).toISOString().slice(0, 19)};
@@ -641,7 +641,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
             receiver: 'loop:metrics',
             data: {
               tags: ['evolution:success', 'L5'],
-              content: { unit: uid, generation: (u.g as number) + 1, from: u.sr as number },
+              content: { actor: uid, generation: (u.g as number) + 1, from: u.sr as number },
             },
           },
           'loop',
@@ -734,8 +734,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
 
     // LC-1: Knowledge → Evolution coupling — strong patterns trigger priority evolution
     for (const i of insights.filter((i) => i.confidence >= 0.8)) {
-      const units = i.pattern.split('→').map((s) => s.split(':')[0])
-      priorityEvolve.push(...units)
+      const actors = i.pattern.split('→').map((s) => s.split(':')[0])
+      priorityEvolve.push(...actors)
     }
 
     // L6-LAUNCH: agents that cross the agent-launch handoff become hypotheses.
@@ -876,7 +876,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       }
     }
 
-    // FR-1: Detect unit-gap frontiers — active units that have never been connected
+    // FR-1: Detect actor-gap frontiers — active actors that have never been connected
     const allUnits = net.list()
     for (let i = 0; i < allUnits.length; i++) {
       for (let j = i + 1; j < allUnits.length; j++) {
@@ -890,8 +890,8 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
             result.writes!.frontierAttempted++
             const ok = await writeTracked(`
               insert $f isa frontier, has fid "gap-${allUnits[i]}-${allUnits[j]}-${cycle}",
-                has frontier-type "unit-gap",
-                has frontier-description "active units ${allUnits[i]} and ${allUnits[j]} never connected",
+                has frontier-type "actor-gap",
+                has frontier-description "active actors ${allUnits[i]} and ${allUnits[j]} never connected",
                 has expected-value 0.5, has frontier-status "unexplored";
             `)
             if (ok) {
@@ -904,7 +904,7 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
     }
 
     // L7: Scan docs/ → upsert skills + capabilities in TypeDB
-    // Skills without capabilities are orphaned — must link to a unit
+    // Skills without capabilities are orphaned — must link to a actor
     let docsSynced = 0
     try {
       const { join } = await import('node:path')
@@ -913,9 +913,9 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
       const docItems = await scanDocs(docsDir)
       const openItems = docItems.filter((i) => !i.done)
 
-      // Ensure builder unit exists for capability relations
+      // Ensure builder actor exists for capability relations
       await writeSilent(`
-        insert $u isa unit, has uid "builder", has name "Builder",
+        insert $u isa actor, has aid "builder", has name "Builder",
           has model "claude-sonnet-4-20250514", has system-prompt "Task executor",
           has generation 1, has success-rate 0.8, has sample-count 0, has activity-score 0;
       `).catch(() => {}) // Ignore if already exists
@@ -931,9 +931,9 @@ export const tick = async (net: PersistentWorld, complete?: Complete): Promise<T
             ${tags.join(', ')}, has price 0.0, has currency "SUI";
         `).catch(() => {}) // Ignore if already exists
 
-        // Link skill to builder unit via capability — makes it visible to /api/tasks
+        // Link skill to builder actor via capability — makes it visible to /api/tasks
         await writeSilent(`
-          match $u isa unit, has uid "builder"; $s isa skill, has skill-id "${skillId}";
+          match $u isa actor, has aid "builder"; $s isa skill, has skill-id "${skillId}";
           insert (provider: $u, offered: $s) isa capability, has price 0.0;
         `).catch(() => {}) // Ignore if already linked
 

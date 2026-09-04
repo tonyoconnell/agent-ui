@@ -6,13 +6,13 @@
  * Controls: ← [1/12] → | ESC to close
  *
  * 12 steps:
- * 1. "This is a unit." → highlight one agent, pulse
+ * 1. "This is a actor." → highlight one agent, pulse
  * 2. "It can do things." → spread task chips
  * 3. "When it does work, it sends a signal." → fire particle
  * 4. "That leaves a trail." → light path
  * 5-8. Explain strength, resistance, highways, toxic
  * 9. "Nothing flows? It fades." → path slowly thins
- * 10. "Now you try. Drag this unit." → ghost cursor demos drag
+ * 10. "Now you try. Drag this actor." → ghost cursor demos drag
  * 11. "You just changed the world. Watch it react." → new path appears, particle flies
  * 12. "That's it. Sign in to keep your changes." → offer [sign up]
  *
@@ -35,8 +35,8 @@ interface GuideStep {
 const guideSteps: GuideStep[] = [
   {
     number: 1,
-    title: 'Meet a Unit',
-    narration: "This is a unit. It's an actor in the world.",
+    title: 'Meet a Actor',
+    narration: "This is a actor. It's an actor in the world.",
     action: 'highlight-agent',
   },
   {
@@ -90,7 +90,7 @@ const guideSteps: GuideStep[] = [
   {
     number: 10,
     title: 'Your Turn',
-    narration: 'Now you try. Drag this unit to that one. Draw a new path.',
+    narration: 'Now you try. Drag this actor to that one. Draw a new path.',
     action: 'demo-drag',
   },
   {

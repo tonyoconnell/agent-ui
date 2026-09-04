@@ -1,5 +1,5 @@
 /**
- * BUILDER — Wave-aware unit for executing tasks through the W1→W4 chain.
+ * BUILDER — Wave-aware actor for executing tasks through the W1→W4 chain.
  *
  * The builder is the substrate's task executor. It receives a task envelope
  * on its :recon channel, runs it through four waves (haiku→opus→sonnet→sonnet),
@@ -21,7 +21,7 @@ export type BuilderComplete = (prompt: string, model: string) => Promise<string 
 export type BuilderOnDone = (envelope: WaveEnvelope) => void
 
 /**
- * Register the builder unit in the substrate.
+ * Register the builder actor in the substrate.
  * Wires recon→decide→edit→verify as a .on()/.then() chain.
  *
  * @param net      — the substrate world (must be live)

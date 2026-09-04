@@ -1,0 +1,272 @@
+---
+// AuthorityChain.astro — replaces ASCII diagram in security.astro
+// Static SVG: fingerprint → spending cap → agent wallet → sub-agents → tx list
+// See /Users/toc/Server/theme.md § Brand families (3-step ladders: bright/mid/dim)
+---
+<div class="rounded-2xl border border-border bg-card/50 p-8 overflow-x-auto">
+  <p class="eyebrow mb-6">The authority chain</p>
+  <svg
+    viewBox="0 0 800 720"
+    class="w-full h-auto"
+    role="img"
+    aria-label="Authority chain: fingerprint to spending cap to agent wallet to sub-agents to transactions, every action traceable to a biometric signature"
+  >
+    <defs>
+      <marker
+        id="arrowhead"
+        viewBox="0 0 10 10"
+        refX="9"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path d="M0,0 L10,5 L0,10 z" fill="hsl(var(--color-muted-foreground))" />
+      </marker>
+    </defs>
+
+    <!-- ============================================================ -->
+    <!-- NODE 1: Fingerprint (root) — primary, y=80                   -->
+    <!-- ============================================================ -->
+    <g style="color: hsl(var(--color-primary-bright))">
+      <rect
+        x="260" y="35" width="280" height="90" rx="12"
+        fill="hsl(var(--color-primary-dim))"
+        stroke="hsl(var(--color-primary-bright))"
+        stroke-width="1.5"
+      />
+      <!-- fingerprint glyph -->
+      <g transform="translate(285, 60)" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <path d="M6,20 C6,10 10,4 16,4 C22,4 26,10 26,20" />
+        <path d="M10,22 C10,14 12,9 16,9 C20,9 22,14 22,22" />
+        <path d="M14,24 C14,18 14.5,14 16,14 C17.5,14 18,18 18,24" />
+        <path d="M2,18 C2,8 8,1 16,1" />
+      </g>
+      <text x="325" y="68" fill="hsl(var(--color-font))" font-size="14" font-weight="600" font-family="system-ui, sans-serif">
+        Your fingerprint
+      </text>
+      <text x="325" y="92" fill="hsl(var(--color-muted-foreground))" font-size="11" font-family="system-ui, sans-serif">
+        Secure Enclave,
+      </text>
+      <text x="325" y="107" fill="hsl(var(--color-muted-foreground))" font-size="11" font-family="system-ui, sans-serif">
+        non-transferable by physics
+      </text>
+    </g>
+
+    <!-- Connector 1: fingerprint → cap -->
+    <line
+      x1="400" y1="125" x2="400" y2="185"
+      stroke="hsl(var(--color-muted-foreground))"
+      stroke-width="1.5"
+      stroke-dasharray="4 4"
+      marker-end="url(#arrowhead)"
+    />
+    <text x="410" y="160" fill="hsl(var(--color-muted-foreground))" font-size="11" font-style="italic" font-family="ui-monospace, monospace">
+      proves your presence
+    </text>
+
+    <!-- ============================================================ -->
+    <!-- NODE 2: Spending cap — tertiary, y=230                        -->
+    <!-- ============================================================ -->
+    <g style="color: hsl(var(--color-tertiary-bright))">
+      <rect
+        x="260" y="185" width="280" height="90" rx="12"
+        fill="hsl(var(--color-tertiary-dim))"
+        stroke="hsl(var(--color-tertiary-bright))"
+        stroke-width="1.5"
+      />
+      <!-- lock glyph -->
+      <g transform="translate(285, 210)" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="6" y="13" width="20" height="14" rx="2" />
+        <path d="M10,13 L10,9 C10,5 12,3 16,3 C20,3 22,5 22,9 L22,13" />
+        <circle cx="16" cy="20" r="1.5" fill="currentColor" />
+      </g>
+      <text x="325" y="218" fill="hsl(var(--color-font))" font-size="14" font-weight="600" font-family="system-ui, sans-serif">
+        Spending cap transaction
+      </text>
+      <text x="325" y="242" fill="hsl(var(--color-muted-foreground))" font-size="11" font-family="system-ui, sans-serif">
+        signed,
+      </text>
+      <text x="325" y="257" fill="hsl(var(--color-muted-foreground))" font-size="11" font-family="system-ui, sans-serif">
+        recorded on-chain
+      </text>
+    </g>
+
+    <!-- Connector 2: cap → agent -->
+    <line
+      x1="400" y1="275" x2="400" y2="335"
+      stroke="hsl(var(--color-muted-foreground))"
+      stroke-width="1.5"
+      stroke-dasharray="4 4"
+      marker-end="url(#arrowhead)"
+    />
+    <text x="410" y="310" fill="hsl(var(--color-muted-foreground))" font-size="11" font-style="italic" font-family="ui-monospace, monospace">
+      authorises the agent
+    </text>
+
+    <!-- ============================================================ -->
+    <!-- NODE 3: Agent wallet — secondary, y=380                       -->
+    <!-- ============================================================ -->
+    <g style="color: hsl(var(--color-secondary-bright))">
+      <rect
+        x="260" y="335" width="280" height="90" rx="12"
+        fill="hsl(var(--color-secondary-dim))"
+        stroke="hsl(var(--color-secondary-bright))"
+        stroke-width="1.5"
+      />
+      <!-- bot glyph -->
+      <g transform="translate(285, 360)" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="8" width="24" height="20" rx="3" />
+        <line x1="16" y1="8" x2="16" y2="3" />
+        <circle cx="16" cy="2" r="1.5" fill="currentColor" />
+        <circle cx="11" cy="17" r="1.5" fill="currentColor" />
+        <circle cx="21" cy="17" r="1.5" fill="currentColor" />
+        <line x1="12" y1="23" x2="20" y2="23" />
+      </g>
+      <text x="325" y="368" fill="hsl(var(--color-font))" font-size="14" font-weight="600" font-family="system-ui, sans-serif">
+        Agent's wallet
+      </text>
+      <text x="325" y="392" fill="hsl(var(--color-muted-foreground))" font-size="11" font-family="system-ui, sans-serif">
+        bounded by the cap
+      </text>
+      <text x="325" y="407" fill="hsl(var(--color-muted-foreground))" font-size="11" font-family="system-ui, sans-serif">
+        you set
+      </text>
+    </g>
+
+    <!-- Connectors 3a/3b/3c: agent → 3 sub-agents (split) -->
+    <line
+      x1="400" y1="425" x2="260" y2="540"
+      stroke="hsl(var(--color-muted-foreground))"
+      stroke-width="1.5"
+      stroke-dasharray="4 4"
+      marker-end="url(#arrowhead)"
+    />
+    <line
+      x1="400" y1="425" x2="400" y2="540"
+      stroke="hsl(var(--color-muted-foreground))"
+      stroke-width="1.5"
+      stroke-dasharray="4 4"
+      marker-end="url(#arrowhead)"
+    />
+    <line
+      x1="400" y1="425" x2="540" y2="540"
+      stroke="hsl(var(--color-muted-foreground))"
+      stroke-width="1.5"
+      stroke-dasharray="4 4"
+      marker-end="url(#arrowhead)"
+    />
+    <text x="555" y="475" fill="hsl(var(--color-muted-foreground))" font-size="11" font-style="italic" font-family="ui-monospace, monospace">
+      bounded sub-agents
+    </text>
+    <text x="555" y="490" fill="hsl(var(--color-muted-foreground))" font-size="11" font-style="italic" font-family="ui-monospace, monospace">
+      inherit remaining cap
+    </text>
+
+    <!-- ============================================================ -->
+    <!-- NODE 4a/4b/4c: Sub-agents — secondary, y=540                  -->
+    <!-- ============================================================ -->
+    <g style="color: hsl(var(--color-secondary-bright))">
+      <!-- sub 1 -->
+      <rect
+        x="140" y="540" width="120" height="60" rx="12"
+        fill="hsl(var(--color-secondary-dim))"
+        stroke="hsl(var(--color-secondary-bright))"
+        stroke-width="1.5"
+      />
+      <g transform="translate(155, 555)" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+        <rect x="2" y="6" width="16" height="13" rx="2" />
+        <line x1="10" y1="6" x2="10" y2="2" />
+        <circle cx="7" cy="12" r="1" fill="currentColor" />
+        <circle cx="13" cy="12" r="1" fill="currentColor" />
+      </g>
+      <text x="180" y="577" fill="hsl(var(--color-font))" font-size="13" font-weight="600" font-family="system-ui, sans-serif">
+        Sub-agent
+      </text>
+
+      <!-- sub 2 -->
+      <rect
+        x="340" y="540" width="120" height="60" rx="12"
+        fill="hsl(var(--color-secondary-dim))"
+        stroke="hsl(var(--color-secondary-bright))"
+        stroke-width="1.5"
+      />
+      <g transform="translate(355, 555)" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+        <rect x="2" y="6" width="16" height="13" rx="2" />
+        <line x1="10" y1="6" x2="10" y2="2" />
+        <circle cx="7" cy="12" r="1" fill="currentColor" />
+        <circle cx="13" cy="12" r="1" fill="currentColor" />
+      </g>
+      <text x="380" y="577" fill="hsl(var(--color-font))" font-size="13" font-weight="600" font-family="system-ui, sans-serif">
+        Sub-agent
+      </text>
+
+      <!-- sub 3 -->
+      <rect
+        x="540" y="540" width="120" height="60" rx="12"
+        fill="hsl(var(--color-secondary-dim))"
+        stroke="hsl(var(--color-secondary-bright))"
+        stroke-width="1.5"
+      />
+      <g transform="translate(555, 555)" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+        <rect x="2" y="6" width="16" height="13" rx="2" />
+        <line x1="10" y1="6" x2="10" y2="2" />
+        <circle cx="7" cy="12" r="1" fill="currentColor" />
+        <circle cx="13" cy="12" r="1" fill="currentColor" />
+      </g>
+      <text x="580" y="577" fill="hsl(var(--color-font))" font-size="13" font-weight="600" font-family="system-ui, sans-serif">
+        Sub-agent
+      </text>
+    </g>
+
+    <!-- Connectors merge: 3 subs → tx list -->
+    <line
+      x1="200" y1="600" x2="400" y2="660"
+      stroke="hsl(var(--color-muted-foreground))"
+      stroke-width="1.5"
+      stroke-dasharray="4 4"
+    />
+    <line
+      x1="400" y1="600" x2="400" y2="660"
+      stroke="hsl(var(--color-muted-foreground))"
+      stroke-width="1.5"
+      stroke-dasharray="4 4"
+      marker-end="url(#arrowhead)"
+    />
+    <line
+      x1="600" y1="600" x2="400" y2="660"
+      stroke="hsl(var(--color-muted-foreground))"
+      stroke-width="1.5"
+      stroke-dasharray="4 4"
+    />
+
+    <!-- ============================================================ -->
+    <!-- NODE 5: Tx list (leaf) — primary, y=660                       -->
+    <!-- ============================================================ -->
+    <g style="color: hsl(var(--color-primary-bright))">
+      <rect
+        x="260" y="660" width="280" height="90" rx="12"
+        fill="hsl(var(--color-primary-dim))"
+        stroke="hsl(var(--color-primary-bright))"
+        stroke-width="1.5"
+      />
+      <!-- file glyph -->
+      <g transform="translate(285, 685)" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6,3 L20,3 L26,9 L26,27 L6,27 Z" />
+        <path d="M20,3 L20,9 L26,9" />
+        <line x1="11" y1="15" x2="22" y2="15" />
+        <line x1="11" y1="20" x2="22" y2="20" />
+        <line x1="11" y1="24" x2="18" y2="24" />
+      </g>
+      <text x="325" y="693" fill="hsl(var(--color-font))" font-size="14" font-weight="600" font-family="system-ui, sans-serif">
+        Every transaction
+      </text>
+      <text x="325" y="717" fill="hsl(var(--color-muted-foreground))" font-size="11" font-family="system-ui, sans-serif">
+        traces to you, with
+      </text>
+      <text x="325" y="732" fill="hsl(var(--color-muted-foreground))" font-size="11" font-family="system-ui, sans-serif">
+        your biometric signature
+      </text>
+    </g>
+  </svg>
+</div>

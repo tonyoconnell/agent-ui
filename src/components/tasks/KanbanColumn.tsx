@@ -36,7 +36,7 @@ export function KanbanColumn({ column, tasks, onCardClick, activeId }: Props) {
         ref={setNodeRef}
         animate={{
           backgroundColor: isOver ? `${column.color}12` : 'transparent',
-          borderColor: isOver ? `${column.color}40` : '#ffffff0d',
+          borderColor: isOver ? `${column.color}40` : 'hsl(var(--color-foreground) / 0.05)',
         }}
         className={cn('flex-1 min-h-[320px] rounded-lg border p-2 space-y-2')}
       >

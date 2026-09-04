@@ -26,7 +26,7 @@ describe('memory reveal', () => {
   // cleanup fires before cassette closes (LIFO afterAll order)
   afterAll(async () => {
     const safeUid = escapeTqlString(uid)
-    await writeSilent(`match $u isa unit, has uid "${safeUid}"; delete $u isa unit;`)
+    await writeSilent(`match $u isa actor, has aid "${safeUid}"; delete $u isa actor;`)
   })
 
   useCassette('memory-reveal-agent')
@@ -36,14 +36,14 @@ describe('memory reveal', () => {
     const safeName = escapeTqlString(name)
 
     await writeSilent(`
-      insert $u isa unit,
-        has uid "${safeUid}",
+      insert $u isa actor,
+        has aid "${safeUid}",
         has name "${safeName}",
         has tag "vcr-test";
     `)
 
     const rows = await readParsed(`
-      match $u isa unit, has uid "${safeUid}", has name $n;
+      match $u isa actor, has aid "${safeUid}", has name $n;
       select $n;
     `)
 
@@ -53,7 +53,7 @@ describe('memory reveal', () => {
 
   it('returns empty for an unknown uid', async () => {
     const rows = await readParsed(`
-      match $u isa unit, has uid "vcr-nonexistent-actor-xyz-${Date.now()}";
+      match $u isa actor, has aid "vcr-nonexistent-actor-xyz-${Date.now()}";
       select $u;
     `)
     expect(rows).toHaveLength(0)

@@ -15,7 +15,7 @@
  * Output: { uid, name, wallet, apiKey, keyId, returning }
  *
  * Ontology:
- *   Actor (dim 2)  → unit entity
+ *   Actor (dim 2)  → actor entity
  *   Thing (dim 3)  → api-key entity
  *   Path  (dim 4)  → api-authorization relation
  *   Event (dim 5)  → last-used tracking on key
@@ -109,9 +109,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .replace(/[^a-z0-9-]/g, '-')
         .replace(/-+/g, '-')
 
-    // Check if unit already exists
+    // Check if actor already exists
     const existing = await readParsed(`
-      match $u isa unit, has uid "${esc(uid)}";
+      match $u isa actor, has aid "${esc(uid)}";
       $u has name $n;
       select $n;
     `).catch(() => [])
@@ -138,7 +138,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
     }
 
-    // If new, create the unit
+    // If new, create the actor
     if (!returning) {
       let wallet = ''
       try {
@@ -150,10 +150,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const now = new Date().toISOString().replace('Z', '')
       const walletClause = wallet ? `, has wallet "${esc(wallet)}"` : ''
       await write(`
-        insert $u isa unit,
-          has uid "${esc(uid)}",
+        insert $u isa actor,
+          has aid "${esc(uid)}",
           has name "${esc(name)}",
-          has unit-kind "${esc(kind)}",
+          has actor-type "${esc(kind)}",
           has status "active",
           has success-rate 0.5,
           has activity-score 0.0,
@@ -197,18 +197,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
         has expires-at ${expiresAt};
     `)
 
-    // Link key to unit
+    // Link key to actor
     await write(`
       match
         $k isa api-key, has api-key-id "${esc(keyId)}";
-        $u isa unit, has uid "${esc(uid)}";
+        $u isa actor, has aid "${esc(uid)}";
       insert
-        (api-key: $k, authorized-unit: $u) isa api-authorization;
+        (api-key: $k, authorized-actor: $u) isa api-authorization;
     `).catch(() => {
       // Relation creation is best-effort — key still works via user-id match
     })
 
-    // Auto-create personal group for new units (idempotent — IF NOT EXISTS pattern)
+    // Auto-create personal group for new actors (idempotent — IF NOT EXISTS pattern)
     if (!returning) {
       const gid = `group:${uid}`
       await write(`
@@ -223,7 +223,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       await write(`
         match
           $g isa group, has gid "${esc(`group:${uid}`)}";
-          $u isa unit, has uid "${esc(uid)}";
+          $u isa actor, has aid "${esc(uid)}";
         insert
           (group: $g, member: $u) isa membership, has member-role "chairman";
       `).catch(() => {

@@ -125,7 +125,7 @@ export async function getPaths(kv: KVNamespace, group?: string) {
 }
 
 export async function getUnits(kv: KVNamespace, group?: string) {
-  const key = group ? `units:${group}.json` : 'units.json'
+  const key = group ? `actors:${group}.json` : 'actors.json'
   return (await kvGet<Record<string, { kind: string; status: string }>>(kv, key)) ?? {}
 }
 

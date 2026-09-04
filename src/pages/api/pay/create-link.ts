@@ -37,7 +37,7 @@ interface CreateLinkBody {
 async function checkLifecycle(uid: string): Promise<{ ok: boolean; reason?: string }> {
   try {
     const rows = await readParsed(`
-      match $u isa unit, has uid "${uid.replace(/"/g, '')}";
+      match $u isa actor, has aid "${uid.replace(/"/g, '')}";
       select $u has adl-status $s, $u has sunset-at $sa;
     `).catch(() => [])
 
@@ -47,8 +47,8 @@ async function checkLifecycle(uid: string): Promise<{ ok: boolean; reason?: stri
     const status = (row.s as string) || 'active'
     const sunsetAt = row.sa as string | undefined
 
-    if (status === 'retired') return { ok: false, reason: 'unit retired' }
-    if (status === 'deprecated') return { ok: false, reason: 'unit deprecated' }
+    if (status === 'retired') return { ok: false, reason: 'actor retired' }
+    if (status === 'deprecated') return { ok: false, reason: 'actor deprecated' }
 
     if (sunsetAt) {
       const sunset = new Date(sunsetAt)
@@ -67,7 +67,7 @@ async function checkLifecycle(uid: string): Promise<{ ok: boolean; reason?: stri
 async function checkNetwork(uid: string, requiredHost: string): Promise<{ ok: boolean; reason?: string }> {
   try {
     const rows = await readParsed(`
-      match $u isa unit, has uid "${uid.replace(/"/g, '')}",
+      match $u isa actor, has aid "${uid.replace(/"/g, '')}",
             has perm-network $pn;
       select $pn;
     `).catch(() => [])
@@ -184,7 +184,7 @@ export const POST: APIRoute = async ({ request }) => {
     audit({ sender: from, receiver: to, gate: 'lifecycle', decision: 'deny', mode, reason: lifecycle.reason })
     if (mode === 'enforce') {
       emitPaySignal({ rail, from, to, ref: 'failed', sku, status: 'failed', provider: 'adl', amount })
-      return Response.json({ error: 'unit retired or sunset', gate: 'lifecycle' }, { status: 410 })
+      return Response.json({ error: 'actor retired or sunset', gate: 'lifecycle' }, { status: 410 })
     }
     // audit mode: emit adl:denial signal and proceed
     emitPaySignal({ rail, from, to, ref: 'pending', sku, status: 'adl:denial:lifecycle', provider: 'adl', amount })

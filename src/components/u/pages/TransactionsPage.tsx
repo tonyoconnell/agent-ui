@@ -164,15 +164,16 @@ export function TransactionsPage() {
   }
 
   function kindColor(kind: TxSummary['kind']): string {
-    if (kind === 'send') return 'text-red-500'
-    if (kind === 'receive') return 'text-green-500'
-    return 'text-blue-400'
+    if (kind === 'send') return 'text-[hsl(var(--color-destructive))]'
+    if (kind === 'receive') return 'text-[hsl(var(--color-tertiary-bright))]'
+    return 'text-[hsl(var(--color-primary-bright))]'
   }
 
   function kindBg(kind: TxSummary['kind']): string {
-    if (kind === 'send') return 'bg-red-100 dark:bg-red-900/30 text-red-600'
-    if (kind === 'receive') return 'bg-green-100 dark:bg-green-900/30 text-green-600'
-    return 'bg-blue-100 dark:bg-blue-900/30 text-blue-600'
+    if (kind === 'send') return 'bg-[hsl(var(--color-destructive)/0.15)] text-[hsl(var(--color-destructive))]'
+    if (kind === 'receive')
+      return 'bg-[hsl(var(--color-tertiary-bright)/0.15)] text-[hsl(var(--color-tertiary-bright))]'
+    return 'bg-[hsl(var(--color-primary-bright)/0.15)] text-[hsl(var(--color-primary-bright))]'
   }
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -230,19 +231,19 @@ export function TransactionsPage() {
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <div className="text-3xl font-bold text-green-500">{receivedCount}</div>
+                <div className="text-3xl font-bold text-[hsl(var(--color-tertiary-bright))]">{receivedCount}</div>
                 <div className="text-sm text-muted-foreground">Received</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <div className="text-3xl font-bold text-red-500">{sentCount}</div>
+                <div className="text-3xl font-bold text-[hsl(var(--color-destructive))]">{sentCount}</div>
                 <div className="text-sm text-muted-foreground">Sent</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <div className="text-3xl font-bold text-blue-400">{interactCount}</div>
+                <div className="text-3xl font-bold text-[hsl(var(--color-primary-bright))]">{interactCount}</div>
                 <div className="text-sm text-muted-foreground">Interact</div>
               </CardContent>
             </Card>
@@ -283,8 +284,8 @@ export function TransactionsPage() {
 
         {/* Error */}
         {error && (
-          <Card className="mb-4 border-red-500">
-            <CardContent className="pt-4 text-red-500 text-sm">{error}</CardContent>
+          <Card className="mb-4 border-[hsl(var(--color-destructive))]">
+            <CardContent className="pt-4 text-[hsl(var(--color-destructive))] text-sm">{error}</CardContent>
           </Card>
         )}
 

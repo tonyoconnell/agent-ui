@@ -64,7 +64,7 @@ export const POST: APIRoute = async ({ request }) => {
       // Sync world structure to TypeDB first
       await syncWorld(worldSpec)
 
-      // Then derive identity for each agent (Sui keypair + on-chain Unit)
+      // Then derive identity for each agent (Sui keypair + on-chain Actor)
       const results = await Promise.all(agents.map((a) => syncAgentWithIdentity(a).catch(() => a)))
 
       return Response.json({

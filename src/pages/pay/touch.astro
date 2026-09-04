@@ -21,15 +21,15 @@ const currency = (Astro.url.searchParams.get("currency") ?? "usd").toLowerCase()
   title="Pay with Touch ID · ONE"
   description="One biometric, two rails. Apple Pay on Apple devices, Stripe Link everywhere else — both keyed to your passkey-bound identity."
 >
-  <main class="min-h-screen bg-[#0a0a0f] text-slate-100">
+  <main class="min-h-screen bg-background text-font">
     <div class="mx-auto max-w-md px-6 py-16">
 
       <header class="mb-10 space-y-3">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-300/80">
+        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--color-secondary-bright)/0.8)]">
           Fiat rail · Stripe
         </p>
         <h1 class="text-3xl font-semibold tracking-tight">Pay with Touch ID</h1>
-        <p class="text-sm leading-relaxed text-slate-400">
+        <p class="text-sm leading-relaxed text-muted-foreground">
           Apple Pay where it works. Stripe Link with your saved card everywhere else.
           Same identity, same biometric, one tap.
         </p>
@@ -40,7 +40,7 @@ const currency = (Astro.url.searchParams.get("currency") ?? "usd").toLowerCase()
         aria-label="Pay with Touch ID"
       >
         <div class="mb-6 flex items-baseline justify-between text-sm">
-          <span class="text-slate-400">Amount</span>
+          <span class="text-muted-foreground">Amount</span>
           <span class="font-mono text-lg text-white">
             {(amountMinor / 100).toLocaleString(undefined, { style: "currency", currency: currency.toUpperCase() })}
           </span>
@@ -55,7 +55,7 @@ const currency = (Astro.url.searchParams.get("currency") ?? "usd").toLowerCase()
         />
       </section>
 
-      <p class="mt-6 text-center text-[11px] text-slate-600">
+      <p class="mt-6 text-center text-[11px] text-muted-foreground/50">
         Card stored on your Stripe customer · {uid}
       </p>
     </div>

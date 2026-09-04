@@ -69,14 +69,14 @@ export const POST: APIRoute = async () => {
   `).catch((e) => results.push(`Group error: ${e.message}`))
   results.push('Marketing group created')
 
-  // Create units
+  // Create actors
   for (const u of MARKETING_UNITS) {
     const tagStr = u.tags.map((t) => `has tag "${t}"`).join(', ')
     await write(`
-      insert $u isa unit,
-        has uid "${u.uid}",
+      insert $u isa actor,
+        has aid "${u.uid}",
         has name "${u.name}",
-        has unit-kind "agent",
+        has actor-type "agent",
         has model "claude-sonnet-4-20250514",
         has status "active",
         has success-rate 0.5,
@@ -86,14 +86,14 @@ export const POST: APIRoute = async () => {
         has balance 0.0,
         has generation 0,
         ${tagStr};
-    `).catch((e) => results.push(`Unit ${u.uid} error: ${e.message}`))
+    `).catch((e) => results.push(`Actor ${u.uid} error: ${e.message}`))
   }
-  results.push(`${MARKETING_UNITS.length} units created`)
+  results.push(`${MARKETING_UNITS.length} actors created`)
 
   // Create memberships
   for (const u of MARKETING_UNITS) {
     await write(`
-      match $g isa group, has gid "marketing"; $u isa unit, has uid "${u.uid}";
+      match $g isa group, has gid "marketing"; $u isa actor, has aid "${u.uid}";
       insert (group: $g, member: $u) isa membership;
     `).catch(() => {})
   }
@@ -109,7 +109,7 @@ export const POST: APIRoute = async () => {
     `).catch(() => {})
 
     await write(`
-      match $u isa unit, has uid "${s.provider}";
+      match $u isa actor, has aid "${s.provider}";
             $s isa skill, has skill-id "${s.id}";
       insert (provider: $u, offered: $s) isa capability, has price ${s.price};
     `).catch(() => {})
@@ -121,7 +121,7 @@ export const POST: APIRoute = async () => {
   for (const u of MARKETING_UNITS) {
     if (u.uid !== director) {
       await write(`
-        match $from isa unit, has uid "${director}"; $to isa unit, has uid "${u.uid}";
+        match $from isa actor, has aid "${director}"; $to isa actor, has aid "${u.uid}";
         insert (source: $from, target: $to) isa path,
           has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
       `).catch(() => {})
@@ -132,7 +132,7 @@ export const POST: APIRoute = async () => {
   // Create collaboration paths
   for (const [from, to] of COLLAB_PATHS) {
     await write(`
-      match $from isa unit, has uid "${from}"; $to isa unit, has uid "${to}";
+      match $from isa actor, has aid "${from}"; $to isa actor, has aid "${to}";
       insert (source: $from, target: $to) isa path,
         has strength 1.0, has resistance 0.0, has traversals 0, has revenue 0.0;
     `).catch(() => {})
@@ -140,10 +140,10 @@ export const POST: APIRoute = async () => {
   results.push(`${COLLAB_PATHS.length} collaboration paths created`)
 
   // Verify
-  const units = await readParsed('match $u isa unit, has tag "marketing", has uid $uid; select $uid;').catch(() => [])
+  const actors = await readParsed('match $u isa actor, has tag "marketing", has aid $uid; select $uid;').catch(() => [])
   const paths = await readParsed(`
     match $e (source: $s, target: $t) isa path;
-          $s has uid $sid; $t has uid $tid;
+          $s has aid $sid; $t has aid $tid;
           $sid contains "marketing";
     select $sid, $tid; limit 20;
   `).catch(() => [])
@@ -152,7 +152,7 @@ export const POST: APIRoute = async () => {
     seeded: true,
     created: results,
     stats: {
-      units: units.length,
+      actors: actors.length,
       paths: paths.length,
     },
     timestamp: new Date().toISOString(),
@@ -160,14 +160,14 @@ export const POST: APIRoute = async () => {
 }
 
 export const GET: APIRoute = async () => {
-  const units = await readParsed(`
-    match $u isa unit, has tag "marketing", has uid $uid, has name $n;
+  const actors = await readParsed(`
+    match $u isa actor, has tag "marketing", has aid $uid, has name $n;
     select $uid, $n;
   `).catch(() => [])
 
   const paths = await readParsed(`
     match $e (source: $s, target: $t) isa path, has strength $str;
-          $s has uid $sid; $t has uid $tid;
+          $s has aid $sid; $t has aid $tid;
           $sid contains "marketing";
     select $sid, $tid, $str;
   `).catch(() => [])
@@ -181,10 +181,10 @@ export const GET: APIRoute = async () => {
   return Response.json({
     ok: true,
     marketing: {
-      units: units.length,
+      actors: actors.length,
       paths: paths.length,
       skills: skills.length,
     },
-    data: { units, paths, skills },
+    data: { actors, paths, skills },
   })
 }

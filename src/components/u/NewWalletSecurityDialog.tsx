@@ -106,12 +106,12 @@ export function NewWalletSecurityDialog({
           {step === 'reveal' && (
             <>
               {/* Critical Warning */}
-              <Card className="bg-red-500/10 border-red-500/30">
+              <Card className="bg-[hsl(var(--color-destructive)/0.15)] border-[hsl(var(--color-destructive)/0.3)]">
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-start gap-3">
                     <span className="text-2xl">🚨</span>
                     <div>
-                      <div className="font-bold text-red-600 dark:text-red-400">
+                      <div className="font-bold text-[hsl(var(--color-destructive))]">
                         CRITICAL: Save Your Recovery Phrase
                       </div>
                       <div className="text-sm mt-1">
@@ -138,10 +138,13 @@ export function NewWalletSecurityDialog({
               ) : (
                 <>
                   {/* Mnemonic Display */}
-                  <Card className="border-2 border-amber-500/30 bg-amber-500/5">
+                  <Card className="border-2 border-[hsl(var(--color-gold)/0.3)] bg-[hsl(var(--color-gold)/0.05)]">
                     <CardContent className="pt-6 pb-6">
                       <div className="text-center mb-4">
-                        <Badge variant="outline" className="text-amber-600 border-amber-500/30">
+                        <Badge
+                          variant="outline"
+                          className="text-[hsl(var(--color-gold))] border-[hsl(var(--color-gold)/0.3)]"
+                        >
                           🔑 12-Word Recovery Phrase
                         </Badge>
                       </div>
@@ -178,7 +181,7 @@ export function NewWalletSecurityDialog({
               </div>
 
               {/* Storage Info */}
-              <Card className="bg-blue-500/10 border-blue-500/20">
+              <Card className="bg-[hsl(var(--color-primary-bright)/0.15)] border-[hsl(var(--color-primary-bright)/0.2)]">
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-start gap-3">
                     <span className="text-xl">💾</span>
@@ -201,11 +204,11 @@ export function NewWalletSecurityDialog({
 
               {/* Best Practices */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Card className="bg-green-500/10 border-green-500/20">
+                <Card className="bg-[hsl(var(--color-tertiary-bright)/0.15)] border-[hsl(var(--color-tertiary-bright)/0.2)]">
                   <CardContent className="pt-4 pb-4">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-lg">✅</span>
-                      <span className="font-semibold text-green-600">DO</span>
+                      <span className="font-semibold text-[hsl(var(--color-tertiary-bright))]">DO</span>
                     </div>
                     <ul className="text-sm space-y-1">
                       <li>• Write it on paper</li>
@@ -217,11 +220,11 @@ export function NewWalletSecurityDialog({
                   </CardContent>
                 </Card>
 
-                <Card className="bg-red-500/10 border-red-500/20">
+                <Card className="bg-[hsl(var(--color-destructive)/0.15)] border-[hsl(var(--color-destructive)/0.2)]">
                   <CardContent className="pt-4 pb-4">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-lg">❌</span>
-                      <span className="font-semibold text-red-600">DON'T</span>
+                      <span className="font-semibold text-[hsl(var(--color-destructive))]">DON'T</span>
                     </div>
                     <ul className="text-sm space-y-1">
                       <li>• Screenshot on your phone</li>
@@ -235,7 +238,7 @@ export function NewWalletSecurityDialog({
               </div>
 
               {/* Export Backup Reminder */}
-              <Card className="bg-purple-500/10 border-purple-500/20">
+              <Card className="bg-[hsl(var(--color-secondary-bright)/0.15)] border-[hsl(var(--color-secondary-bright)/0.2)]">
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-start gap-3">
                     <span className="text-xl">💾</span>

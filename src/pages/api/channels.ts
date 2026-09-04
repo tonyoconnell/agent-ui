@@ -23,8 +23,8 @@ export const GET: APIRoute = async () => {
     const signalRows = await readParsed(`
       match
         $s (sender: $from, receiver: $to) isa signal, has ts $ts, has success $ok;
-        $from has uid $fid, has name $fn;
-        $to has uid $tid, has name $tn;
+        $from has aid $fid, has name $fn;
+        $to has aid $tid, has name $tn;
       select $fid, $fn, $tid, $tn, $ts, $ok;
     `).catch(() => [])
 

@@ -42,7 +42,7 @@ export const GET: APIRoute = async () => {
       match
         $s isa skill, has skill-id $sid;
         (provider: $u, offered: $s) isa capability;
-        $u has uid $uid;
+        $u has aid $uid;
       select $sid, $uid;
     `).catch(() => [])
 

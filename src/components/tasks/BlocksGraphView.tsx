@@ -60,20 +60,20 @@ export interface BlocksGraphViewProps {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const C = {
-  bg: '#0a0a0f',
-  surface: '#161622',
-  border: '#252538',
-  muted: '#6b7280',
-  white: '#f1f5f9',
+  bg: 'hsl(var(--color-background))',
+  surface: 'hsl(var(--color-card))',
+  border: 'hsl(var(--color-border))',
+  muted: 'hsl(var(--color-muted-foreground))',
+  white: 'hsl(var(--color-font))',
 
   // Status backgrounds (bg/border pairs)
-  open: { bg: '#1e293b', border: '#334155' },
-  picked: { bg: '#1e3a5f', border: '#3b82f6' },
-  done: { bg: '#451a03', border: '#f59e0b' },
-  verified: { bg: '#052e16', border: '#22c55e' },
-  failed: { bg: '#450a0a', border: '#ef4444' },
-  blocked: { bg: '#1c1c1c', border: '#4b5563' },
-  dissolved: { bg: '#0f0f0f', border: '#374151' },
+  open: { bg: 'hsl(var(--color-muted-foreground)/0.15)', border: 'hsl(var(--color-muted-foreground))' },
+  picked: { bg: 'hsl(var(--color-primary-mid)/0.15)', border: 'hsl(var(--color-primary-bright))' },
+  done: { bg: 'hsl(var(--color-gold)/0.15)', border: 'hsl(var(--color-gold))' },
+  verified: { bg: 'hsl(var(--color-tertiary-bright)/0.15)', border: 'hsl(var(--color-tertiary-bright))' },
+  failed: { bg: 'hsl(var(--color-destructive)/0.15)', border: 'hsl(var(--color-destructive))' },
+  blocked: { bg: 'hsl(var(--color-muted)/0.15)', border: 'hsl(var(--color-muted-foreground))' },
+  dissolved: { bg: 'hsl(var(--color-background)/0.5)', border: 'hsl(var(--color-muted-foreground)/0.5)' },
 }
 
 function statusStyle(s: TaskStatus) {
@@ -119,7 +119,7 @@ function BlocksEdge(props: EdgeProps) {
       id={id}
       path={path}
       style={{
-        stroke: '#64748b',
+        stroke: 'hsl(var(--color-muted-foreground))',
         strokeWidth: 1.5,
         strokeOpacity: verified ? 0.8 : 0.4,
         strokeDasharray: verified ? undefined : '5 3',
@@ -195,8 +195,12 @@ function TaskNode({ data }: NodeProps) {
       {/* Bottom row: pheromone */}
       {(d.strength > 0 || d.resistance > 0) && (
         <div className="flex items-center gap-2 text-[9px] font-mono" style={{ color: C.muted }}>
-          {d.strength > 0 && <span style={{ color: '#22c55e' }}>↗{d.strength.toFixed(0)}</span>}
-          {d.resistance > 0 && <span style={{ color: '#ef4444' }}>↘{d.resistance.toFixed(0)}</span>}
+          {d.strength > 0 && (
+            <span style={{ color: 'hsl(var(--color-tertiary-bright))' }}>↗{d.strength.toFixed(0)}</span>
+          )}
+          {d.resistance > 0 && (
+            <span style={{ color: 'hsl(var(--color-destructive))' }}>↘{d.resistance.toFixed(0)}</span>
+          )}
         </div>
       )}
     </div>
@@ -325,7 +329,7 @@ export function BlocksGraphView({ tasks, onSelect }: BlocksGraphViewProps) {
       <svg style={{ position: 'absolute', width: 0, height: 0 }}>
         <defs>
           <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L8,3 z" fill="#64748b" fillOpacity={0.6} />
+            <path d="M0,0 L0,6 L8,3 z" fill="hsl(var(--color-muted-foreground))" fillOpacity={0.6} />
           </marker>
         </defs>
       </svg>

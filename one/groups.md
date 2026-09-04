@@ -598,7 +598,7 @@ All six dimensions participate. Groups are dimension 1 — not an add-on.
 
 ## See Also
 
-- [auth.md](auth.md) — Identity, API keys, wallet derivation
+- [auth.md](one-ie/dev.one.ie/one/auth.md) — Identity, API keys, wallet derivation
 - [one-ontology.md](one-ontology.md) — The 6 dimensions
 - [naming.md](naming.md) — Canonical names
 - [DSL.md](one/DSL.md) — Signal grammar
